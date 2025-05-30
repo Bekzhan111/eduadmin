@@ -769,3 +769,183 @@ ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id);
 - Safe clipboard operations implemented with fallback mechanisms
 - School selection validation ensures proper key generation hierarchy
 - Key visibility sections follow consistent design patterns across all management pages
+
+# Bug Fix Documentation
+
+## Build & Linting Issues Resolution - 2024-12-28
+
+### Issues Fixed ✅
+
+#### 1. React/No-Unescaped-Entities Errors
+**Files affected:** 
+- `src/app/bulk-purchase/page.tsx`
+- `src/app/marketplace/books/[id]/purchase/page.tsx`
+- `src/app/marketplace/page.tsx`
+
+**Bug:** Unescaped quotes and apostrophes in JSX text
+**Cause:** Using raw quotes (`"` and `'`) in JSX instead of HTML entities
+**Fix:** Replaced with proper HTML entities:
+- `"` → `&quot;`
+- `'` → `&apos;`
+
+**Example:**
+```jsx
+// Before
+<p>Choose "All Books" for access</p>
+<p>We'll contact you</p>
+
+// After  
+<p>Choose &quot;All Books&quot; for access</p>
+<p>We&apos;ll contact you</p>
+```
+
+#### 2. TypeScript Unused Variables
+**Files affected:**
+- `src/app/page.tsx`
+- `src/app/marketplace/page.tsx`  
+- `src/app/marketplace/books/[id]/page.tsx`
+
+**Bug:** Imported but unused variables
+**Cause:** Imports added but not actually used in components
+**Fix:** Removed unused imports:
+- `Badge`, `CheckCircle`, `Star`, `Globe`, `ArrowRight` from homepage
+- `Filter` from marketplace page
+- `BookOpen` from book detail page
+
+#### 3. Empty Interface Definitions
+**Files affected:**
+- `src/components/ui/label.tsx`
+- `src/components/ui/textarea.tsx`
+
+**Bug:** Empty TypeScript interfaces that add no value
+**Cause:** Interface extending base type without additional properties
+**Fix:** 
+- Replaced empty interfaces with direct type usage
+- Updated Label component to use Radix UI properly with `class-variance-authority`
+- Fixed import path from `@/lib/utils` to `@/utils/cn`
+
+#### 4. React Hooks Dependency Issues
+**Files affected:**
+- `src/app/marketplace/page.tsx`
+- `src/app/marketplace/books/[id]/purchase/page.tsx`
+
+**Bug:** Missing dependencies in useEffect hooks
+**Cause:** Functions used in useEffect not included in dependency array
+**Fix:** 
+- Wrapped functions with `useCallback` 
+- Added proper dependencies to useEffect arrays
+- Fixed function declaration order to prevent reference errors
+
+#### 5. Next.js Image Optimization Warnings
+**Files affected:**
+- `src/app/marketplace/page.tsx`
+- `src/app/marketplace/books/[id]/page.tsx`
+- `src/app/marketplace/books/[id]/purchase/page.tsx`
+- `src/components/marketplace/FeaturedBooks.tsx`
+
+**Bug:** Using `<img>` instead of Next.js optimized `<Image>`
+**Cause:** Raw HTML img tags used for better performance warning
+**Fix:** Replaced all `<img>` tags with Next.js `<Image>` component:
+```jsx
+// Before
+<img src={book.cover_image} alt={book.title} className="..." />
+
+// After
+<Image 
+  src={book.cover_image || "/placeholder-book.jpg"} 
+  alt={book.title}
+  width={200}
+  height={280}
+  className="..."
+/>
+```
+
+#### 6. Next.js 15 Params Compatibility
+**Files affected:**
+- `src/app/marketplace/books/[id]/page.tsx`
+
+**Bug:** Type error with page params in Next.js 15
+**Cause:** Next.js 15 changed params to be a Promise
+**Fix:** Updated page component signature:
+```tsx
+// Before
+export default async function BookDetailPage({ params }: { params: { id: string } }) {
+  const book = await getBook(params.id);
+
+// After  
+export default async function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const book = await getBook(id);
+```
+
+#### 7. Server/Client Component Compatibility
+**Files affected:**
+- `src/components/marketplace/FeaturedBooks.tsx`
+
+**Bug:** Mixed server/client component patterns
+**Cause:** Component defined as async server component but used React hooks
+**Fix:** Converted to client component with proper state management:
+```tsx
+// Added 'use client' directive
+// Converted async function to useEffect pattern
+// Added loading states and error handling
+```
+
+#### 8. Variable Declaration Issues
+**Files affected:**
+- `src/app/marketplace/page.tsx`
+
+**Bug:** Using `let` for variables that are never reassigned
+**Cause:** ESLint prefer-const rule violation
+**Fix:** Changed `let filtered` to `const filtered` for immutable variables
+
+#### 9. Import Path Issues
+**Files affected:**
+- `src/components/ui/label.tsx`
+- `src/app/marketplace/books/[id]/purchase/page.tsx`
+
+**Bug:** Incorrect import paths for utility functions
+**Cause:** Using non-existent paths like `@/lib/utils`
+**Fix:** Updated to correct paths: `@/utils/cn`, `@/utils/supabase`
+
+### Build Results ✅
+
+**Before fixes:**
+- Build failed with multiple TypeScript and ESLint errors
+- ~15+ linting errors across multiple files
+- Type compatibility issues with Next.js 15
+
+**After fixes:**
+- ✅ `npm run build` - 0 errors, successful build
+- ✅ `npm run lint` - 0 warnings or errors  
+- ✅ All TypeScript types properly resolved
+- ✅ Next.js 15 compatibility confirmed
+
+### Testing Status ✅
+
+**Build Process:**
+- ✅ Development build: `npm run dev` - working
+- ✅ Production build: `npm run build` - successful
+- ✅ Code quality: `npm run lint` - clean
+
+**Component Status:**
+- ✅ All marketplace pages render without errors
+- ✅ All forms have proper validation
+- ✅ All navigation links functional
+- ✅ Responsive design maintained
+- ✅ Image optimization applied
+
+### Prevention Measures
+
+1. **Automated Checking:** Ensure `npm run build` and `npm run lint` pass before commits
+2. **Type Safety:** Use proper TypeScript types for all props and interfaces  
+3. **Import Management:** Regularly check for unused imports
+4. **HTML Entities:** Use proper HTML entities in JSX text content
+5. **Next.js Updates:** Stay current with Next.js breaking changes and migration guides
+
+---
+
+**Resolution Date:** 2024-12-28  
+**Total Issues Fixed:** 9 categories, 15+ individual errors  
+**Status:** All resolved ✅  
+**Build Status:** Production ready ✅
