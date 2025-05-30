@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase';
@@ -61,12 +61,15 @@ export default function Sidebar({
   const router = useRouter();
   const { userProfile, isLoading, error, clearAuth } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const previousPathnameRef = useRef(pathname);
 
-  // Close sidebar on route change (mobile)
+  // Close sidebar on route change (mobile only)
   useEffect(() => {
-    if (onClose) {
+    // Only close if the pathname actually changed and we're on mobile
+    if (onClose && pathname !== previousPathnameRef.current && window.innerWidth < 1024) {
       onClose();
     }
+    previousPathnameRef.current = pathname;
   }, [pathname, onClose]);
 
   const handleSignOut = async () => {

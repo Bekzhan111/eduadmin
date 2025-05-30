@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/layout/Sidebar';
@@ -14,6 +14,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  const closeSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -67,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <AppBar onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
       
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
         
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto p-4">
