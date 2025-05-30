@@ -2,9 +2,44 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase';
+import { safeCopyToClipboard, showCopyNotification } from '@/utils/clipboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useParams, useRouter } from 'next/navigation';
+import { Copy, Key } from 'lucide-react';
+
+// Utility function to extract meaningful error messages
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  if (error && typeof error === 'object') {
+    // Handle Supabase errors which may have message, details, hint properties
+    const errorObj = error as Record<string, unknown>;
+    if ('message' in errorObj && typeof errorObj.message === 'string') {
+      return errorObj.message;
+    }
+    if ('details' in errorObj && typeof errorObj.details === 'string') {
+      return errorObj.details;
+    }
+    if ('hint' in errorObj && typeof errorObj.hint === 'string') {
+      return errorObj.hint;
+    }
+    // Fallback to JSON stringify for complex objects
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Unknown error object';
+    }
+  }
+  
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  return 'An unknown error occurred';
+}
 
 type School = {
   id: string;
@@ -12,6 +47,7 @@ type School = {
   city: string;
   address: string;
   bin: string;
+  registration_key: string;
   max_teachers: number;
   max_students: number;
   created_at: string;
@@ -193,8 +229,8 @@ export default function SchoolDetailPage() {
       
       setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching school details:', error);
-      setError(`Error fetching school details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error fetching school details:', getErrorMessage(error));
+      setError(`Error fetching school details: ${getErrorMessage(error)}`);
       setIsLoading(false);
     }
   }, [schoolId]);
@@ -234,8 +270,8 @@ export default function SchoolDetailPage() {
       );
       
       if (assignError) {
-        console.error('Error assigning keys:', assignError);
-        setError(`Error assigning keys: ${assignError.message}`);
+        console.error('Error assigning keys:', getErrorMessage(assignError));
+        setError(`Error assigning keys: ${getErrorMessage(assignError)}`);
         setIsLoading(false);
         return;
       }
@@ -244,8 +280,8 @@ export default function SchoolDetailPage() {
       setShowAssignModal(false);
       fetchSchoolDetails(); // Refresh data
     } catch (error) {
-      console.error('Error assigning keys:', error);
-      setError(`Error assigning keys: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error assigning keys:', getErrorMessage(error));
+      setError(`Error assigning keys: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -277,8 +313,8 @@ export default function SchoolDetailPage() {
       );
       
       if (genError) {
-        console.error(`Error generating ${role} keys:`, genError);
-        setError(`Error generating ${role} keys: ${genError.message}`);
+        console.error(`Error generating ${role} keys:`, getErrorMessage(genError));
+        setError(`Error generating ${role} keys: ${getErrorMessage(genError)}`);
         setIsLoading(false);
         return;
       }
@@ -286,8 +322,8 @@ export default function SchoolDetailPage() {
       setSuccess(`Successfully generated ${count} ${role} keys`);
       fetchSchoolDetails(); // Refresh data
     } catch (error) {
-      console.error('Error generating keys:', error);
-      setError(`Error generating keys: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error generating keys:', getErrorMessage(error));
+      setError(`Error generating keys: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -346,6 +382,37 @@ export default function SchoolDetailPage() {
           {success}
         </div>
       )}
+      
+      {/* School Registration Key */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4 flex items-center">
+          <Key className="h-5 w-5 mr-2" />
+          School Registration Key
+        </h2>
+        <div className="flex items-center space-x-3">
+          <div className="flex-1">
+            <Input
+              value={school.registration_key}
+              readOnly
+              className="font-mono bg-gray-50 dark:bg-gray-700"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              const success = await safeCopyToClipboard(school.registration_key);
+              showCopyNotification(school.registration_key, success);
+            }}
+          >
+            <Copy className="h-4 w-4 mr-1" />
+            Copy
+          </Button>
+        </div>
+        <p className="mt-2 text-sm text-gray-500">
+          Share this key with school administrators to register their account
+        </p>
+      </div>
       
       {/* School Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -480,7 +547,10 @@ export default function SchoolDetailPage() {
           </h2>
           
           <div className="mb-4">
-            <Button onClick={() => setShowAssignModal(true)} disabled={stats.free_student_keys === 0}>
+            <Button 
+              onClick={() => setShowAssignModal(true)} 
+              disabled={stats.free_student_keys === 0}
+            >
               Assign Keys to Teacher
             </Button>
             <Button 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SkeletonLoader } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 
 type Teacher = {
@@ -28,6 +29,11 @@ type TeacherKey = {
   created_at: string;
 };
 
+type School = {
+  id: string;
+  name: string;
+};
+
 export default function TeachersPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -36,10 +42,12 @@ export default function TeachersPage() {
   
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [availableKeys, setAvailableKeys] = useState<TeacherKey[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userSchoolId, setUserSchoolId] = useState<string | null>(null);
   
   const [generateCount, setGenerateCount] = useState(5);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   
   const fetchTeachers = useCallback(async () => {
@@ -74,6 +82,21 @@ export default function TeachersPage() {
       
       setUserRole(userData.role);
       setUserSchoolId(userData.school_id);
+      
+      // If super admin, fetch all schools for selection
+      if (userData.role === 'super_admin') {
+        const { data: schoolsData, error: schoolsError } = await supabase
+          .from('schools')
+          .select('id, name')
+          .order('name');
+          
+        if (schoolsError) {
+          console.error('Error fetching schools:', schoolsError);
+          setError(`Error fetching schools: ${schoolsError.message}`);
+        } else {
+          setSchools(schoolsData || []);
+        }
+      }
       
       // Fetch teachers based on user role
       let teachersQuery = supabase.from('users').select(`
@@ -162,6 +185,12 @@ export default function TeachersPage() {
       return;
     }
     
+    // For super admin, require school selection
+    if (userRole === 'super_admin' && !selectedSchoolId) {
+      setError('Please select a school to generate teacher keys for');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setSuccess(null);
@@ -177,12 +206,15 @@ export default function TeachersPage() {
         return;
       }
       
+      // Determine which school ID to use
+      const targetSchoolId = userRole === 'super_admin' ? selectedSchoolId : userSchoolId;
+      
       // Generate teacher keys
       const { data: _result, error: generateError } = await supabase.rpc(
         'generate_teacher_keys',
         {
           creator_id: sessionData.session.user.id,
-          target_school_id: userSchoolId,
+          target_school_id: targetSchoolId,
           count: generateCount
         }
       );
@@ -194,8 +226,13 @@ export default function TeachersPage() {
         return;
       }
       
-      setSuccess(`Successfully generated ${generateCount} teacher registration keys!`);
+      const schoolName = userRole === 'super_admin' 
+        ? schools.find(s => s.id === selectedSchoolId)?.name || 'selected school'
+        : 'your school';
+      
+      setSuccess(`Successfully generated ${generateCount} teacher registration keys for ${schoolName}!`);
       setShowGenerateForm(false);
+      setSelectedSchoolId(''); // Reset selection
       fetchTeachers(); // Refresh data
     } catch (error) {
       console.error('Error generating keys:', error);
@@ -206,7 +243,30 @@ export default function TeachersPage() {
   };
   
   if (isLoading) {
-    return <div className="p-6">Loading teachers data...</div>;
+    return (
+      <div className="p-6 space-y-6">
+        {/* Page header skeleton */}
+        <div className="flex justify-between items-center">
+          <SkeletonLoader type="text" lines={1} className="w-1/4" />
+          <SkeletonLoader type="custom" height={40} width={150} />
+        </div>
+        
+        {/* Registration keys section skeleton */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <SkeletonLoader type="text" lines={1} className="w-1/5" />
+            <SkeletonLoader type="custom" height={32} width={160} />
+          </div>
+          <SkeletonLoader type="table" rows={5} />
+        </div>
+        
+        {/* Teachers section skeleton */}
+        <div className="space-y-4">
+          <SkeletonLoader type="text" lines={1} className="w-1/6" />
+          <SkeletonLoader type="table" rows={6} />
+        </div>
+      </div>
+    );
   }
   
   if (!userRole) {
@@ -271,24 +331,50 @@ export default function TeachersPage() {
         
         {showGenerateForm && (
           <form onSubmit={handleGenerateKeys} className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 items-end">
-              <div className="flex-1">
-                <label htmlFor="generateCount" className="block text-sm font-medium mb-1">
-                  Number of Keys to Generate
-                </label>
-                <Input
-                  id="generateCount"
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={generateCount}
-                  onChange={(e) => setGenerateCount(parseInt(e.target.value))}
-                  className="w-full"
-                />
+            <div className="flex flex-col space-y-4">
+              {/* School Selection for Super Admin */}
+              {userRole === 'super_admin' && (
+                <div>
+                  <label htmlFor="schoolSelect" className="block text-sm font-medium mb-1">
+                    Select School
+                  </label>
+                  <select
+                    id="schoolSelect"
+                    value={selectedSchoolId}
+                    onChange={(e) => setSelectedSchoolId(e.target.value)}
+                    className="block w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    required
+                  >
+                    <option value="">Select a school</option>
+                    {schools.map((school) => (
+                      <option key={school.id} value={school.id}>
+                        {school.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              {/* Key Count Input */}
+              <div className="flex flex-col md:flex-row md:space-x-4 md:items-end">
+                <div className="flex-1">
+                  <label htmlFor="generateCount" className="block text-sm font-medium mb-1">
+                    Number of Keys to Generate
+                  </label>
+                  <Input
+                    id="generateCount"
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={generateCount}
+                    onChange={(e) => setGenerateCount(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Generating...' : 'Generate Keys'}
+                </Button>
               </div>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Generating...' : 'Generate Keys'}
-              </Button>
             </div>
           </form>
         )}

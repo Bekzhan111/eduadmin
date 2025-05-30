@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SkeletonLoader } from '@/components/ui/skeleton';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
+import { Key } from 'lucide-react';
 
 type School = {
   id: string;
@@ -19,6 +21,7 @@ type School = {
   max_students: number;
   created_at: string;
   created_by: string;
+  registration_key?: string;
 };
 
 const createSchoolSchema = z.object({
@@ -26,6 +29,7 @@ const createSchoolSchema = z.object({
   city: z.string().min(2, 'City must be at least 2 characters'),
   address: z.string().min(5, 'Address must be at least 5 characters'),
   bin: z.string().min(4, 'BIN must be at least 4 characters'),
+  registration_key: z.string().min(6, 'Registration key must be at least 6 characters'),
   max_teachers: z.coerce.number().int().positive().min(1).max(100),
   max_students: z.coerce.number().int().positive().min(1).max(1000)
 });
@@ -38,21 +42,43 @@ export default function SchoolsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [newSchoolKey, setNewSchoolKey] = useState<string | null>(null);
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
   
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CreateSchoolValues>({
     resolver: zodResolver(createSchoolSchema),
     defaultValues: {
       max_teachers: 5,
-      max_students: 100
+      max_students: 100,
+      registration_key: ''
     }
   });
   
+  // Function to generate a secure random key
+  const generateRegistrationKey = () => {
+    setIsGeneratingKey(true);
+    
+    // Generate a random key using crypto.getRandomValues for security
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    const randomArray = new Uint8Array(12);
+    crypto.getRandomValues(randomArray);
+    
+    for (let i = 0; i < 12; i++) {
+      result += chars[randomArray[i] % chars.length];
+    }
+    
+    // Format as XXX-XXX-XXX-XXX
+    const formattedKey = result.match(/.{1,3}/g)?.join('-') || result;
+    setValue('registration_key', formattedKey);
+    setIsGeneratingKey(false);
+  };
+
   useEffect(() => {
     fetchSchools();
   }, []);
@@ -98,7 +124,7 @@ export default function SchoolsPage() {
         return;
       }
       
-      // Fetch schools data
+      // Fetch schools data including registration key
       const { data: schoolsData, error: schoolsError } = await supabase
         .from('schools')
         .select('*')
@@ -133,22 +159,7 @@ export default function SchoolsPage() {
         return;
       }
       
-      // First generate a school key
-      const { data: keyData, error: keyError } = await supabase.rpc(
-        'generate_school_key',
-        { creator_id: sessionData.session.user.id }
-      );
-      
-      if (keyError) {
-        console.error('Error generating school key:', keyError);
-        setError(`Error generating school key: ${keyError.message}`);
-        return;
-      }
-      
-      // Store the key for display
-      setNewSchoolKey(keyData);
-      
-      // Create the school
+      // Create the school with the provided registration key
       const { data: schoolData, error: schoolError } = await supabase
         .from('schools')
         .insert([
@@ -157,6 +168,7 @@ export default function SchoolsPage() {
             city: data.city,
             address: data.address,
             bin: data.bin,
+            registration_key: data.registration_key,
             max_teachers: data.max_teachers,
             max_students: data.max_students,
             created_by: sessionData.session.user.id
@@ -171,7 +183,27 @@ export default function SchoolsPage() {
         return;
       }
       
-      // Generate teacher and student keys
+      // Create the registration key in the registration_keys table
+      const { error: keyError } = await supabase
+        .from('registration_keys')
+        .insert([
+          {
+            key: data.registration_key,
+            role: 'school',
+            max_uses: 1,
+            is_active: true,
+            uses: 0,
+            created_by: sessionData.session.user.id
+          }
+        ]);
+      
+      if (keyError) {
+        console.error('Error creating registration key:', keyError);
+        // Don't fail the school creation, just warn
+        console.warn('School created but registration key could not be added to registration_keys table');
+      }
+      
+      // Generate teacher and student keys for the school
       await supabase.rpc(
         'generate_teacher_keys',
         { 
@@ -190,7 +222,7 @@ export default function SchoolsPage() {
         }
       );
       
-      setSuccess(`School created successfully! Share this registration key: ${keyData}`);
+      setSuccess(`School created successfully! Registration key: ${data.registration_key}`);
       reset();
       fetchSchools();
       setShowModal(false);
@@ -201,7 +233,24 @@ export default function SchoolsPage() {
   };
   
   if (isLoading) {
-    return <div className="p-4">Loading schools...</div>;
+    return (
+      <div className="p-6 space-y-6">
+        {/* Page header skeleton */}
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <SkeletonLoader type="text" lines={1} className="w-1/4" />
+            <SkeletonLoader type="text" lines={1} className="w-1/2" />
+          </div>
+          <SkeletonLoader type="custom" height={40} width={120} />
+        </div>
+        
+        {/* Schools list card skeleton */}
+        <div className="space-y-4">
+          <SkeletonLoader type="text" lines={1} className="w-1/6" />
+          <SkeletonLoader type="table" rows={6} />
+        </div>
+      </div>
+    );
   }
   
   if (error) {
@@ -372,6 +421,42 @@ export default function SchoolsPage() {
                 )}
               </div>
               
+              <div>
+                <label htmlFor="registration_key" className="block text-sm font-medium mb-1">
+                  Registration Key
+                </label>
+                <div className="flex space-x-2">
+                  <Input
+                    id="registration_key"
+                    {...register('registration_key')}
+                    className={`flex-1 ${errors.registration_key ? 'border-red-300' : ''}`}
+                    placeholder="Enter or generate a registration key"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={generateRegistrationKey}
+                    disabled={isGeneratingKey}
+                    className="px-3"
+                  >
+                    {isGeneratingKey ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    ) : (
+                      <>
+                        <Key className="h-4 w-4 mr-1" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {errors.registration_key && (
+                  <p className="mt-1 text-xs text-red-500">{errors.registration_key.message}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  This key will be used by school administrators to register their account
+                </p>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="max_teachers" className="block text-sm font-medium mb-1">
@@ -415,16 +500,6 @@ export default function SchoolsPage() {
                 <Button type="submit">Create School</Button>
               </div>
             </form>
-            
-            {newSchoolKey && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                <p className="text-sm font-medium text-blue-800">School Registration Key:</p>
-                <p className="font-mono mt-1 select-all">{newSchoolKey}</p>
-                <p className="text-xs mt-2 text-blue-600">
-                  Share this key with the school administrator to complete registration.
-                </p>
-              </div>
-            )}
           </div>
         </div>
       )}
