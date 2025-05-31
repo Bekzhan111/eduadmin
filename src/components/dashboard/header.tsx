@@ -31,11 +31,23 @@ export default function DashboardHeader({ user, userRole, userName }: DashboardH
     }
   };
 
+  const translateRole = (role: string) => {
+    switch (role) {
+      case 'super_admin': return 'Супер Администратор';
+      case 'school': return 'Школа';
+      case 'teacher': return 'Учитель';
+      case 'student': return 'Студент';
+      case 'author': return 'Автор';
+      case 'moderator': return 'Модератор';
+      default: return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-10 w-full border-b bg-white dark:bg-slate-950">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center">
-          <span className="md:hidden font-bold text-lg">Admin Panel</span>
+          <span className="md:hidden font-bold text-lg">Админ Панель</span>
         </div>
         
         <div className="flex items-center gap-4">
@@ -47,7 +59,7 @@ export default function DashboardHeader({ user, userRole, userName }: DashboardH
             </span>
             {userRole && (
               <span className="ml-2 inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
-                {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                {translateRole(userRole)}
               </span>
             )}
           </div>
@@ -58,7 +70,7 @@ export default function DashboardHeader({ user, userRole, userName }: DashboardH
             disabled={isLoggingOut}
             size="sm"
           >
-            {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+            {isLoggingOut ? 'Выход...' : 'Выйти'}
           </Button>
         </div>
       </div>

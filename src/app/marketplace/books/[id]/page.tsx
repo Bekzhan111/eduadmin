@@ -52,15 +52,15 @@ async function getBook(id: string): Promise<Book | null> {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return '0 Байт';
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ['Байт', 'КБ', 'МБ', 'ГБ'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  return new Date(dateString).toLocaleDateString('ru-RU', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -87,7 +87,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
             className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Books
+            Назад к книгам
           </Link>
         </div>
 
@@ -109,23 +109,23 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                 <div className="space-y-4">
                   <div className="text-center">
                     <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                      ${book.price || 'Free'}
+                      ${book.price || 'Бесплатно'}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      One-time purchase
+                      Разовая покупка
                     </div>
                   </div>
 
                   <Link href={`/marketplace/books/${book.id}/purchase`}>
                     <Button size="lg" className="w-full">
                       <ShoppingCart className="h-5 w-5 mr-2" />
-                      Purchase Book
+                      Купить книгу
                     </Button>
                   </Link>
 
                   <div className="text-center">
                     <Link href="/bulk-purchase" className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
-                      Need bulk pricing? Contact us
+                      Нужны оптовые цены? Свяжитесь с нами
                     </Link>
                   </div>
                 </div>
@@ -177,7 +177,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Users className="h-5 w-5 mr-2" />
-                  Book Statistics
+                  Статистика книги
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -187,7 +187,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                       {book.schools_purchased}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Schools
+                      Школ
                     </div>
                   </div>
                   <div className="text-center">
@@ -195,7 +195,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                       {book.downloads_count}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Downloads
+                      Загрузок
                     </div>
                   </div>
                   {book.pages_count && (
@@ -204,7 +204,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                         {book.pages_count}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Pages
+                        Страниц
                       </div>
                     </div>
                   )}
@@ -217,7 +217,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <FileText className="h-5 w-5 mr-2" />
-                  Technical Details
+                  Технические детали
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -236,7 +236,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                   {book.publisher && (
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        Publisher
+                        Издательство
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         {book.publisher}
@@ -247,7 +247,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                   {book.publication_date && (
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        Publication Date
+                        Дата публикации
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
@@ -258,18 +258,18 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                   
                   <div>
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      Language
+                      Язык
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
                       <Globe className="h-3 w-3 mr-1" />
-                      {book.language || 'English'}
+                      {book.language || 'Английский'}
                     </div>
                   </div>
                   
                   {book.file_size && (
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        File Size
+                        Размер файла
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
                         <Download className="h-3 w-3 mr-1" />
@@ -280,7 +280,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                   
                   <div>
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      Added to Platform
+                      Добавлено на платформу
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       {formatDate(book.created_at)}
@@ -293,29 +293,29 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
             {/* Additional Information */}
             <Card>
               <CardHeader>
-                <CardTitle>About This Book</CardTitle>
+                <CardTitle>О этой книге</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p>
-                    This educational book is designed for {book.grade_level} students 
-                    {book.course && ` studying ${book.course}`}. 
-                    {book.category && ` It falls under the ${book.category} category`} 
-                    and provides comprehensive learning materials to enhance understanding of the subject matter.
+                    Эта образовательная книга предназначена для учащихся {book.grade_level} 
+                    {book.course && ` изучающих ${book.course}`}. 
+                    {book.category && ` Она относится к категории ${book.category}`} 
+                    и предоставляет комплексные учебные материалы для улучшения понимания предмета.
                   </p>
                   
                   {book.schools_purchased > 0 && (
                     <p>
-                      This book has been trusted by {book.schools_purchased} educational institutions 
-                      and has been downloaded {book.downloads_count} times, making it a proven resource 
-                      for effective learning.
+                      Этой книге доверяют {book.schools_purchased} образовательных учреждений 
+                      и она была загружена {book.downloads_count} раз, что делает её проверенным ресурсом 
+                      для эффективного обучения.
                     </p>
                   )}
 
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
                     <School className="h-4 w-4 inline mr-1" />
-                    Suitable for both individual learning and classroom use. 
-                    Schools can purchase bulk licenses for their students.
+                    Подходит как для индивидуального обучения, так и для использования в классе. 
+                    Школы могут приобрести оптовые лицензии для своих учеников.
                   </p>
                 </div>
               </CardContent>

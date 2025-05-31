@@ -78,7 +78,7 @@ export default function StudentsPage() {
         .order('created_at', { ascending: false });
       
       if (studentsError) {
-        throw new Error(`Failed to fetch students: ${studentsError.message}`);
+        throw new Error(`Не удалось получить студентов: ${studentsError.message}`);
       }
       
       // Fetch schools separately to avoid relationship conflicts
@@ -113,7 +113,7 @@ export default function StudentsPage() {
       setFilteredStudents(formattedStudents);
     } catch (error) {
       console.error('Error fetching students:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch students');
+      setError(error instanceof Error ? error.message : 'Не удалось получить студентов');
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +147,7 @@ export default function StudentsPage() {
   useEffect(() => {
     if (!authLoading && userProfile) {
       if (userProfile.role !== 'super_admin') {
-        setError('Access denied. Only super administrators can view this page.');
+        setError('Доступ запрещен. Только суперадминистраторы могут просматривать эту страницу.');
         setIsLoading(false);
         return;
       }
@@ -189,7 +189,7 @@ export default function StudentsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <p className="text-lg font-semibold">Error</p>
+              <p className="text-lg font-semibold">Ошибка</p>
               <p>{error}</p>
             </div>
           </CardContent>
@@ -202,15 +202,15 @@ export default function StudentsPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Students Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Управление Студентами</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage all students in the system
+            Управление всеми студентами в системе
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="text-sm">
             <GraduationCap className="h-4 w-4 mr-1" />
-            {filteredStudents.length} students
+            {filteredStudents.length} студентов
           </Badge>
         </div>
       </div>
@@ -220,17 +220,17 @@ export default function StudentsPage() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
             <Filter className="h-5 w-5 mr-2" />
-            Filters
+            Фильтры
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
+              <label className="text-sm font-medium">Поиск</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search by name, email, or school..."
+                  placeholder="Поиск по имени, email или школе..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -239,14 +239,14 @@ export default function StudentsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">School</label>
+              <label className="text-sm font-medium">Школа</label>
               <Select value={schoolFilter} onValueChange={setSchoolFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by school" />
+                  <SelectValue placeholder="Фильтр по школе" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Schools</SelectItem>
-                  <SelectItem value="no-school">No School</SelectItem>
+                  <SelectItem value="all">Все Школы</SelectItem>
+                  <SelectItem value="no-school">Без Школы</SelectItem>
                   {schools.map((school) => (
                     <SelectItem key={school.id} value={school.id}>
                       {school.name}
@@ -262,9 +262,9 @@ export default function StudentsPage() {
       {/* Students Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Students</CardTitle>
+          <CardTitle>Все Студенты</CardTitle>
           <CardDescription>
-            View and manage all students in the system
+            Просмотр и управление всеми студентами в системе
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -272,12 +272,12 @@ export default function StudentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>School</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Студент</TableHead>
+                  <TableHead>Школа</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Последний Вход</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -286,7 +286,7 @@ export default function StudentsPage() {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {student.display_name || 'No name'}
+                          {student.display_name || 'Без имени'}
                         </div>
                         <div className="text-sm text-gray-500">
                           {student.email}
@@ -295,21 +295,21 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       {student.school_name || (
-                        <span className="text-gray-400 italic">No school</span>
+                        <span className="text-gray-400 italic">Без школы</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {new Date(student.created_at).toLocaleDateString()}
+                      {new Date(student.created_at).toLocaleDateString('ru-RU')}
                     </TableCell>
                     <TableCell>
                       {student.last_login ? 
-                        new Date(student.last_login).toLocaleDateString() : 
-                        <span className="text-gray-400 italic">Never</span>
+                        new Date(student.last_login).toLocaleDateString('ru-RU') : 
+                        <span className="text-gray-400 italic">Никогда</span>
                       }
                     </TableCell>
                     <TableCell>
                       <Badge variant={student.is_active ? "default" : "secondary"}>
-                        {student.is_active ? "Active" : "Inactive"}
+                        {student.is_active ? "Активен" : "Неактивен"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -333,7 +333,7 @@ export default function StudentsPage() {
           
           {filteredStudents.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No students found matching your criteria.
+              Студенты, соответствующие вашим критериям, не найдены.
             </div>
           )}
         </CardContent>

@@ -73,10 +73,10 @@ export default function KeyManagement() {
         if (profileError) {
           if (profileError.code === '42P01') { // PostgreSQL error code for undefined_table
             console.error('Users table does not exist:', profileError);
-            setError('Database table "users" does not exist. Please run database migrations.');
+            setError('Таблица базы данных "users" не существует. Пожалуйста, выполните миграции базы данных.');
           } else {
             console.error('Error checking users table:', profileError);
-            setError(`Database error: ${profileError.message}`);
+            setError(`Ошибка базы данных: ${profileError.message}`);
           }
           setIsLoading(false);
           return false;
@@ -85,7 +85,7 @@ export default function KeyManagement() {
         return true;
       } catch (error) {
         console.error('Error checking database tables:', error);
-        setError(`Database connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setError(`Ошибка подключения к базе данных: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
         setIsLoading(false);
         return false;
       }
@@ -102,13 +102,13 @@ export default function KeyManagement() {
         
         if (sessionError) {
           console.error('Session error:', sessionError);
-          setError('Error authenticating session. Please try logging in again.');
+          setError('Ошибка аутентификации сессии. Пожалуйста, попробуйте войти снова.');
           setIsLoading(false);
           return;
         }
         
         if (!sessionData.session) {
-          setError('No active session. Please login.');
+          setError('Нет активной сессии. Пожалуйста, войдите в систему.');
           setIsLoading(false);
           return;
         }
@@ -122,14 +122,14 @@ export default function KeyManagement() {
           
           if (userError) {
             console.error('Error fetching user info:', userError);
-            setError(`Could not load user data: ${userError.message || 'Unknown error'}`);
+            setError(`Не удалось загрузить данные пользователя: ${userError.message || 'Неизвестная ошибка'}`);
             setIsLoading(false);
             return;
           }
           
           if (!userData) {
             console.error('No user data found');
-            setError('User profile not found. Please contact an administrator.');
+            setError('Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.');
             setIsLoading(false);
             return;
           }
@@ -144,7 +144,7 @@ export default function KeyManagement() {
           }
         } catch (dbError) {
           console.error('Database error:', dbError);
-          setError(`Database error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+          setError(`Ошибка базы данных: ${dbError instanceof Error ? dbError.message : 'Неизвестная ошибка'}`);
           setIsLoading(false);
           return;
         }
@@ -152,7 +152,7 @@ export default function KeyManagement() {
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching user info:', error);
-        setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setError(`Неожиданная ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
         setIsLoading(false);
       }
     };
@@ -179,18 +179,18 @@ export default function KeyManagement() {
         const { data, error: keysError } = await query;
         
         if (keysError) {
-          setError(`Failed to fetch keys: ${keysError.message}`);
+          setError(`Не удалось получить ключи: ${keysError.message}`);
           console.error('Keys error:', keysError);
           return;
         }
         
         setKeys(data || []);
       } catch (dbError) {
-        setError(`Database error when fetching keys: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+        setError(`Ошибка базы данных при получении ключей: ${dbError instanceof Error ? dbError.message : 'Неизвестная ошибка'}`);
         console.error('Database error in fetchKeys:', dbError);
       }
     } catch (error) {
-      setError(`Failed to fetch registration keys: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Не удалось получить ключи регистрации: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       console.error('Fetch keys error:', error);
     } finally {
       setIsLoading(false);
@@ -319,24 +319,24 @@ export default function KeyManagement() {
       // Refresh the keys list
       fetchKeys(userRole || '', userSchoolId);
     } catch (error) {
-      setError('Failed to update key status');
+      setError('Не удалось обновить статус ключа');
       console.error('Toggle key error:', error);
     }
   };
   
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString();
+    if (!dateString) return 'Никогда';
+    return new Date(dateString).toLocaleDateString('ru-RU');
   };
   
   if (isLoading && keys.length === 0) {
-    return <div className="p-4">Loading registration keys...</div>;
+    return <div className="p-4">Загрузка ключей регистрации...</div>;
   }
   
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Create Registration Key</h2>
+        <h2 className="text-xl font-semibold mb-4">Создать Ключ Регистрации</h2>
         
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -353,20 +353,20 @@ export default function KeyManagement() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="role" className="block text-sm font-medium mb-1">
-              Role
+              Роль
             </label>
             <select 
               id="role"
               {...register('role')}
               className="block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
-              <option value="student">Student</option>
-              <option value="teacher">Teacher</option>
+              <option value="student">Студент</option>
+              <option value="teacher">Учитель</option>
               {userRole === 'super_admin' && (
                 <>
-                  <option value="school">School Administrator</option>
-                  <option value="author">Author</option>
-                  <option value="moderator">Moderator</option>
+                  <option value="school">Администратор Школы</option>
+                  <option value="author">Автор</option>
+                  <option value="moderator">Модератор</option>
                 </>
               )}
             </select>
@@ -378,14 +378,14 @@ export default function KeyManagement() {
           {(selectedRole === 'student' || selectedRole === 'teacher') && userRole === 'super_admin' && (
             <div>
               <label htmlFor="schoolId" className="block text-sm font-medium mb-1">
-                School
+                Школа
               </label>
               <select
                 id="schoolId"
                 {...register('schoolId')}
                 className="block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
               >
-                <option value="">Select a school</option>
+                <option value="">Выберите школу</option>
                 {schools.map((school) => (
                   <option key={school.id} value={school.id}>
                     {school.name}
@@ -401,7 +401,7 @@ export default function KeyManagement() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="maxUses" className="block text-sm font-medium mb-1">
-                Maximum Uses
+                Максимальное Количество Использований
               </label>
               <Input
                 id="maxUses"
@@ -417,7 +417,7 @@ export default function KeyManagement() {
             
             <div>
               <label htmlFor="expiresInDays" className="block text-sm font-medium mb-1">
-                Expires in (Days)
+                Истекает через (Дни)
               </label>
               <Input
                 id="expiresInDays"
@@ -439,27 +439,27 @@ export default function KeyManagement() {
               className="w-full md:w-auto"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating...' : 'Create Registration Key'}
+              {isLoading ? 'Создание...' : 'Создать Ключ Регистрации'}
             </Button>
           </div>
         </form>
       </div>
       
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Registration Keys</h2>
+        <h2 className="text-xl font-semibold mb-4">Ключи Регистрации</h2>
         
         {keys.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Key</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">School</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Uses</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Expires</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ключ</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Роль</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Школа</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Использования</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Истекает</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Статус</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -475,7 +475,7 @@ export default function KeyManagement() {
                       {key.school_id ? (
                         schools.find(s => s.id === key.school_id)?.name || key.school_id
                       ) : (
-                        'N/A'
+                        'Н/Д'
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -492,7 +492,7 @@ export default function KeyManagement() {
                             : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {key.is_active ? 'Active' : 'Inactive'}
+                        {key.is_active ? 'Активен' : 'Неактивен'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
@@ -501,7 +501,7 @@ export default function KeyManagement() {
                         variant={key.is_active ? 'destructive' : 'outline'}
                         onClick={() => toggleKeyStatus(key.id, key.is_active)}
                       >
-                        {key.is_active ? 'Deactivate' : 'Activate'}
+                        {key.is_active ? 'Деактивировать' : 'Активировать'}
                       </Button>
                     </td>
                   </tr>
@@ -511,7 +511,7 @@ export default function KeyManagement() {
           </div>
         ) : (
           <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-            No registration keys found
+            Ключи регистрации не найдены
           </div>
         )}
       </div>

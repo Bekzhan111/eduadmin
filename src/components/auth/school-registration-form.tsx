@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 const schoolRegSchema = z.object({
-  registrationKey: z.string().min(6, 'Registration key must be at least 6 characters'),
+  registrationKey: z.string().min(6, 'Ключ регистрации должен содержать не менее 6 символов'),
 });
 
 type SchoolRegValues = z.infer<typeof schoolRegSchema>;
@@ -40,7 +40,7 @@ export default function SchoolRegistrationForm() {
       // First, check if the user is logged in
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        setError('You must be logged in to register as a school administrator');
+        setError('Вы должны войти в систему для регистрации в качестве администратора школы');
         return;
       }
       
@@ -59,17 +59,17 @@ export default function SchoolRegistrationForm() {
       }
       
       if (result === true) {
-        setSuccess('Successfully registered as a school administrator');
+        setSuccess('Успешно зарегистрированы как администратор школы');
         // Redirect to dashboard after short delay
         setTimeout(() => {
           router.push('/dashboard');
           router.refresh();
         }, 1500);
       } else {
-        setError('Invalid registration key');
+        setError('Недействительный ключ регистрации');
       }
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Произошла неожиданная ошибка. Пожалуйста, попробуйте снова.');
       console.error('School registration error:', error);
     } finally {
       setIsLoading(false);
@@ -78,16 +78,16 @@ export default function SchoolRegistrationForm() {
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">School Registration</h2>
+      <h2 className="text-xl font-semibold mb-4">Регистрация Школы</h2>
       
       <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Enter your school registration key to register as a school administrator.
+        Введите ваш ключ регистрации школы для регистрации в качестве администратора школы.
       </p>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="registrationKey" className="block text-sm font-medium">
-            Registration Key
+            Ключ Регистрации
           </label>
           <div className="mt-1">
             <Input
@@ -116,7 +116,7 @@ export default function SchoolRegistrationForm() {
 
         <div>
           <Button className="w-full" type="submit" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register as School'}
+            {isLoading ? 'Регистрация...' : 'Зарегистрироваться как Школа'}
           </Button>
         </div>
       </form>

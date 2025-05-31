@@ -60,7 +60,7 @@ export default function KeyManagementPage() {
         .order('created_at', { ascending: false });
       
       if (keysError) {
-        throw new Error(`Failed to fetch registration keys: ${keysError.message}`);
+        throw new Error(`Не удалось получить ключи регистрации: ${keysError.message}`);
       }
       
       // Transform the data to match our type
@@ -80,7 +80,7 @@ export default function KeyManagementPage() {
       setFilteredKeys(transformedKeys);
     } catch (error) {
       console.error('Error fetching registration keys:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch registration keys');
+      setError(error instanceof Error ? error.message : 'Не удалось получить ключи регистрации');
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +123,7 @@ export default function KeyManagementPage() {
   useEffect(() => {
     if (!authLoading && userProfile) {
       if (userProfile.role !== 'super_admin') {
-        setError('Access denied. Only super administrators can view this page.');
+        setError('Доступ запрещен. Только суперадминистраторы могут просматривать эту страницу.');
         setIsLoading(false);
         return;
       }
@@ -138,7 +138,7 @@ export default function KeyManagementPage() {
   };
 
   const handleDeleteKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this key? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить этот ключ? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -150,25 +150,25 @@ export default function KeyManagementPage() {
         .eq('id', keyId);
       
       if (error) {
-        throw new Error(`Failed to delete key: ${error.message}`);
+        throw new Error(`Не удалось удалить ключ: ${error.message}`);
       }
       
       // Refresh the keys list
       await fetchKeys();
     } catch (error) {
       console.error('Error deleting key:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete key');
+      alert(error instanceof Error ? error.message : 'Не удалось удалить ключ');
     }
   };
 
   const getKeyStatus = (key: RegistrationKey) => {
     if (key.is_used) {
-      return <Badge className="bg-green-500 text-white">Used</Badge>;
+      return <Badge className="bg-green-500 text-white">Использован</Badge>;
     }
     if (key.expires_at && new Date(key.expires_at) < new Date()) {
-      return <Badge className="bg-red-500 text-white">Expired</Badge>;
+      return <Badge className="bg-red-500 text-white">Истек</Badge>;
     }
-    return <Badge className="bg-blue-500 text-white">Active</Badge>;
+    return <Badge className="bg-blue-500 text-white">Активен</Badge>;
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -179,6 +179,17 @@ export default function KeyManagementPage() {
       case 'author': return 'bg-purple-500 text-white';
       case 'moderator': return 'bg-orange-500 text-white';
       default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const translateRole = (role: string) => {
+    switch (role) {
+      case 'school': return 'ШКОЛА';
+      case 'teacher': return 'УЧИТЕЛЬ';
+      case 'student': return 'СТУДЕНТ';
+      case 'author': return 'АВТОР';
+      case 'moderator': return 'МОДЕРАТОР';
+      default: return role.toUpperCase();
     }
   };
 
@@ -219,10 +230,10 @@ export default function KeyManagementPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <p className="text-lg font-semibold">Error</p>
+              <p className="text-lg font-semibold">Ошибка</p>
               <p>{error}</p>
               <Button onClick={() => window.location.reload()} className="mt-4">
-                Reload Page
+                Перезагрузить Страницу
               </Button>
             </div>
           </CardContent>
@@ -236,15 +247,15 @@ export default function KeyManagementPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Key Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Управление Ключами</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            View and manage existing registration keys
+            Просмотр и управление существующими ключами регистрации
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="text-sm">
             <Key className="h-4 w-4 mr-1" />
-            {filteredKeys.length} keys
+            {filteredKeys.length} ключей
           </Badge>
         </div>
       </div>
@@ -256,7 +267,7 @@ export default function KeyManagementPage() {
             <div className="flex items-center">
               <Key className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Keys</p>
+                <p className="text-sm font-medium text-gray-600">Всего Ключей</p>
                 <p className="text-2xl font-bold">{keys.length}</p>
               </div>
             </div>
@@ -267,7 +278,7 @@ export default function KeyManagementPage() {
             <div className="flex items-center">
               <CheckCircle className="h-8 w-8 text-green-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Used Keys</p>
+                <p className="text-sm font-medium text-gray-600">Использованные Ключи</p>
                 <p className="text-2xl font-bold">{keys.filter(k => k.is_used).length}</p>
               </div>
             </div>
@@ -278,7 +289,7 @@ export default function KeyManagementPage() {
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-yellow-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Keys</p>
+                <p className="text-sm font-medium text-gray-600">Активные Ключи</p>
                 <p className="text-2xl font-bold">
                   {keys.filter(k => !k.is_used && (!k.expires_at || new Date(k.expires_at) > new Date())).length}
                 </p>
@@ -291,7 +302,7 @@ export default function KeyManagementPage() {
             <div className="flex items-center">
               <AlertTriangle className="h-8 w-8 text-red-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Expired Keys</p>
+                <p className="text-sm font-medium text-gray-600">Истекшие Ключи</p>
                 <p className="text-2xl font-bold">
                   {keys.filter(k => k.expires_at && new Date(k.expires_at) < new Date()).length}
                 </p>
@@ -306,18 +317,18 @@ export default function KeyManagementPage() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
             <Filter className="h-5 w-5 mr-2" />
-            Filters
+            Фильтры
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
+              <label className="text-sm font-medium">Поиск</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search keys, roles, or users..."
+                  placeholder="Поиск ключей, ролей или пользователей..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -327,34 +338,34 @@ export default function KeyManagementPage() {
 
             {/* Role Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Role</label>
+              <label className="text-sm font-medium">Роль</label>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by role" />
+                  <SelectValue placeholder="Фильтр по роли" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="school">School</SelectItem>
-                  <SelectItem value="teacher">Teacher</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="author">Author</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="all">Все Роли</SelectItem>
+                  <SelectItem value="school">Школа</SelectItem>
+                  <SelectItem value="teacher">Учитель</SelectItem>
+                  <SelectItem value="student">Студент</SelectItem>
+                  <SelectItem value="author">Автор</SelectItem>
+                  <SelectItem value="moderator">Модератор</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Status Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+              <label className="text-sm font-medium">Статус</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder="Фильтр по статусу" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="unused">Active/Unused</SelectItem>
-                  <SelectItem value="used">Used</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="all">Все Статусы</SelectItem>
+                  <SelectItem value="unused">Активные/Неиспользованные</SelectItem>
+                  <SelectItem value="used">Использованные</SelectItem>
+                  <SelectItem value="expired">Истекшие</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -365,9 +376,9 @@ export default function KeyManagementPage() {
       {/* Keys Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Registration Keys</CardTitle>
+          <CardTitle>Ключи Регистрации</CardTitle>
           <CardDescription>
-            View and manage all registration keys in the system
+            Просмотр и управление всеми ключами регистрации в системе
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -375,13 +386,13 @@ export default function KeyManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Used By</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Ключ</TableHead>
+                  <TableHead>Роль</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Использован</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Истекает</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -394,7 +405,7 @@ export default function KeyManagementPage() {
                     </TableCell>
                     <TableCell>
                       <Badge className={getRoleBadgeColor(key.role)}>
-                        {key.role.toUpperCase()}
+                        {translateRole(key.role)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -402,16 +413,16 @@ export default function KeyManagementPage() {
                     </TableCell>
                     <TableCell>
                       {key.used_by || (
-                        <span className="text-gray-400 italic">Not used</span>
+                        <span className="text-gray-400 italic">Не использован</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {new Date(key.created_at).toLocaleDateString()}
+                      {new Date(key.created_at).toLocaleDateString('ru-RU')}
                     </TableCell>
                     <TableCell>
                       {key.expires_at ? 
-                        new Date(key.expires_at).toLocaleDateString() : 
-                        <span className="text-gray-400 italic">No expiry</span>
+                        new Date(key.expires_at).toLocaleDateString('ru-RU') : 
+                        <span className="text-gray-400 italic">Без истечения</span>
                       }
                     </TableCell>
                     <TableCell>
@@ -441,7 +452,7 @@ export default function KeyManagementPage() {
           
           {filteredKeys.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No registration keys found matching your criteria.
+              Ключи регистрации, соответствующие вашим критериям, не найдены.
             </div>
           )}
         </CardContent>

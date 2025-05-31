@@ -7,8 +7,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Login - Admin Panel',
-  description: 'Login to the admin panel',
+  title: 'Вход - Административная Панель',
+  description: 'Войти в административную панель',
 };
 
 export default async function LoginPage() {
@@ -23,9 +23,9 @@ export default async function LoginPage() {
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className="mx-auto w-full max-w-md">
           <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold">Admin Panel</h1>
+            <h1 className="text-3xl font-bold">Административная Панель</h1>
             <p className="text-muted-foreground">
-              Sign in to access your dashboard
+              Войдите, чтобы получить доступ к панели управления
             </p>
           </div>
           

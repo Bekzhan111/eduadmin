@@ -76,10 +76,10 @@ export default function FeaturedBooks() {
       <div className="text-center py-12">
         <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          No books available yet
+          Книги пока недоступны
         </h3>
         <p className="text-gray-600 dark:text-gray-400">
-          Check back soon for new educational content!
+          Загляните позже за новым образовательным контентом!
         </p>
       </div>
     );
@@ -144,23 +144,23 @@ export default function FeaturedBooks() {
                 {book.pages_count && (
                   <div className="flex items-center gap-1">
                     <BookOpen className="h-3 w-3" />
-                    {book.pages_count} pages
+                    {book.pages_count} стр.
                   </div>
                 )}
                 <div className="flex items-center gap-1">
                   <Users className="h-3 w-3" />
-                  {book.schools_purchased} schools
+                  {book.schools_purchased} школ
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="text-lg font-bold text-gray-900 dark:text-white">
-                  ${book.price || 'Free'}
+                  ${book.price || 'Бесплатно'}
                 </div>
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">
-                    {book.language || 'English'}
+                    {book.language === 'English' ? 'Английский' : book.language || 'Русский'}
                   </span>
                 </div>
               </div>
@@ -169,12 +169,12 @@ export default function FeaturedBooks() {
             <div className="space-y-2">
               <Link href={`/marketplace/books/${book.id}`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  View Details
+                  Подробнее
                 </Button>
               </Link>
               <Link href={`/marketplace/books/${book.id}/purchase`}>
                 <Button size="sm" className="w-full">
-                  Purchase Book
+                  Купить Книгу
                 </Button>
               </Link>
             </div>

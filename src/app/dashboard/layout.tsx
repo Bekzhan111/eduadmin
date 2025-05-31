@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
 export const metadata: Metadata = {
-  title: 'Dashboard - Edu Platform',
-  description: 'Manage your educational platform resources and users',
+  title: 'Панель Управления - Образовательная Платформа',
+  description: 'Управляйте ресурсами и пользователями вашей образовательной платформы',
 };
 
 export default function Layout({

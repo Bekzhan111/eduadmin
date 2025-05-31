@@ -25,11 +25,11 @@ type School = {
 };
 
 const createSchoolSchema = z.object({
-  name: z.string().min(2, 'School name must be at least 2 characters'),
-  city: z.string().min(2, 'City must be at least 2 characters'),
-  address: z.string().min(5, 'Address must be at least 5 characters'),
-  bin: z.string().min(4, 'BIN must be at least 4 characters'),
-  registration_key: z.string().min(6, 'Registration key must be at least 6 characters'),
+  name: z.string().min(2, 'Название школы должно содержать не менее 2 символов'),
+  city: z.string().min(2, 'Город должен содержать не менее 2 символов'),
+  address: z.string().min(5, 'Адрес должен содержать не менее 5 символов'),
+  bin: z.string().min(4, 'БИН должен содержать не менее 4 символов'),
+  registration_key: z.string().min(6, 'Ключ регистрации должен содержать не менее 6 символов'),
   max_teachers: z.coerce.number().int().positive().min(1).max(100),
   max_students: z.coerce.number().int().positive().min(1).max(1000)
 });
@@ -93,13 +93,13 @@ export default function SchoolsPage() {
       
       if (sessionError) {
         console.error('Session error:', sessionError);
-        setError('Authentication error: Please log in again');
+        setError('Ошибка аутентификации: Пожалуйста, войдите снова');
         setIsLoading(false);
         return;
       }
       
       if (!sessionData.session) {
-        setError('Not authenticated: Please log in');
+        setError('Не аутентифицирован: Пожалуйста, войдите в систему');
         setIsLoading(false);
         return;
       }
@@ -113,13 +113,13 @@ export default function SchoolsPage() {
       
       if (userError) {
         console.error('Error fetching user role:', userError);
-        setError(`Error fetching user role: ${userError.message}`);
+        setError(`Ошибка получения роли пользователя: ${userError.message}`);
         setIsLoading(false);
         return;
       }
       
       if (userData.role !== 'super_admin') {
-        setError('You do not have permission to access this page');
+        setError('У вас нет разрешения на доступ к этой странице');
         setIsLoading(false);
         return;
       }
@@ -132,7 +132,7 @@ export default function SchoolsPage() {
       
       if (schoolsError) {
         console.error('Error fetching schools:', schoolsError);
-        setError(`Error fetching schools: ${schoolsError.message}`);
+        setError(`Ошибка получения школ: ${schoolsError.message}`);
         setIsLoading(false);
         return;
       }
@@ -141,7 +141,7 @@ export default function SchoolsPage() {
       setIsLoading(false);
     } catch (error) {
       console.error('Unexpected error:', error);
-      setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Неожиданная ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       setIsLoading(false);
     }
   };
@@ -155,7 +155,7 @@ export default function SchoolsPage() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        setError('Authentication error: Please log in again');
+        setError('Ошибка аутентификации: Пожалуйста, войдите снова');
         return;
       }
       
@@ -179,7 +179,7 @@ export default function SchoolsPage() {
       
       if (schoolError) {
         console.error('Error creating school:', schoolError);
-        setError(`Error creating school: ${schoolError.message}`);
+        setError(`Ошибка создания школы: ${schoolError.message}`);
         return;
       }
       
@@ -222,13 +222,13 @@ export default function SchoolsPage() {
         }
       );
       
-      setSuccess(`School created successfully! Registration key: ${data.registration_key}`);
+      setSuccess(`Школа успешно создана! Ключ регистрации: ${data.registration_key}`);
       reset();
       fetchSchools();
       setShowModal(false);
     } catch (error) {
       console.error('Error creating school:', error);
-      setError(`Error creating school: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Ошибка создания школы: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
     }
   };
   
@@ -260,7 +260,7 @@ export default function SchoolsPage() {
           {error}
         </div>
         <Button onClick={fetchSchools} className="mt-4">
-          Try Again
+          Попробовать Снова
         </Button>
       </div>
     );
@@ -269,8 +269,8 @@ export default function SchoolsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Schools Management</h1>
-        <Button onClick={() => setShowModal(true)}>Create New School</Button>
+        <h1 className="text-2xl font-bold">Управление Школами</h1>
+        <Button onClick={() => setShowModal(true)}>Создать Новую Школу</Button>
       </div>
       
       {success && (
@@ -281,7 +281,7 @@ export default function SchoolsPage() {
       
       {/* Schools List */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Schools</h2>
+        <h2 className="text-xl font-semibold mb-4">Школы</h2>
         
         {schools.length > 0 ? (
           <div className="overflow-x-auto">
@@ -289,28 +289,28 @@ export default function SchoolsPage() {
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Name
+                    Название
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    City
+                    Город
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Address
+                    Адрес
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    BIN
+                    БИН
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Max Teachers
+                    Макс. Учителей
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Max Students
+                    Макс. Студентов
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Created At
+                    Создана
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Actions
+                    Действия
                   </th>
                 </tr>
               </thead>
@@ -336,14 +336,14 @@ export default function SchoolsPage() {
                       {school.max_students}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(school.created_at).toLocaleDateString()}
+                      {new Date(school.created_at).toLocaleDateString('ru-RU')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <Link 
                         href={`/dashboard/schools/${school.id}`}
                         className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                       >
-                        Manage
+                        Управлять
                       </Link>
                     </td>
                   </tr>
@@ -353,7 +353,7 @@ export default function SchoolsPage() {
           </div>
         ) : (
           <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-            No schools found
+            Школы не найдены
           </div>
         )}
       </div>
@@ -362,12 +362,12 @@ export default function SchoolsPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-2xl w-full p-6">
-            <h3 className="text-xl font-semibold mb-4">Create New School</h3>
+            <h3 className="text-xl font-semibold mb-4">Создать Новую Школу</h3>
             
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium mb-1">
-                  School Name
+                  Название Школы
                 </label>
                 <Input
                   id="name"
@@ -381,7 +381,7 @@ export default function SchoolsPage() {
               
               <div>
                 <label htmlFor="city" className="block text-sm font-medium mb-1">
-                  City
+                  Город
                 </label>
                 <Input
                   id="city"
@@ -395,7 +395,7 @@ export default function SchoolsPage() {
               
               <div>
                 <label htmlFor="address" className="block text-sm font-medium mb-1">
-                  Address
+                  Адрес
                 </label>
                 <Input
                   id="address"
@@ -409,7 +409,7 @@ export default function SchoolsPage() {
               
               <div>
                 <label htmlFor="bin" className="block text-sm font-medium mb-1">
-                  BIN
+                  БИН
                 </label>
                 <Input
                   id="bin"
@@ -423,14 +423,14 @@ export default function SchoolsPage() {
               
               <div>
                 <label htmlFor="registration_key" className="block text-sm font-medium mb-1">
-                  Registration Key
+                  Ключ Регистрации
                 </label>
                 <div className="flex space-x-2">
                   <Input
                     id="registration_key"
                     {...register('registration_key')}
                     className={`flex-1 ${errors.registration_key ? 'border-red-300' : ''}`}
-                    placeholder="Enter or generate a registration key"
+                    placeholder="Введите или сгенерируйте ключ регистрации"
                   />
                   <Button
                     type="button"
@@ -444,7 +444,7 @@ export default function SchoolsPage() {
                     ) : (
                       <>
                         <Key className="h-4 w-4 mr-1" />
-                        Generate
+                        Сгенерировать
                       </>
                     )}
                   </Button>
@@ -453,14 +453,14 @@ export default function SchoolsPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.registration_key.message}</p>
                 )}
                 <p className="mt-1 text-xs text-gray-500">
-                  This key will be used by school administrators to register their account
+                  Этот ключ будет использоваться администраторами школы для регистрации их аккаунта
                 </p>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="max_teachers" className="block text-sm font-medium mb-1">
-                    Max Teachers
+                    Макс. Учителей
                   </label>
                   <Input
                     id="max_teachers"
@@ -475,7 +475,7 @@ export default function SchoolsPage() {
                 
                 <div>
                   <label htmlFor="max_students" className="block text-sm font-medium mb-1">
-                    Max Students
+                    Макс. Студентов
                   </label>
                   <Input
                     id="max_students"
@@ -495,9 +495,9 @@ export default function SchoolsPage() {
                   variant="outline"
                   onClick={() => setShowModal(false)}
                 >
-                  Cancel
+                  Отмена
                 </Button>
-                <Button type="submit">Create School</Button>
+                <Button type="submit">Создать Школу</Button>
               </div>
             </form>
           </div>

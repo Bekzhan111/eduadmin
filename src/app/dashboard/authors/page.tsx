@@ -69,7 +69,7 @@ export default function AuthorsPage() {
         .order('created_at', { ascending: false });
       
       if (authorsError) {
-        throw new Error(`Failed to fetch authors: ${authorsError.message}`);
+        throw new Error(`Не удалось получить авторов: ${authorsError.message}`);
       }
       
       // Fetch author registration keys
@@ -81,7 +81,7 @@ export default function AuthorsPage() {
       
       if (keysError) {
         console.error('Error fetching author keys:', keysError);
-        setError(`Error fetching author keys: ${keysError.message}`);
+        setError(`Ошибка получения ключей авторов: ${keysError.message}`);
       } else {
         setAuthorKeys(keysData as AuthorKey[] || []);
       }
@@ -101,7 +101,7 @@ export default function AuthorsPage() {
       setFilteredAuthors(formattedAuthors);
     } catch (error) {
       console.error('Error fetching authors:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch authors');
+      setError(error instanceof Error ? error.message : 'Не удалось получить авторов');
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +131,7 @@ export default function AuthorsPage() {
   useEffect(() => {
     if (!authLoading && userProfile) {
       if (userProfile.role !== 'super_admin') {
-        setError('Access denied. Only super administrators can view this page.');
+        setError('Доступ запрещен. Только суперадминистраторы могут просматривать эту страницу.');
         setIsLoading(false);
         return;
       }
@@ -141,7 +141,7 @@ export default function AuthorsPage() {
   }, [authLoading, userProfile, fetchAuthors]);
 
   const handleDeleteAuthor = async (authorId: string) => {
-    if (!confirm('Are you sure you want to delete this author? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить этого автора? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -153,19 +153,19 @@ export default function AuthorsPage() {
         .eq('id', authorId);
       
       if (error) {
-        throw new Error(`Failed to delete author: ${error.message}`);
+        throw new Error(`Не удалось удалить автора: ${error.message}`);
       }
       
       // Refresh the authors list
       await fetchAuthors();
     } catch (error) {
       console.error('Error deleting author:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete author');
+      alert(error instanceof Error ? error.message : 'Не удалось удалить автора');
     }
   };
 
   const handleDeleteKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this key? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить этот ключ? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -177,14 +177,14 @@ export default function AuthorsPage() {
         .eq('id', keyId);
       
       if (error) {
-        throw new Error(`Failed to delete key: ${error.message}`);
+        throw new Error(`Не удалось удалить ключ: ${error.message}`);
       }
       
-      setSuccess('Key deleted successfully');
+      setSuccess('Ключ успешно удален');
       await fetchAuthors(); // Refresh the keys list
     } catch (error) {
       console.error('Error deleting key:', error);
-      setError(error instanceof Error ? error.message : 'Failed to delete key');
+      setError(error instanceof Error ? error.message : 'Не удалось удалить ключ');
     }
   };
 
@@ -203,7 +203,7 @@ export default function AuthorsPage() {
       
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        throw new Error('You must be logged in to generate keys');
+        throw new Error('Вы должны войти в систему для генерации ключей');
       }
       
       // Generate a secure key
@@ -227,10 +227,10 @@ export default function AuthorsPage() {
         }]);
       
       if (error) {
-        throw new Error(`Failed to generate author key: ${error.message}`);
+        throw new Error(`Не удалось сгенерировать ключ автора: ${error.message}`);
       }
       
-      setSuccess(`Author key generated successfully: ${keyCode}`);
+      setSuccess(`Ключ автора успешно сгенерирован: ${keyCode}`);
       
       // Copy to clipboard using safe method
       const copySuccess = await safeCopyToClipboard(keyCode);
@@ -240,7 +240,7 @@ export default function AuthorsPage() {
       await fetchAuthors();
     } catch (error) {
       console.error('Error generating author key:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate author key');
+      setError(error instanceof Error ? error.message : 'Не удалось сгенерировать ключ автора');
     } finally {
       setIsGenerating(false);
     }
@@ -253,12 +253,12 @@ export default function AuthorsPage() {
 
   const getKeyStatus = (key: AuthorKey) => {
     if (!key.is_active || key.uses >= key.max_uses) {
-      return <Badge className="bg-red-500 text-white">Used</Badge>;
+      return <Badge className="bg-red-500 text-white">Использован</Badge>;
     }
     if (key.expires_at && new Date(key.expires_at) < new Date()) {
-      return <Badge className="bg-yellow-500 text-white">Expired</Badge>;
+      return <Badge className="bg-yellow-500 text-white">Истек</Badge>;
     }
-    return <Badge className="bg-green-500 text-white">Active</Badge>;
+    return <Badge className="bg-green-500 text-white">Активен</Badge>;
   };
 
   if (authLoading || isLoading) {
@@ -311,10 +311,10 @@ export default function AuthorsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <p className="text-lg font-semibold">Error</p>
+              <p className="text-lg font-semibold">Ошибка</p>
               <p>{error}</p>
               <Button onClick={() => window.location.reload()} className="mt-4">
-                Reload Page
+                Перезагрузить Страницу
               </Button>
             </div>
           </CardContent>
@@ -328,15 +328,15 @@ export default function AuthorsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Authors Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Управление Авторами</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage content authors and their registration keys
+            Управление авторами контента и их ключами регистрации
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="text-sm">
             <BookOpen className="h-4 w-4 mr-1" />
-            {filteredAuthors.length} authors
+            {filteredAuthors.length} авторов
           </Badge>
           <div className="flex items-center space-x-2">
             <Input
@@ -345,17 +345,17 @@ export default function AuthorsPage() {
               max="365"
               value={expirationDays}
               onChange={(e) => setExpirationDays(parseInt(e.target.value) || 0)}
-              placeholder="Days"
+              placeholder="Дней"
               className="w-20"
             />
-            <span className="text-sm text-gray-500">days (0 = unlimited)</span>
+            <span className="text-sm text-gray-500">дней (0 = безлимитно)</span>
           </div>
           <Button 
             onClick={handleGenerateAuthorKey}
             disabled={isGenerating}
           >
             <Plus className="h-4 w-4 mr-2" />
-            {isGenerating ? 'Generating...' : 'Generate Author Key'}
+            {isGenerating ? 'Генерируется...' : 'Сгенерировать Ключ Автора'}
           </Button>
         </div>
       </div>
@@ -380,7 +380,7 @@ export default function AuthorsPage() {
             <div className="flex items-center">
               <BookOpen className="h-8 w-8 text-purple-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Authors</p>
+                <p className="text-sm font-medium text-gray-600">Всего Авторов</p>
                 <p className="text-2xl font-bold">{authors.length}</p>
               </div>
             </div>
@@ -391,7 +391,7 @@ export default function AuthorsPage() {
             <div className="flex items-center">
               <Eye className="h-8 w-8 text-green-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Authors</p>
+                <p className="text-sm font-medium text-gray-600">Активные Авторы</p>
                 <p className="text-2xl font-bold">{authors.filter(a => a.is_active).length}</p>
               </div>
             </div>
@@ -402,7 +402,7 @@ export default function AuthorsPage() {
             <div className="flex items-center">
               <Key className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Author Keys</p>
+                <p className="text-sm font-medium text-gray-600">Ключи Авторов</p>
                 <p className="text-2xl font-bold">{authorKeys.length}</p>
               </div>
             </div>
@@ -413,7 +413,7 @@ export default function AuthorsPage() {
             <div className="flex items-center">
               <UserPlus className="h-8 w-8 text-orange-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Available Keys</p>
+                <p className="text-sm font-medium text-gray-600">Доступные Ключи</p>
                 <p className="text-2xl font-bold">
                   {authorKeys.filter(k => k.is_active && k.uses < k.max_uses && (!k.expires_at || new Date(k.expires_at) > new Date())).length}
                 </p>
@@ -428,10 +428,10 @@ export default function AuthorsPage() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Key className="h-5 w-5 mr-2" />
-            Author Registration Keys
+            Ключи Регистрации Авторов
           </CardTitle>
           <CardDescription>
-            Registration keys for author account creation
+            Ключи регистрации для создания аккаунтов авторов
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -440,12 +440,12 @@ export default function AuthorsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Key</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Uses</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Expires</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Ключ</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead>Использования</TableHead>
+                    <TableHead>Создан</TableHead>
+                    <TableHead>Истекает</TableHead>
+                    <TableHead>Действия</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -463,12 +463,12 @@ export default function AuthorsPage() {
                         {key.uses} / {key.max_uses}
                       </TableCell>
                       <TableCell>
-                        {new Date(key.created_at).toLocaleDateString()}
+                        {new Date(key.created_at).toLocaleDateString('ru-RU')}
                       </TableCell>
                       <TableCell>
                         {key.expires_at ? 
-                          new Date(key.expires_at).toLocaleDateString() : 
-                          <span className="text-gray-400 italic">No expiry</span>
+                          new Date(key.expires_at).toLocaleDateString('ru-RU') : 
+                          <span className="text-gray-400 italic">Без истечения</span>
                         }
                       </TableCell>
                       <TableCell>
@@ -497,7 +497,7 @@ export default function AuthorsPage() {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              No author registration keys found. Generate some keys to enable author registration.
+              Ключи регистрации авторов не найдены. Сгенерируйте ключи для включения регистрации авторов.
             </div>
           )}
         </CardContent>
@@ -508,18 +508,18 @@ export default function AuthorsPage() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
             <Filter className="h-5 w-5 mr-2" />
-            Author Filters
+            Фильтры Авторов
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
+              <label className="text-sm font-medium">Поиск</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Поиск по имени или email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -529,15 +529,15 @@ export default function AuthorsPage() {
 
             {/* Status Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+              <label className="text-sm font-medium">Статус</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder="Фильтр по статусу" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Authors</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="all">Все Авторы</SelectItem>
+                  <SelectItem value="active">Активные</SelectItem>
+                  <SelectItem value="inactive">Неактивные</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -548,9 +548,9 @@ export default function AuthorsPage() {
       {/* Authors Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Registered Authors</CardTitle>
+          <CardTitle>Зарегистрированные Авторы</CardTitle>
           <CardDescription>
-            View and manage content authors in the system
+            Просмотр и управление авторами контента в системе
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -558,12 +558,12 @@ export default function AuthorsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Author</TableHead>
+                  <TableHead>Автор</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Последний Вход</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -571,7 +571,7 @@ export default function AuthorsPage() {
                   <TableRow key={author.id}>
                     <TableCell>
                       <div className="font-medium">
-                        {author.display_name || 'No name'}
+                        {author.display_name || 'Без имени'}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -580,17 +580,17 @@ export default function AuthorsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {new Date(author.created_at).toLocaleDateString()}
+                      {new Date(author.created_at).toLocaleDateString('ru-RU')}
                     </TableCell>
                     <TableCell>
                       {author.last_login ? 
-                        new Date(author.last_login).toLocaleDateString() : 
-                        <span className="text-gray-400 italic">Never</span>
+                        new Date(author.last_login).toLocaleDateString('ru-RU') : 
+                        <span className="text-gray-400 italic">Никогда</span>
                       }
                     </TableCell>
                     <TableCell>
                       <Badge variant={author.is_active ? "default" : "secondary"}>
-                        {author.is_active ? "Active" : "Inactive"}
+                        {author.is_active ? "Активен" : "Неактивен"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -619,7 +619,7 @@ export default function AuthorsPage() {
           
           {filteredAuthors.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No authors found matching your criteria.
+              Авторы, соответствующие вашим критериям, не найдены.
             </div>
           )}
         </CardContent>

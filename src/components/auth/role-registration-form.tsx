@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 const roleRegSchema = z.object({
-  registrationKey: z.string().min(6, 'Registration key must be at least 6 characters'),
+  registrationKey: z.string().min(6, 'Ключ регистрации должен содержать не менее 6 символов'),
 });
 
 type RoleRegValues = z.infer<typeof roleRegSchema>;
@@ -40,7 +40,7 @@ export default function RoleRegistrationForm() {
       // First, check if the user is logged in
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        setError('You must be logged in to register with a role');
+        setError('Вы должны войти в систему для регистрации с ролью');
         return;
       }
       
@@ -69,7 +69,7 @@ export default function RoleRegistrationForm() {
         setError(result.message);
       }
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Произошла неожиданная ошибка. Пожалуйста, попробуйте снова.');
       console.error('Role registration error:', error);
     } finally {
       setIsLoading(false);
@@ -78,7 +78,7 @@ export default function RoleRegistrationForm() {
   
   return (
     <div className="bg-card text-card-foreground p-6 rounded-lg shadow-md border">
-      <h2 className="text-lg font-medium mb-4">Register with Role Key</h2>
+      <h2 className="text-lg font-medium mb-4">Регистрация с Ключом Роли</h2>
       
       {error && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded mb-4">
@@ -95,13 +95,13 @@ export default function RoleRegistrationForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="registrationKey" className="block text-sm font-medium text-foreground mb-1">
-            Registration Key
+            Ключ Регистрации
           </label>
           <Input
             id="registrationKey"
             type="text"
             {...register('registrationKey')}
-            placeholder="Enter your registration key"
+            placeholder="Введите ваш ключ регистрации"
             className={errors.registrationKey ? 'border-destructive' : ''}
             disabled={isLoading}
           />
@@ -111,13 +111,13 @@ export default function RoleRegistrationForm() {
         </div>
         
         <div className="text-xs text-muted-foreground">
-          <p>Use a registration key to:</p>
+          <p>Используйте ключ регистрации для:</p>
           <ul className="list-disc pl-5 mt-1">
-            <li>Register as a teacher</li>
-            <li>Register as a student</li>
-            <li>Register as a school admin</li>
-            <li>Register as an author</li>
-            <li>Register as a moderator</li>
+            <li>Регистрации как учитель</li>
+            <li>Регистрации как студент</li>
+            <li>Регистрации как администратор школы</li>
+            <li>Регистрации как автор</li>
+            <li>Регистрации как модератор</li>
           </ul>
         </div>
         
@@ -126,7 +126,7 @@ export default function RoleRegistrationForm() {
           className="w-full"
           disabled={isLoading}
         >
-          {isLoading ? 'Processing...' : 'Register with Key'}
+          {isLoading ? 'Обработка...' : 'Зарегистрироваться с Ключом'}
         </Button>
       </form>
     </div>

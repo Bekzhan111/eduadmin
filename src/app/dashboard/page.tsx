@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
   // If no session after auth loading is complete, the useEffect will handle redirect
   if (!session) {
-    return <div className="p-4">Redirecting to login...</div>;
+    return <div className="p-4">Перенаправление на страницу входа...</div>;
   }
   
   if (error) {
@@ -146,7 +146,7 @@ export default function DashboardPage() {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
-        <Button onClick={fetchDashboardSummary}>Retry</Button>
+        <Button onClick={fetchDashboardSummary}>Повторить</Button>
       </div>
     );
   }
@@ -155,7 +155,7 @@ export default function DashboardPage() {
     return (
       <div className="p-4">
         <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded mb-4">
-          No dashboard data available.
+          Данные панели управления недоступны.
         </div>
       </div>
     );
@@ -168,14 +168,14 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Super Admin Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Панель Суперадминистратора</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Educational Platform Management Overview
+                Обзор управления образовательной платформой
               </p>
             </div>
             <Badge variant="outline" className="text-sm">
               <Activity className="h-4 w-4 mr-1" />
-              System Active
+              Система Активна
             </Badge>
           </div>
           
@@ -186,7 +186,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <School className="h-8 w-8 text-blue-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Schools</p>
+                    <p className="text-sm font-medium text-gray-600">Всего Школ</p>
                     <p className="text-2xl font-bold">{summary.school_count || 0}</p>
                   </div>
                 </div>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Users className="h-8 w-8 text-green-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Users</p>
+                    <p className="text-sm font-medium text-gray-600">Всего Пользователей</p>
                     <p className="text-2xl font-bold">{summary.user_count || 0}</p>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <GraduationCap className="h-8 w-8 text-purple-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Teachers</p>
+                    <p className="text-sm font-medium text-gray-600">Учителя</p>
                     <p className="text-2xl font-bold">{summary.teacher_count || 0}</p>
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Users className="h-8 w-8 text-orange-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Students</p>
+                    <p className="text-sm font-medium text-gray-600">Студенты</p>
                     <p className="text-2xl font-bold">{summary.student_count || 0}</p>
                   </div>
                 </div>
@@ -236,10 +236,10 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <BarChart3 className="h-5 w-5 mr-2" />
-                  Registration Keys Overview
+                  Обзор Ключей Регистрации
                 </CardTitle>
                 <CardDescription>
-                  Active registration keys by role
+                  Активные ключи регистрации по ролям
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -247,35 +247,35 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                      <span className="text-sm">School Keys</span>
+                      <span className="text-sm">Ключи Школ</span>
                     </div>
                     <span className="font-semibold">{summary.key_stats?.school_keys || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                      <span className="text-sm">Teacher Keys</span>
+                      <span className="text-sm">Ключи Учителей</span>
                     </div>
                     <span className="font-semibold">{summary.key_stats?.teacher_keys || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
-                      <span className="text-sm">Student Keys</span>
+                      <span className="text-sm">Ключи Студентов</span>
                     </div>
                     <span className="font-semibold">{summary.key_stats?.student_keys || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
-                      <span className="text-sm">Author Keys</span>
+                      <span className="text-sm">Ключи Авторов</span>
                     </div>
                     <span className="font-semibold">{summary.key_stats?.author_keys || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                      <span className="text-sm">Moderator Keys</span>
+                      <span className="text-sm">Ключи Модераторов</span>
                     </div>
                     <span className="font-semibold">{summary.key_stats?.moderator_keys || 0}</span>
                   </div>
@@ -287,52 +287,52 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <PieChart className="h-5 w-5 mr-2" />
-                  Platform Growth
+                  Рост Платформы
                 </CardTitle>
                 <CardDescription>
-                  Registration trends and platform adoption
+                  Тенденции регистрации и принятие платформы
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Schools Registered</p>
-                      <p className="text-xs text-gray-500">Educational institutions</p>
+                      <p className="text-sm font-medium">Зарегистрировано Школ</p>
+                      <p className="text-xs text-gray-500">Образовательные учреждения</p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-blue-600">{summary.school_count || 0}</p>
                       <p className="text-xs text-green-600 flex items-center">
                         <TrendingUp className="h-3 w-3 mr-1" />
-                        Active
+                        Активные
                       </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Teachers Onboarded</p>
-                      <p className="text-xs text-gray-500">Educators using platform</p>
+                      <p className="text-sm font-medium">Подключено Учителей</p>
+                      <p className="text-xs text-gray-500">Преподаватели на платформе</p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-green-600">{summary.teacher_count || 0}</p>
                       <p className="text-xs text-green-600 flex items-center">
                         <TrendingUp className="h-3 w-3 mr-1" />
-                        Growing
+                        Растет
                       </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Students Enrolled</p>
-                      <p className="text-xs text-gray-500">Learners on platform</p>
+                      <p className="text-sm font-medium">Зачислено Студентов</p>
+                      <p className="text-xs text-gray-500">Учащиеся на платформе</p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-purple-600">{summary.student_count || 0}</p>
                       <p className="text-xs text-green-600 flex items-center">
                         <TrendingUp className="h-3 w-3 mr-1" />
-                        Expanding
+                        Расширяется
                       </p>
                     </div>
                   </div>
@@ -344,9 +344,9 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Быстрые Действия</CardTitle>
               <CardDescription>
-                Manage your educational platform efficiently
+                Эффективное управление вашей образовательной платформой
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -354,25 +354,25 @@ export default function DashboardPage() {
                 <Link href="/dashboard/schools">
                   <Button className="w-full h-12 flex items-center justify-center">
                     <School className="h-4 w-4 mr-2" />
-                    Manage Schools
+                    Управление Школами
                   </Button>
                 </Link>
                 <Link href="/dashboard/users">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Users className="h-4 w-4 mr-2" />
-                    Manage Users
+                    Управление Пользователями
                   </Button>
                 </Link>
                 <Link href="/dashboard/books">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Manage Books
+                    Управление Книгами
                   </Button>
                 </Link>
                 <Link href="/dashboard/keys">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Key className="h-4 w-4 mr-2" />
-                    Registration Keys
+                    Ключи Регистрации
                   </Button>
                 </Link>
               </div>
@@ -384,10 +384,10 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Calendar className="h-5 w-5 mr-2" />
-                Recent Activity
+                Недавняя Активность
               </CardTitle>
               <CardDescription>
-                Latest registrations and platform activity
+                Последние регистрации и активность платформы
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -396,33 +396,33 @@ export default function DashboardPage() {
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                     <div>
-                      <p className="text-sm font-medium">New school registration</p>
-                      <p className="text-xs text-gray-500">School admin account created</p>
+                      <p className="text-sm font-medium">Новая регистрация школы</p>
+                      <p className="text-xs text-gray-500">Создан аккаунт администратора школы</p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500">2 hours ago</span>
+                  <span className="text-xs text-gray-500">2 часа назад</span>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                     <div>
-                      <p className="text-sm font-medium">Teacher keys generated</p>
-                      <p className="text-xs text-gray-500">5 new teacher registration keys</p>
+                      <p className="text-sm font-medium">Сгенерированы ключи учителей</p>
+                      <p className="text-xs text-gray-500">5 новых ключей регистрации учителей</p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500">4 hours ago</span>
+                  <span className="text-xs text-gray-500">4 часа назад</span>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
                     <div>
-                      <p className="text-sm font-medium">Student enrollment</p>
-                      <p className="text-xs text-gray-500">15 students joined platform</p>
+                      <p className="text-sm font-medium">Зачисление студентов</p>
+                      <p className="text-xs text-gray-500">15 студентов присоединились к платформе</p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500">6 hours ago</span>
+                  <span className="text-xs text-gray-500">6 часов назад</span>
                 </div>
               </div>
             </CardContent>
@@ -435,14 +435,14 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">School Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Панель Школы</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
                 {summary.school_name}
               </p>
             </div>
             <Badge variant="outline" className="text-sm">
               <School className="h-4 w-4 mr-1" />
-              School Administrator
+              Администратор Школы
             </Badge>
           </div>
           
@@ -450,10 +450,10 @@ export default function DashboardPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
-                  <GraduationCap className="h-8 w-8 text-purple-500" />
+                  <GraduationCap className="h-8 w-8 text-blue-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Teachers</p>
-                    <p className="text-2xl font-bold">{summary.teacher_count}</p>
+                    <p className="text-sm font-medium text-gray-600">Учителя</p>
+                    <p className="text-2xl font-bold">{summary.teacher_count || 0}</p>
                   </div>
                 </div>
               </CardContent>
@@ -464,8 +464,8 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Users className="h-8 w-8 text-green-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Students</p>
-                    <p className="text-2xl font-bold">{summary.student_count}</p>
+                    <p className="text-sm font-medium text-gray-600">Студенты</p>
+                    <p className="text-2xl font-bold">{summary.student_count || 0}</p>
                   </div>
                 </div>
               </CardContent>
@@ -474,22 +474,22 @@ export default function DashboardPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
-                  <BookOpen className="h-8 w-8 text-blue-500" />
+                  <Key className="h-8 w-8 text-purple-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">School Books</p>
-                    <p className="text-2xl font-bold">{summary.book_stats?.total_books || 0}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center">
-                  <Key className="h-8 w-8 text-orange-500" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Available Keys</p>
+                    <p className="text-sm font-medium text-gray-600">Доступные Ключи</p>
                     <p className="text-2xl font-bold">{(summary.key_stats?.teacher_keys || 0) + (summary.key_stats?.student_keys || 0)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center">
+                  <BookOpen className="h-8 w-8 text-orange-500" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Школьные Книги</p>
+                    <p className="text-2xl font-bold">{summary.book_stats?.total_books || 0}</p>
                   </div>
                 </div>
               </CardContent>
@@ -498,9 +498,9 @@ export default function DashboardPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Быстрые Действия</CardTitle>
               <CardDescription>
-                Manage your school efficiently
+                Эффективное управление вашей школой
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -508,25 +508,25 @@ export default function DashboardPage() {
                 <Link href="/dashboard/teachers">
                   <Button className="w-full h-12 flex items-center justify-center">
                     <GraduationCap className="h-4 w-4 mr-2" />
-                    Manage Teachers
+                    Управление Учителями
                   </Button>
                 </Link>
                 <Link href="/dashboard/students">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Users className="h-4 w-4 mr-2" />
-                    Manage Students
+                    Управление Студентами
                   </Button>
                 </Link>
                 <Link href="/dashboard/books">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <BookOpen className="h-4 w-4 mr-2" />
-                    School Books
+                    Школьные Книги
                   </Button>
                 </Link>
                 <Link href="/dashboard/keys">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Key className="h-4 w-4 mr-2" />
-                    Key Management
+                    Управление Ключами
                   </Button>
                 </Link>
               </div>
@@ -540,14 +540,14 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Teacher Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Панель Учителя</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
                 {summary.school_name}
               </p>
             </div>
             <Badge variant="outline" className="text-sm">
               <GraduationCap className="h-4 w-4 mr-1" />
-              Teacher
+              Учитель
             </Badge>
           </div>
           
@@ -557,7 +557,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Users className="h-8 w-8 text-green-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">My Students</p>
+                    <p className="text-sm font-medium text-gray-600">Мои Студенты</p>
                     <p className="text-2xl font-bold">{summary.student_count}</p>
                   </div>
                 </div>
@@ -569,7 +569,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Key className="h-8 w-8 text-blue-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Student Keys</p>
+                    <p className="text-sm font-medium text-gray-600">Ключи Студентов</p>
                     <p className="text-2xl font-bold">{summary.key_stats?.student_keys || 0}</p>
                   </div>
                 </div>
@@ -581,7 +581,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <BookOpen className="h-8 w-8 text-purple-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">School Books</p>
+                    <p className="text-sm font-medium text-gray-600">Школьные Книги</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.total_books || 0}</p>
                   </div>
                 </div>
@@ -593,7 +593,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <School className="h-8 w-8 text-orange-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">School</p>
+                    <p className="text-sm font-medium text-gray-600">Школа</p>
                     <p className="text-base font-semibold">{summary.school_name}</p>
                   </div>
                 </div>
@@ -603,9 +603,9 @@ export default function DashboardPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Быстрые Действия</CardTitle>
               <CardDescription>
-                Manage your students and teaching materials
+                Управление своими студентами и учебными материалами
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -613,19 +613,19 @@ export default function DashboardPage() {
                 <Link href="/dashboard/students">
                   <Button className="w-full h-12 flex items-center justify-center">
                     <Users className="h-4 w-4 mr-2" />
-                    Manage My Students
+                    Управление Моими Студентами
                   </Button>
                 </Link>
                 <Link href="/dashboard/books">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <BookOpen className="h-4 w-4 mr-2" />
-                    School Books
+                    Школьные Книги
                   </Button>
                 </Link>
                 <Link href="/dashboard/keys">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Key className="h-4 w-4 mr-2" />
-                    Student Keys
+                    Ключи Студентов
                   </Button>
                 </Link>
               </div>
@@ -639,14 +639,14 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Student Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Панель Студента</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
                 {summary.school_name}
               </p>
             </div>
             <Badge variant="outline" className="text-sm">
               <Users className="h-4 w-4 mr-1" />
-              Student
+              Студент
             </Badge>
           </div>
           
@@ -656,8 +656,8 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <School className="h-8 w-8 text-blue-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">School</p>
-                    <p className="text-lg font-semibold">{summary.school_name || 'Not assigned'}</p>
+                    <p className="text-sm font-medium text-gray-600">Школа</p>
+                    <p className="text-lg font-semibold">{summary.school_name || 'Не назначена'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -668,8 +668,8 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <GraduationCap className="h-8 w-8 text-green-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Teacher</p>
-                    <p className="text-lg font-semibold">{summary.teacher_id ? 'Assigned' : 'Not assigned'}</p>
+                    <p className="text-sm font-medium text-gray-600">Учитель</p>
+                    <p className="text-lg font-semibold">{summary.teacher_id ? 'Назначен' : 'Не назначен'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -680,7 +680,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <BookOpen className="h-8 w-8 text-purple-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Available Books</p>
+                    <p className="text-sm font-medium text-gray-600">Доступные Книги</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.total_books || 0}</p>
                   </div>
                 </div>
@@ -690,9 +690,9 @@ export default function DashboardPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Быстрые Действия</CardTitle>
               <CardDescription>
-                Access your educational resources
+                Доступ к вашим образовательным ресурсам
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -700,13 +700,13 @@ export default function DashboardPage() {
                 <Link href="/dashboard/books">
                   <Button className="w-full h-12 flex items-center justify-center">
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Browse Books
+                    Просмотреть Книги
                   </Button>
                 </Link>
                 <Link href="/dashboard/settings">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Settings className="h-4 w-4 mr-2" />
-                    Student Settings
+                    Настройки Студента
                   </Button>
                 </Link>
               </div>
@@ -720,14 +720,14 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Author Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Панель Автора</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Create and manage your educational content
+                Создание и управление вашим образовательным контентом
               </p>
             </div>
             <Badge variant="outline" className="text-sm">
               <BookOpen className="h-4 w-4 mr-1" />
-              Content Creator
+              Создатель Контента
             </Badge>
           </div>
           
@@ -738,7 +738,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <BookOpen className="h-8 w-8 text-blue-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">My Books</p>
+                    <p className="text-sm font-medium text-gray-600">Мои Книги</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.total_books || 0}</p>
                   </div>
                 </div>
@@ -750,7 +750,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Edit className="h-8 w-8 text-gray-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Draft Books</p>
+                    <p className="text-sm font-medium text-gray-600">Черновики</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.draft_books || 0}</p>
                   </div>
                 </div>
@@ -762,7 +762,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Eye className="h-8 w-8 text-orange-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">In Moderation</p>
+                    <p className="text-sm font-medium text-gray-600">На Модерации</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.moderation_books || 0}</p>
                   </div>
                 </div>
@@ -774,7 +774,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <TrendingUp className="h-8 w-8 text-green-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Published</p>
+                    <p className="text-sm font-medium text-gray-600">Опубликованные</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.active_books || 0}</p>
                   </div>
                 </div>
@@ -785,9 +785,9 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Быстрые Действия</CardTitle>
               <CardDescription>
-                Manage your educational content and books
+                Управление вашим образовательным контентом и книгами
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -795,19 +795,19 @@ export default function DashboardPage() {
                 <Link href="/dashboard/books">
                   <Button className="w-full h-12 flex items-center justify-center">
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Manage My Books
+                    Управление Моими Книгами
                   </Button>
                 </Link>
                 <Link href="/dashboard/books">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Plus className="h-4 w-4 mr-2" />
-                    Create New Book
+                    Создать Новую Книгу
                   </Button>
                 </Link>
                 <Link href="/dashboard/settings">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Settings className="h-4 w-4 mr-2" />
-                    Author Settings
+                    Настройки Автора
                   </Button>
                 </Link>
               </div>
@@ -821,14 +821,14 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Moderator Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Панель Модератора</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Review and approve educational content for publication
+                Рецензирование и одобрение образовательного контента для публикации
               </p>
             </div>
             <Badge variant="outline" className="text-sm">
               <Shield className="h-4 w-4 mr-1" />
-              Content Moderator
+              Модератор Контента
             </Badge>
           </div>
           
@@ -839,7 +839,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Eye className="h-8 w-8 text-orange-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Pending Review</p>
+                    <p className="text-sm font-medium text-gray-600">Ожидают Рецензии</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.moderation_books || 0}</p>
                   </div>
                 </div>
@@ -851,7 +851,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <TrendingUp className="h-8 w-8 text-blue-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Approved</p>
+                    <p className="text-sm font-medium text-gray-600">Одобренные</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.approved_books || 0}</p>
                   </div>
                 </div>
@@ -863,7 +863,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <Calendar className="h-8 w-8 text-green-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">This Week</p>
+                    <p className="text-sm font-medium text-gray-600">Эта Неделя</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.weekly_reviews || 0}</p>
                   </div>
                 </div>
@@ -875,7 +875,7 @@ export default function DashboardPage() {
                 <div className="flex items-center">
                   <BookOpen className="h-8 w-8 text-purple-500" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Assigned</p>
+                    <p className="text-sm font-medium text-gray-600">Всего Назначено</p>
                     <p className="text-2xl font-bold">{summary.book_stats?.total_assigned || 0}</p>
                   </div>
                 </div>
@@ -886,9 +886,9 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Быстрые Действия</CardTitle>
               <CardDescription>
-                Review educational content and manage approvals
+                Рецензирование образовательного контента и управление одобрениями
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -896,19 +896,19 @@ export default function DashboardPage() {
                 <Link href="/dashboard/books">
                   <Button className="w-full h-12 flex items-center justify-center">
                     <Eye className="h-4 w-4 mr-2" />
-                    Review Books
+                    Рецензировать Книги
                   </Button>
                 </Link>
                 <Link href="/dashboard/books">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <TrendingUp className="h-4 w-4 mr-2" />
-                    Approved Content
+                    Одобренный Контент
                   </Button>
                 </Link>
                 <Link href="/dashboard/settings">
                   <Button variant="outline" className="w-full h-12 flex items-center justify-center">
                     <Settings className="h-4 w-4 mr-2" />
-                    Moderator Settings
+                    Настройки Модератора
                   </Button>
                 </Link>
               </div>
@@ -921,7 +921,7 @@ export default function DashboardPage() {
       return (
         <div>
           <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded mb-4">
-            Role not recognized: {summary.role}
+            Роль не распознана: {summary.role}
           </div>
         </div>
       );

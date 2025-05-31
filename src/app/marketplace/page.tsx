@@ -138,10 +138,10 @@ export default function MarketplacePage() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Educational Books
+            Образовательные Книги
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-            Browse our collection of {books.length} educational books
+            Просмотрите нашу коллекцию из {books.length} образовательных книг
           </p>
 
           {/* Filters and Search */}
@@ -151,7 +151,7 @@ export default function MarketplacePage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   type="text"
-                  placeholder="Search books..."
+                  placeholder="Поиск книг..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -161,10 +161,10 @@ export default function MarketplacePage() {
 
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder="Категория" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">Все Категории</SelectItem>
                 {categories.map(category => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -175,10 +175,10 @@ export default function MarketplacePage() {
 
             <Select value={selectedGrade} onValueChange={setSelectedGrade}>
               <SelectTrigger>
-                <SelectValue placeholder="Grade Level" />
+                <SelectValue placeholder="Класс" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Grades</SelectItem>
+                <SelectItem value="all">Все Классы</SelectItem>
                 {grades.map(grade => (
                   <SelectItem key={grade} value={grade}>
                     {grade}
@@ -189,13 +189,13 @@ export default function MarketplacePage() {
 
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder="Сортировать по" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="popularity">Popularity</SelectItem>
-                <SelectItem value="title">Title</SelectItem>
-                <SelectItem value="price">Price</SelectItem>
-                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="popularity">Популярности</SelectItem>
+                <SelectItem value="title">Названию</SelectItem>
+                <SelectItem value="price">Цене</SelectItem>
+                <SelectItem value="newest">Новизне</SelectItem>
               </SelectContent>
             </Select>
 
@@ -209,31 +209,31 @@ export default function MarketplacePage() {
               ) : (
                 <SortDesc className="h-4 w-4 mr-2" />
               )}
-              {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+              {sortOrder === 'asc' ? 'А-Я' : 'Я-А'}
             </Button>
           </div>
 
           {/* Active Filters */}
           {(searchTerm || selectedCategory !== 'all' || selectedGrade !== 'all') && (
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Active filters:</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Активные фильтры:</span>
               {searchTerm && (
-                <Badge variant="secondary">Search: &quot;{searchTerm}&quot;</Badge>
+                <Badge variant="secondary">Поиск: &quot;{searchTerm}&quot;</Badge>
               )}
               {selectedCategory !== 'all' && (
-                <Badge variant="secondary">Category: {selectedCategory}</Badge>
+                <Badge variant="secondary">Категория: {selectedCategory}</Badge>
               )}
               {selectedGrade !== 'all' && (
-                <Badge variant="secondary">Grade: {selectedGrade}</Badge>
+                <Badge variant="secondary">Класс: {selectedGrade}</Badge>
               )}
               <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear all
+                Очистить всё
               </Button>
             </div>
           )}
 
           <div className="text-sm text-gray-600 dark:text-gray-300">
-            Showing {filteredBooks.length} of {books.length} books
+            Показано {filteredBooks.length} из {books.length} книг
           </div>
         </div>
 
@@ -242,13 +242,13 @@ export default function MarketplacePage() {
           <div className="text-center py-12">
             <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No books found
+              Книги не найдены
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Try adjusting your filters or search terms
+              Попробуйте изменить фильтры или поисковые запросы
             </p>
             <Button variant="outline" onClick={clearFilters}>
-              Clear Filters
+              Очистить Фильтры
             </Button>
           </div>
         ) : (
@@ -310,23 +310,23 @@ export default function MarketplacePage() {
                       {book.pages_count && (
                         <div className="flex items-center gap-1">
                           <BookOpen className="h-3 w-3" />
-                          {book.pages_count} pages
+                          {book.pages_count} стр.
                         </div>
                       )}
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {book.schools_purchased} schools
+                        {book.schools_purchased} школ
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between">
                       <div className="text-lg font-bold text-gray-900 dark:text-white">
-                        ${book.price || 'Free'}
+                        ${book.price || 'Бесплатно'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 text-yellow-400 fill-current" />
                         <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {book.language || 'English'}
+                          {book.language === 'English' ? 'Английский' : book.language || 'Русский'}
                         </span>
                       </div>
                     </div>
@@ -335,12 +335,12 @@ export default function MarketplacePage() {
                   <div className="space-y-2">
                     <Link href={`/marketplace/books/${book.id}`}>
                       <Button variant="outline" size="sm" className="w-full">
-                        View Details
+                        Подробнее
                       </Button>
                     </Link>
                     <Link href={`/marketplace/books/${book.id}/purchase`}>
                       <Button size="sm" className="w-full">
-                        Purchase Book
+                        Купить Книгу
                       </Button>
                     </Link>
                   </div>

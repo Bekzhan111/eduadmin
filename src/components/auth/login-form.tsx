@@ -11,26 +11,26 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { User, Mail, Lock, Key } from 'lucide-react';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email('Неверный адрес электронной почты'),
+  password: z.string().min(6, 'Пароль должен содержать не менее 6 символов'),
 });
 
 const passwordStrengthRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 // Updated registration schema with full name and registration key
 const registerSchema = z.object({
-  full_name: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
+  full_name: z.string().min(2, 'Полное имя должно содержать не менее 2 символов'),
+  email: z.string().email('Неверный адрес электронной почты'),
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
+    .min(8, 'Пароль должен содержать не менее 8 символов')
     .regex(
       passwordStrengthRegex,
-      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+      'Пароль должен содержать хотя бы одну заглавную букву, одну строчную букву, одну цифру и один специальный символ'
     ),
-  confirmPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  registration_key: z.string().min(4, 'Please enter a valid registration key')
+  confirmPassword: z.string().min(8, 'Пароль должен содержать не менее 8 символов'),
+  registration_key: z.string().min(4, 'Пожалуйста, введите действительный ключ регистрации')
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Пароли не совпадают",
   path: ["confirmPassword"],
 });
 
@@ -95,10 +95,10 @@ export default function LoginForm() {
         router.push('/dashboard');
         router.refresh();
       } else {
-        setError('Login successful but no session created. Please try again.');
+        setError('Вход выполнен успешно, но сессия не создана. Пожалуйста, попробуйте еще раз.');
       }
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Произошла непредвиденная ошибка. Пожалуйста, попробуйте еще раз.');
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -121,7 +121,7 @@ export default function LoginForm() {
         .single();
       
       if (keyError) {
-        setError('Invalid or inactive registration key');
+        setError('Недействительный или неактивный ключ регистрации');
         return;
       }
       
@@ -135,17 +135,17 @@ export default function LoginForm() {
       });
       
       if (signUpError) {
-        setError(`Registration error: ${signUpError.message}`);
+        setError(`Ошибка регистрации: ${signUpError.message}`);
         return;
       }
       
       if (!userData.user) {
-        setError('Registration failed');
+        setError('Регистрация не удалась');
         return;
       }
       
       if (keyData.role === 'school') {
-        setError('School registration requires additional information. Please use the full registration page.');
+        setError('Регистрация школы требует дополнительной информации. Пожалуйста, используйте полную страницу регистрации.');
         return;
       } else {
         // For other roles, directly register with the key and full name
@@ -160,7 +160,7 @@ export default function LoginForm() {
         
         if (regError) {
           console.error('Registration error:', regError);
-          setError(`Registration error: ${regError.message}`);
+          setError(`Ошибка регистрации: ${regError.message}`);
           return;
         }
         
@@ -169,10 +169,10 @@ export default function LoginForm() {
           return;
         }
         
-        setSuccess(`Registration successful! You have been registered as ${keyData.role}. Please check your email to confirm your account.`);
+        setSuccess(`Регистрация прошла успешно! Вы были зарегистрированы как ${keyData.role}. Пожалуйста, проверьте свою электронную почту для подтверждения аккаунта.`);
       }
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Произошла непредвиденная ошибка. Пожалуйста, попробуйте еще раз.');
       console.error('Registration error:', error);
     } finally {
       setIsLoading(false);
@@ -191,7 +191,7 @@ export default function LoginForm() {
           }`}
           onClick={() => setActiveTab('login')}
         >
-          Login
+          Вход
         </button>
         <button
           className={`flex-1 py-2 ${
@@ -201,7 +201,7 @@ export default function LoginForm() {
           }`}
           onClick={() => setActiveTab('register')}
         >
-          Register
+          Регистрация
         </button>
       </div>
 
@@ -225,13 +225,13 @@ export default function LoginForm() {
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
               <Mail className="h-4 w-4 inline mr-1" />
-              Email
+              Электронная почта
             </label>
             <Input
               id="email"
               type="email"
               {...registerLogin('email')}
-              placeholder="your@email.com"
+              placeholder="ваша@почта.com"
               className={loginErrors.email ? 'border-destructive' : ''}
             />
             {loginErrors.email && (
@@ -242,7 +242,7 @@ export default function LoginForm() {
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
               <Lock className="h-4 w-4 inline mr-1" />
-              Password
+              Пароль
             </label>
             <Input
               id="password"
@@ -261,7 +261,7 @@ export default function LoginForm() {
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Loading...' : 'Login'}
+            {isLoading ? 'Загрузка...' : 'Войти'}
           </Button>
         </form>
       )}
@@ -272,13 +272,13 @@ export default function LoginForm() {
           <div>
             <label htmlFor="register-full-name" className="block text-sm font-medium text-foreground mb-1">
               <User className="h-4 w-4 inline mr-1" />
-              Full Name
+              Полное имя
             </label>
             <Input
               id="register-full-name"
               type="text"
               {...registerSignup('full_name')}
-              placeholder="Enter your full name"
+              placeholder="Введите ваше полное имя"
               className={registerErrors.full_name ? 'border-destructive' : ''}
             />
             {registerErrors.full_name && (
@@ -289,13 +289,13 @@ export default function LoginForm() {
           <div>
             <label htmlFor="register-email" className="block text-sm font-medium text-foreground mb-1">
               <Mail className="h-4 w-4 inline mr-1" />
-              Email
+              Электронная почта
             </label>
             <Input
               id="register-email"
               type="email"
               {...registerSignup('email')}
-              placeholder="your@email.com"
+              placeholder="ваша@почта.com"
               className={registerErrors.email ? 'border-destructive' : ''}
             />
             {registerErrors.email && (
@@ -306,7 +306,7 @@ export default function LoginForm() {
           <div>
             <label htmlFor="register-password" className="block text-sm font-medium text-foreground mb-1">
               <Lock className="h-4 w-4 inline mr-1" />
-              Password
+              Пароль
             </label>
             <Input
               id="register-password"
@@ -323,7 +323,7 @@ export default function LoginForm() {
           <div>
             <label htmlFor="confirm-password" className="block text-sm font-medium text-foreground mb-1">
               <Lock className="h-4 w-4 inline mr-1" />
-              Confirm Password
+              Подтвердите пароль
             </label>
             <Input
               id="confirm-password"
@@ -340,26 +340,26 @@ export default function LoginForm() {
           <div>
             <label htmlFor="registration-key" className="block text-sm font-medium text-foreground mb-1">
               <Key className="h-4 w-4 inline mr-1" />
-              Registration Key
+              Ключ регистрации
             </label>
             <Input
               id="registration-key"
               type="text"
               {...registerSignup('registration_key')}
-              placeholder="Enter your registration key"
+              placeholder="Введите ваш ключ регистрации"
               className={`${registerErrors.registration_key ? 'border-destructive' : ''} font-mono`}
             />
             {registerErrors.registration_key && (
               <p className="mt-1 text-xs text-destructive">{registerErrors.registration_key.message}</p>
             )}
             <p className="mt-1 text-xs text-muted-foreground">
-              This key determines your role in the system
+              Этот ключ определяет вашу роль в системе
             </p>
           </div>
 
           <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
-            <p className="font-medium mb-1">Note for school administrators:</p>
-            <p>School registration requires additional information. Please use the <a href="/register" className="text-primary underline">full registration page</a> for school accounts.</p>
+            <p className="font-medium mb-1">Примечание для администраторов школ:</p>
+            <p>Регистрация школы требует дополнительной информации. Пожалуйста, используйте <a href="/register" className="text-primary underline">полную страницу регистрации</a> для школьных аккаунтов.</p>
           </div>
 
           <Button
@@ -367,7 +367,7 @@ export default function LoginForm() {
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Loading...' : 'Register'}
+            {isLoading ? 'Загрузка...' : 'Зарегистрироваться'}
           </Button>
         </form>
       )}

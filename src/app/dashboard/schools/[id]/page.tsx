@@ -114,7 +114,7 @@ export default function SchoolDetailPage() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        setError('Authentication error: Please log in again');
+        setError('Ошибка аутентификации: Пожалуйста, войдите снова');
         setIsLoading(false);
         return;
       }
@@ -128,7 +128,7 @@ export default function SchoolDetailPage() {
       
       if (userError) {
         console.error('Error fetching user data:', userError);
-        setError(`Error fetching user data: ${userError.message}`);
+        setError(`Ошибка получения данных пользователя: ${userError.message}`);
         setIsLoading(false);
         return;
       }
@@ -137,7 +137,7 @@ export default function SchoolDetailPage() {
       const isSchoolAdmin = userData.role === 'school' && userData.school_id === schoolId;
       
       if (!isSuperAdmin && !isSchoolAdmin) {
-        setError('You do not have permission to access this page');
+        setError('У вас нет разрешения на доступ к этой странице');
         setIsLoading(false);
         return;
       }
@@ -151,7 +151,7 @@ export default function SchoolDetailPage() {
       
       if (schoolError) {
         console.error('Error fetching school:', schoolError);
-        setError(`Error fetching school: ${schoolError.message}`);
+        setError(`Ошибка получения школы: ${schoolError.message}`);
         setIsLoading(false);
         return;
       }
@@ -167,12 +167,12 @@ export default function SchoolDetailPage() {
       
       if (teachersError) {
         console.error('Error fetching teachers:', teachersError);
-        setError(`Error fetching teachers: ${teachersError.message}`);
+        setError(`Ошибка получения учителей: ${teachersError.message}`);
       } else {
         // Make sure to handle the case where display_name might be null
         const teachersWithDisplayNames = (teachersData || []).map(teacher => ({
           ...teacher,
-          display_name: teacher.display_name || teacher.email || 'Unknown'
+          display_name: teacher.display_name || teacher.email || 'Неизвестно'
         }));
         setTeachers(teachersWithDisplayNames);
       }
@@ -187,7 +187,7 @@ export default function SchoolDetailPage() {
       
       if (teacherKeysError) {
         console.error('Error fetching teacher keys:', teacherKeysError);
-        setError(`Error fetching teacher keys: ${teacherKeysError.message}`);
+        setError(`Ошибка получения ключей учителей: ${teacherKeysError.message}`);
       } else {
         setTeacherKeys(teacherKeysData || []);
       }
@@ -201,7 +201,7 @@ export default function SchoolDetailPage() {
       
       if (studentKeysError) {
         console.error('Error fetching student keys:', studentKeysError);
-        setError(`Error fetching student keys: ${studentKeysError.message}`);
+        setError(`Ошибка получения ключей студентов: ${studentKeysError.message}`);
       } else {
         setStudentKeys(studentKeysData || []);
       }
@@ -230,7 +230,7 @@ export default function SchoolDetailPage() {
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching school details:', getErrorMessage(error));
-      setError(`Error fetching school details: ${getErrorMessage(error)}`);
+      setError(`Ошибка получения данных школы: ${getErrorMessage(error)}`);
       setIsLoading(false);
     }
   }, [schoolId]);
@@ -241,7 +241,7 @@ export default function SchoolDetailPage() {
   
   const assignKeysToTeacher = async () => {
     if (!selectedTeacher || assignCount <= 0) {
-      setError('Please select a teacher and enter a valid number of keys');
+      setError('Пожалуйста, выберите учителя и введите действительное количество ключей');
       return;
     }
     
@@ -254,7 +254,7 @@ export default function SchoolDetailPage() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        setError('Authentication error: Please log in again');
+        setError('Ошибка аутентификации: Пожалуйста, войдите снова');
         setIsLoading(false);
         return;
       }
@@ -271,17 +271,17 @@ export default function SchoolDetailPage() {
       
       if (assignError) {
         console.error('Error assigning keys:', getErrorMessage(assignError));
-        setError(`Error assigning keys: ${getErrorMessage(assignError)}`);
+        setError(`Ошибка назначения ключей: ${getErrorMessage(assignError)}`);
         setIsLoading(false);
         return;
       }
       
-      setSuccess(`Successfully assigned ${result} keys to the teacher`);
+      setSuccess(`Успешно назначены ${result} ключей учителю`);
       setShowAssignModal(false);
       fetchSchoolDetails(); // Refresh data
     } catch (error) {
       console.error('Error assigning keys:', getErrorMessage(error));
-      setError(`Error assigning keys: ${getErrorMessage(error)}`);
+      setError(`Ошибка назначения ключей: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -297,7 +297,7 @@ export default function SchoolDetailPage() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        setError('Authentication error: Please log in again');
+        setError('Ошибка аутентификации: Пожалуйста, войдите снова');
         setIsLoading(false);
         return;
       }
@@ -314,23 +314,23 @@ export default function SchoolDetailPage() {
       
       if (genError) {
         console.error(`Error generating ${role} keys:`, getErrorMessage(genError));
-        setError(`Error generating ${role} keys: ${getErrorMessage(genError)}`);
+        setError(`Ошибка генерации ключей ${role === 'teacher' ? 'учителей' : 'студентов'}: ${getErrorMessage(genError)}`);
         setIsLoading(false);
         return;
       }
       
-      setSuccess(`Successfully generated ${count} ${role} keys`);
+      setSuccess(`Успешно сгенерированы ${count} ключей ${role === 'teacher' ? 'учителей' : 'студентов'}`);
       fetchSchoolDetails(); // Refresh data
     } catch (error) {
       console.error('Error generating keys:', getErrorMessage(error));
-      setError(`Error generating keys: ${getErrorMessage(error)}`);
+      setError(`Ошибка генерации ключей: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
   };
   
   if (isLoading && !school) {
-    return <div className="p-4">Loading school details...</div>;
+    return <div className="p-4">Загрузка данных школы...</div>;
   }
   
   if (error && !school) {
@@ -340,7 +340,7 @@ export default function SchoolDetailPage() {
           {error}
         </div>
         <Button onClick={() => router.push('/dashboard/schools')} className="mt-4">
-          Back to Schools
+          Назад к Школам
         </Button>
       </div>
     );
@@ -350,10 +350,10 @@ export default function SchoolDetailPage() {
     return (
       <div className="p-4">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          School not found
+          Школа не найдена
         </div>
         <Button onClick={() => router.push('/dashboard/schools')} className="mt-4">
-          Back to Schools
+          Назад к Школам
         </Button>
       </div>
     );
@@ -367,7 +367,7 @@ export default function SchoolDetailPage() {
           <p className="text-gray-500">{school.city}, {school.address}</p>
         </div>
         <Button onClick={() => router.push('/dashboard/schools')} variant="outline">
-          Back to Schools
+          Назад к Школам
         </Button>
       </div>
       
@@ -387,7 +387,7 @@ export default function SchoolDetailPage() {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold mb-4 flex items-center">
           <Key className="h-5 w-5 mr-2" />
-          School Registration Key
+          Ключ Регистрации Школы
         </h2>
         <div className="flex items-center space-x-3">
           <div className="flex-1">
@@ -406,40 +406,40 @@ export default function SchoolDetailPage() {
             }}
           >
             <Copy className="h-4 w-4 mr-1" />
-            Copy
+            Копировать
           </Button>
         </div>
         <p className="mt-2 text-sm text-gray-500">
-          Share this key with school administrators to register their account
+          Поделитесь этим ключом с администраторами школы для регистрации их аккаунта
         </p>
       </div>
       
       {/* School Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Teachers</div>
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Учителя</div>
           <div className="mt-1 text-2xl font-semibold">{stats.teacher_count} / {school.max_teachers}</div>
         </div>
         
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Students</div>
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Студенты</div>
           <div className="mt-1 text-2xl font-semibold">{stats.student_count} / {school.max_students}</div>
         </div>
         
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Free Teacher Keys</div>
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Свободные Ключи Учителей</div>
           <div className="mt-1 text-2xl font-semibold">{stats.free_teacher_keys}</div>
         </div>
         
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Free Student Keys</div>
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Свободные Ключи Студентов</div>
           <div className="mt-1 text-2xl font-semibold">{stats.free_student_keys}</div>
         </div>
       </div>
       
       {/* Teachers List */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Teachers</h2>
+        <h2 className="text-xl font-semibold mb-4">Учителя</h2>
         
         {teachers.length > 0 ? (
           <div className="overflow-x-auto">
@@ -450,13 +450,13 @@ export default function SchoolDetailPage() {
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Name
+                    Имя
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Students
+                    Студенты
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Created At
+                    Создан
                   </th>
                 </tr>
               </thead>
@@ -467,13 +467,13 @@ export default function SchoolDetailPage() {
                       {teacher.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {teacher.display_name || 'N/A'}
+                      {teacher.display_name || 'Не указано'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {teacher.students_count} / {teacher.max_students || 'Unlimited'}
+                      {teacher.students_count} / {teacher.max_students || 'Неограниченно'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(teacher.created_at).toLocaleDateString()}
+                      {new Date(teacher.created_at).toLocaleDateString('ru-RU')}
                     </td>
                   </tr>
                 ))}
@@ -482,13 +482,13 @@ export default function SchoolDetailPage() {
           </div>
         ) : (
           <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-            No teachers found
+            Учителя не найдены
           </div>
         )}
         
         <div className="mt-4">
           <Button onClick={() => generateMoreKeys('teacher', 5)}>
-            Generate 5 More Teacher Keys
+            Сгенерировать 5 Ключей Учителей
           </Button>
         </div>
       </div>
@@ -497,7 +497,7 @@ export default function SchoolDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Teacher Keys */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Teacher Registration Keys</h2>
+          <h2 className="text-xl font-semibold mb-4">Ключи Регистрации Учителей</h2>
           
           {teacherKeys.length > 0 ? (
             <div className="overflow-x-auto">
@@ -505,10 +505,10 @@ export default function SchoolDetailPage() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Key
+                      Ключ
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Status
+                      Статус
                     </th>
                   </tr>
                 </thead>
@@ -522,7 +522,7 @@ export default function SchoolDetailPage() {
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           key.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
-                          {key.is_active ? 'Active' : 'Used'}
+                          {key.is_active ? 'Активен' : 'Использован'}
                         </span>
                       </td>
                     </tr>
@@ -532,7 +532,7 @@ export default function SchoolDetailPage() {
             </div>
           ) : (
             <div className="py-4 text-center text-gray-500 dark:text-gray-400">
-              No teacher keys available
+              Ключи учителей недоступны
             </div>
           )}
         </div>
@@ -540,9 +540,9 @@ export default function SchoolDetailPage() {
         {/* Student Keys */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">
-            Student Registration Keys
+            Ключи Регистрации Студентов
             <span className="ml-2 text-sm font-normal text-gray-500">
-              ({stats.free_student_keys} unassigned)
+              ({stats.free_student_keys} не назначено)
             </span>
           </h2>
           
@@ -551,14 +551,14 @@ export default function SchoolDetailPage() {
               onClick={() => setShowAssignModal(true)} 
               disabled={stats.free_student_keys === 0}
             >
-              Assign Keys to Teacher
+              Назначить Ключи Учителю
             </Button>
             <Button 
               onClick={() => generateMoreKeys('student', 10)} 
               variant="outline"
               className="ml-2"
             >
-              Generate 10 More
+              Сгенерировать 10 Ключей
             </Button>
           </div>
           
@@ -568,10 +568,10 @@ export default function SchoolDetailPage() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Key
+                      Ключ
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Assigned To
+                      Назначен
                     </th>
                   </tr>
                 </thead>
@@ -584,10 +584,10 @@ export default function SchoolDetailPage() {
                       <td className="px-4 py-2 whitespace-nowrap text-sm">
                         {key.teacher_id ? (
                           <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {teachers.find(t => t.id === key.teacher_id)?.display_name || 'Unknown Teacher'}
+                            {teachers.find(t => t.id === key.teacher_id)?.display_name || 'Неизвестный Учитель'}
                           </span>
                         ) : (
-                          <span className="text-gray-500">Unassigned</span>
+                          <span className="text-gray-500">Не назначен</span>
                         )}
                       </td>
                     </tr>
@@ -597,7 +597,7 @@ export default function SchoolDetailPage() {
             </div>
           ) : (
             <div className="py-4 text-center text-gray-500 dark:text-gray-400">
-              No student keys available
+              Ключи студентов недоступны
             </div>
           )}
         </div>
@@ -607,12 +607,12 @@ export default function SchoolDetailPage() {
       {showAssignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-semibold mb-4">Assign Student Keys to Teacher</h3>
+            <h3 className="text-xl font-semibold mb-4">Назначить Ключи Студентов Учителю</h3>
             
             <div className="space-y-4">
               <div>
                 <label htmlFor="teacher" className="block text-sm font-medium mb-1">
-                  Select Teacher
+                  Выберите Учителя
                 </label>
                 <select
                   id="teacher"
@@ -620,7 +620,7 @@ export default function SchoolDetailPage() {
                   onChange={(e) => setSelectedTeacher(e.target.value)}
                   className="block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                 >
-                  <option value="">Select a teacher</option>
+                  <option value="">Выберите учителя</option>
                   {teachers.map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
                       {teacher.display_name || teacher.email}
@@ -631,7 +631,7 @@ export default function SchoolDetailPage() {
               
               <div>
                 <label htmlFor="count" className="block text-sm font-medium mb-1">
-                  Number of Keys (Max: {stats.free_student_keys})
+                  Количество Ключей (Макс.: {stats.free_student_keys})
                 </label>
                 <Input
                   id="count"
@@ -649,13 +649,13 @@ export default function SchoolDetailPage() {
                   variant="outline"
                   onClick={() => setShowAssignModal(false)}
                 >
-                  Cancel
+                  Отмена
                 </Button>
                 <Button 
                   onClick={assignKeysToTeacher}
                   disabled={!selectedTeacher || assignCount <= 0 || assignCount > stats.free_student_keys}
                 >
-                  Assign Keys
+                  Назначить Ключи
                 </Button>
               </div>
             </div>

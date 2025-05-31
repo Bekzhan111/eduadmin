@@ -15,9 +15,9 @@ export default function UnauthorizedPage() {
           <ShieldAlert className="w-8 h-8 text-red-600 dark:text-red-400" />
         </div>
         
-        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Access Denied</h1>
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Доступ Запрещен</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-          You don&apos;t have permission to access this page. Please log in with appropriate credentials or contact your administrator.
+          У вас нет разрешения на доступ к этой странице. Пожалуйста, войдите с соответствующими учетными данными или обратитесь к администратору.
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -25,7 +25,7 @@ export default function UnauthorizedPage() {
             onClick={() => router.push('/login')}
             className="w-full sm:w-auto"
           >
-            Log In
+            Войти
           </Button>
           
           <Button 
@@ -33,15 +33,15 @@ export default function UnauthorizedPage() {
             onClick={() => router.push('/dashboard')}
             className="w-full sm:w-auto"
           >
-            Back to Dashboard
+            Вернуться к Панели
           </Button>
         </div>
         
         <div className="mt-8 text-sm text-gray-500 dark:text-gray-400">
           <p>
-            Need a different role? 
+            Нужна другая роль? 
             <Link href="/register" className="ml-1 text-blue-600 hover:text-blue-500 dark:text-blue-400">
-              Register with a key
+              Зарегистрируйтесь с ключом
             </Link>
           </p>
         </div>

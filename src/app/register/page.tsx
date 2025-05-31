@@ -23,10 +23,10 @@ import {
 
 // Registration form validation schema
 const registrationSchema = z.object({
-  full_name: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  key: z.string().min(1, 'Registration key is required')
+  full_name: z.string().min(2, 'Полное имя должно содержать не менее 2 символов'),
+  email: z.string().email('Пожалуйста, введите действительный адрес электронной почты'),
+  password: z.string().min(8, 'Пароль должен содержать не менее 8 символов'),
+  key: z.string().min(1, 'Ключ регистрации обязателен')
 });
 
 type RegistrationValues = z.infer<typeof registrationSchema>;
@@ -62,7 +62,7 @@ export default function RegisterPage() {
         .single();
       
       if (keyError) {
-        setError('Invalid or inactive registration key');
+        setError('Недействительный или неактивный ключ регистрации');
         setIsLoading(false);
         return;
       }
@@ -77,13 +77,13 @@ export default function RegisterPage() {
       });
       
       if (signUpError) {
-        setError(`Registration error: ${signUpError.message}`);
+        setError(`Ошибка регистрации: ${signUpError.message}`);
         setIsLoading(false);
         return;
       }
       
       if (!userData.user) {
-        setError('Registration failed');
+        setError('Регистрация не удалась');
         setIsLoading(false);
         return;
       }
@@ -100,7 +100,7 @@ export default function RegisterPage() {
       
       if (regError) {
         console.error('Registration error:', regError);
-        setError(`Registration error: ${regError.message}`);
+        setError(`Ошибка регистрации: ${regError.message}`);
         setIsLoading(false);
         return;
       }
@@ -111,13 +111,13 @@ export default function RegisterPage() {
         return;
       }
       
-      setSuccess(`Registration successful! You have been registered as ${keyData.role}. You can now log in.`);
+      setSuccess(`Регистрация прошла успешно! Вы зарегистрированы как ${keyData.role}. Теперь вы можете войти в систему.`);
       setTimeout(() => {
         router.push('/login');
       }, 2000);
     } catch (error) {
       console.error('Registration error:', error);
-      setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Неожиданная ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
     } finally {
       setIsLoading(false);
     }
@@ -132,10 +132,10 @@ export default function RegisterPage() {
             <User className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Create your account
+            Создайте свой аккаунт
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Enter your information and registration key to get started
+            Введите свою информацию и ключ регистрации для начала работы
           </p>
         </div>
 
@@ -143,16 +143,16 @@ export default function RegisterPage() {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
             <Key className="h-5 w-5 mr-2 text-indigo-600" />
-            Registration Key Types & Hierarchy
+            Типы ключей регистрации и иерархия
           </h3>
           <div className="space-y-4 text-sm">
             <div className="space-y-2">
               <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <School className="h-4 w-4 mr-2 text-blue-500" />
-                <span><strong>School Key:</strong> Standalone registration for school administrators</span>
+                <span><strong>Ключ школы:</strong> Автономная регистрация для администраторов школ</span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                School admins can create teacher and student keys for their institution
+                Администраторы школ могут создавать ключи для учителей и студентов своего учреждения
               </p>
             </div>
             
@@ -160,14 +160,14 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <Users className="h-4 w-4 mr-2 text-green-500" />
-                  <span><strong>Teacher Key:</strong> Connected to a specific school</span>
+                  <span><strong>Ключ учителя:</strong> Привязан к конкретной школе</span>
                 </div>
                 <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <UserCheck className="h-4 w-4 mr-2 text-purple-500" />
-                  <span><strong>Student Key:</strong> Connected to a specific school</span>
+                  <span><strong>Ключ студента:</strong> Привязан к конкретной школе</span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  These keys are generated by school administrators and link users to their school
+                  Эти ключи генерируются администраторами школ и связывают пользователей с их школой
                 </p>
               </div>
             </div>
@@ -175,19 +175,19 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <BookOpen className="h-4 w-4 mr-2 text-orange-500" />
-                <span><strong>Author Key:</strong> Standalone registration for content creators</span>
+                <span><strong>Ключ автора:</strong> Автономная регистрация для создателей контента</span>
               </div>
               <div className="flex items-center text-gray-700 dark:text-gray-300">
                 <Shield className="h-4 w-4 mr-2 text-red-500" />
-                <span><strong>Moderator Key:</strong> Standalone registration for content moderators</span>
+                <span><strong>Ключ модератора:</strong> Автономная регистрация для модераторов контента</span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                These keys are created by super admins for platform-wide roles
+                Эти ключи создаются супер-администраторами для ролей на уровне платформы
               </p>
             </div>
           </div>
           <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-2 rounded">
-            <strong>Key Hierarchy:</strong> Super Admin → School Keys → Teacher/Student Keys | Author/Moderator Keys (standalone)
+            <strong>Иерархия ключей:</strong> Супер-администратор → Ключи школ → Ключи учителей/студентов | Ключи авторов/модераторов (автономные)
           </p>
         </div>
         
@@ -229,12 +229,12 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <User className="h-4 w-4 inline mr-1" />
-                  Full Name
+                  Полное имя
                 </label>
                 <Input
                   id="full_name"
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="Введите ваше полное имя"
                   {...registerForm1('full_name')}
                   className={`${errorsForm1.full_name ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white`}
                 />
@@ -246,13 +246,13 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Mail className="h-4 w-4 inline mr-1" />
-                  Email address
+                  Адрес электронной почты
                 </label>
                 <Input
                   id="email"
                   type="email"
                   autoComplete="email"
-                  placeholder="Enter your email address"
+                  placeholder="Введите ваш адрес электронной почты"
                   {...registerForm1('email')}
                   className={`${errorsForm1.email ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white`}
                 />
@@ -264,13 +264,13 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Lock className="h-4 w-4 inline mr-1" />
-                  Password
+                  Пароль
                 </label>
                 <Input
                   id="password"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="Create a strong password"
+                  placeholder="Создайте надежный пароль"
                   {...registerForm1('password')}
                   className={`${errorsForm1.password ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white`}
                 />
@@ -278,19 +278,19 @@ export default function RegisterPage() {
                   <p className="mt-1 text-xs text-red-500 dark:text-red-400">{errorsForm1.password.message}</p>
                 )}
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Must be at least 8 characters long
+                  Должен содержать не менее 8 символов
                 </p>
               </div>
               
               <div>
                 <label htmlFor="key" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Key className="h-4 w-4 inline mr-1" />
-                  Registration Key
+                  Ключ регистрации
                 </label>
                 <Input
                   id="key"
                   type="text"
-                  placeholder="Enter your registration key"
+                  placeholder="Введите ваш ключ регистрации"
                   {...registerForm1('key')}
                   className={`${errorsForm1.key ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white font-mono`}
                 />
@@ -298,7 +298,7 @@ export default function RegisterPage() {
                   <p className="mt-1 text-xs text-red-500 dark:text-red-400">{errorsForm1.key.message}</p>
                 )}
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  This key determines your role in the system
+                  Этот ключ определяет вашу роль в системе
                 </p>
               </div>
             </div>
@@ -311,21 +311,21 @@ export default function RegisterPage() {
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Registering...
+                  Регистрация...
                 </div>
               ) : (
-                'Create Account'
+                'Создать аккаунт'
               )}
             </Button>
             
             <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Already have an account?{' '}
+                Уже есть аккаунт?{' '}
                 <Link 
                   href="/login"
                   className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition duration-200"
                 >
-                  Sign in
+                  Войти
                 </Link>
               </p>
             </div>
@@ -335,7 +335,7 @@ export default function RegisterPage() {
         {/* Footer */}
         <div className="text-center">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            By registering, you agree to our terms of service and privacy policy.
+            Регистрируясь, вы соглашаетесь с нашими условиями обслуживания и политикой конфиденциальности.
           </p>
         </div>
       </div>

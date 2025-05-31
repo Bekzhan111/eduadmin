@@ -19,22 +19,22 @@ export default function HomePage() {
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Educational Books Marketplace
+            Маркетплейс Образовательных Книг
           </h1>
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-            Discover, purchase, and access high-quality educational content for individuals and schools
+            Открывайте, покупайте и получайте доступ к высококачественному образовательному контенту для частных лиц и школ
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/marketplace">
               <Button size="lg" variant="secondary" className="text-lg px-8 py-4">
                 <BookOpen className="mr-2 h-5 w-5" />
-                Browse Books
+                Просмотреть Книги
               </Button>
             </Link>
             <Link href="/school-registration">
               <Button size="lg" variant="outline" className="text-lg px-8 py-4 bg-white/10 border-white/20 hover:bg-white/20">
                 <School className="mr-2 h-5 w-5" />
-                Join as School
+                Присоединиться как Школа
               </Button>
             </Link>
           </div>
@@ -46,10 +46,10 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Why Choose Our Platform?
+              Почему Выбирают Нашу Платформу?
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              We provide comprehensive educational solutions for both individuals and institutions
+              Мы предоставляем комплексные образовательные решения как для частных лиц, так и для учреждений
             </p>
           </div>
           
@@ -59,11 +59,11 @@ export default function HomePage() {
                 <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
                   <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <CardTitle>Quality Content</CardTitle>
+                <CardTitle>Качественный Контент</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Curated educational books from verified authors and publishers
+                  Тщательно отобранные образовательные книги от проверенных авторов и издательств
                 </CardDescription>
               </CardContent>
             </Card>
@@ -73,11 +73,11 @@ export default function HomePage() {
                 <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4">
                   <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
-                <CardTitle>Individual Purchases</CardTitle>
+                <CardTitle>Индивидуальные Покупки</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Buy individual books for personal learning and development
+                  Покупайте отдельные книги для личного обучения и развития
                 </CardDescription>
               </CardContent>
             </Card>
@@ -87,11 +87,11 @@ export default function HomePage() {
                 <div className="mx-auto w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4">
                   <School className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
-                <CardTitle>School Solutions</CardTitle>
+                <CardTitle>Школьные Решения</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Bulk purchases and institutional access for educational institutions
+                  Оптовые покупки и институциональный доступ для образовательных учреждений
                 </CardDescription>
               </CardContent>
             </Card>
@@ -104,10 +104,10 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Featured Books
+              Рекомендуемые Книги
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Explore our most popular educational content
+              Изучите наш самый популярный образовательный контент
             </p>
           </div>
           
@@ -122,7 +122,7 @@ export default function HomePage() {
           <div className="text-center mt-8">
             <Link href="/marketplace">
               <Button size="lg" variant="outline">
-                View All Books
+                Посмотреть Все Книги
               </Button>
             </Link>
           </div>
@@ -139,28 +139,28 @@ export default function HomePage() {
                 <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
                   <GraduationCap className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-2xl">For Individuals</CardTitle>
+                <CardTitle className="text-2xl">Для Частных Лиц</CardTitle>
               </CardHeader>
               <CardContent className="text-center space-y-4">
                 <CardDescription className="text-lg">
-                  Purchase individual books for personal learning
+                  Покупайте отдельные книги для личного обучения
                 </CardDescription>
                 <ul className="text-left space-y-2 max-w-sm mx-auto">
                   <li className="flex items-center">
                     <ShoppingCart className="h-4 w-4 mr-2 text-blue-600" />
-                    Easy ordering process
+                    Простой процесс заказа
                   </li>
                   <li className="flex items-center">
                     <ShoppingCart className="h-4 w-4 mr-2 text-blue-600" />
-                    Instant access after purchase
+                    Мгновенный доступ после покупки
                   </li>
                   <li className="flex items-center">
                     <ShoppingCart className="h-4 w-4 mr-2 text-blue-600" />
-                    Multiple format options
+                    Множество форматов на выбор
                   </li>
                 </ul>
                 <Link href="/marketplace">
-                  <Button className="w-full">Browse Books</Button>
+                  <Button className="w-full">Просмотреть Книги</Button>
                 </Link>
               </CardContent>
             </Card>
@@ -171,32 +171,32 @@ export default function HomePage() {
                 <div className="mx-auto w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-4">
                   <School className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-2xl">For Schools</CardTitle>
+                <CardTitle className="text-2xl">Для Школ</CardTitle>
               </CardHeader>
               <CardContent className="text-center space-y-4">
                 <CardDescription className="text-lg">
-                  Join our platform and get access to all educational content
+                  Присоединитесь к нашей платформе и получите доступ ко всему образовательному контенту
                 </CardDescription>
                 <ul className="text-left space-y-2 max-w-sm mx-auto">
                   <li className="flex items-center">
                     <School className="h-4 w-4 mr-2 text-purple-600" />
-                    Bulk pricing options
+                    Оптовые цены
                   </li>
                   <li className="flex items-center">
                     <School className="h-4 w-4 mr-2 text-purple-600" />
-                    Student management tools
+                    Инструменты управления студентами
                   </li>
                   <li className="flex items-center">
                     <School className="h-4 w-4 mr-2 text-purple-600" />
-                    Comprehensive library access
+                    Полный доступ к библиотеке
                   </li>
                 </ul>
                 <div className="space-y-2">
                   <Link href="/school-registration">
-                    <Button className="w-full" variant="default">Register School</Button>
+                    <Button className="w-full" variant="default">Зарегистрировать Школу</Button>
                   </Link>
                   <Link href="/bulk-purchase">
-                    <Button className="w-full" variant="outline">Request Bulk Purchase</Button>
+                    <Button className="w-full" variant="outline">Запросить Оптовую Покупку</Button>
                   </Link>
                 </div>
               </CardContent>

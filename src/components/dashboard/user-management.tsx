@@ -45,9 +45,9 @@ export default function UserManagement() {
       
       if (profileError) {
         if (profileError.message.includes('infinite recursion')) {
-          setError('Database error: RLS policy needs to be fixed. See HOW_TO_FIX_INFINITE_RECURSION.md');
+          setError('Ошибка базы данных: Политика RLS нуждается в исправлении. См. HOW_TO_FIX_INFINITE_RECURSION.md');
         } else {
-          setError(`Error fetching users: ${profileError.message}`);
+          setError(`Ошибка получения пользователей: ${profileError.message}`);
         }
         return;
       }
@@ -59,7 +59,7 @@ export default function UserManagement() {
       
       setUsers(profileUsers);
     } catch (error) {
-      setError(`Failed to fetch users: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Не удалось получить пользователей: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       console.error('Fetch users error:', error);
     } finally {
       setIsLoading(false);
@@ -76,13 +76,13 @@ export default function UserManagement() {
       
       if (sessionError) {
         console.error('Session error:', sessionError);
-        setError('Authentication error: Please log in again');
+        setError('Ошибка аутентификации: Пожалуйста, войдите снова');
         setIsLoading(false);
         return;
       }
       
       if (!sessionData.session) {
-        setError('Not authenticated: Please log in');
+        setError('Не аутентифицирован: Пожалуйста, войдите в систему');
         setIsLoading(false);
         return;
       }
@@ -97,9 +97,9 @@ export default function UserManagement() {
         if (userError) {
           console.error('Error fetching user role:', userError);
           if (userError.message.includes('infinite recursion')) {
-            setError('Database error: RLS policy needs to be fixed. See HOW_TO_FIX_INFINITE_RECURSION.md');
+            setError('Ошибка базы данных: Политика RLS нуждается в исправлении. См. HOW_TO_FIX_INFINITE_RECURSION.md');
           } else {
-            setError(`Error fetching user role: ${userError.message}`);
+            setError(`Ошибка получения роли пользователя: ${userError.message}`);
           }
           setIsLoading(false);
           return;
@@ -111,17 +111,17 @@ export default function UserManagement() {
         if (userData.role === 'super_admin' || userData.role === 'school') {
           await fetchUsers(userData.role, userData.school_id);
         } else {
-          setError('You do not have permission to access this page');
+          setError('У вас нет разрешения на доступ к этой странице');
           setIsLoading(false);
         }
       } catch (dbError) {
         console.error('Database error:', dbError);
-        setError(`Database error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+        setError(`Ошибка базы данных: ${dbError instanceof Error ? dbError.message : 'Неизвестная ошибка'}`);
         setIsLoading(false);
       }
     } catch (error) {
       console.error('Error checking user role:', error);
-      setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Неожиданная ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       setIsLoading(false);
     }
   }, [fetchUsers]);
@@ -143,7 +143,7 @@ export default function UserManagement() {
         .eq('id', userId);
       
       if (updateError) {
-        setError(`Failed to update role: ${updateError.message}`);
+        setError(`Не удалось обновить роль: ${updateError.message}`);
         return;
       }
       
@@ -152,7 +152,7 @@ export default function UserManagement() {
         fetchUsers(currentUser.role, currentUser.school_id);
       }
     } catch (error) {
-      setError(`Failed to update user role: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Не удалось обновить роль пользователя: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       console.error('Update role error:', error);
     } finally {
       setActionLoading(null);
@@ -160,7 +160,7 @@ export default function UserManagement() {
   };
 
   if (isLoading) {
-    return <div className="p-4">Loading users...</div>;
+    return <div className="p-4">Загрузка пользователей...</div>;
   }
 
   if (error) {
@@ -170,7 +170,7 @@ export default function UserManagement() {
           {error}
         </div>
         <Button onClick={checkCurrentUserRole} className="mt-4">
-          Try Again
+          Попробовать Снова
         </Button>
       </div>
     );
@@ -179,12 +179,12 @@ export default function UserManagement() {
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">User Management</h2>
+        <h2 className="text-xl font-semibold">Управление Пользователями</h2>
         <Button 
           onClick={() => currentUser && fetchUsers(currentUser.role, currentUser.school_id)} 
           disabled={isLoading}
         >
-          Refresh
+          Обновить
         </Button>
       </div>
       
@@ -196,16 +196,16 @@ export default function UserManagement() {
                 ID/Email
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Role
+                Роль
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                School ID
+                ID Школы
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Created At
+                Создан
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Actions
+                Действия
               </th>
             </tr>
           </thead>
@@ -219,10 +219,10 @@ export default function UserManagement() {
                   {user.role}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {user.school_id || 'N/A'}
+                  {user.school_id || 'Н/Д'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {new Date(user.created_at).toLocaleDateString()}
+                  {new Date(user.created_at).toLocaleDateString('ru-RU')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   {currentUser?.role === 'super_admin' || (currentUser?.role === 'school' && user.role !== 'super_admin') ? (
@@ -232,19 +232,19 @@ export default function UserManagement() {
                       disabled={actionLoading === user.id}
                       className="px-3 py-1 border border-gray-300 rounded"
                     >
-                      <option value="student">Student</option>
-                      <option value="teacher">Teacher</option>
+                      <option value="student">Студент</option>
+                      <option value="teacher">Учитель</option>
                       {currentUser.role === 'super_admin' && (
                         <>
-                          <option value="school">School</option>
-                          <option value="moderator">Moderator</option>
-                          <option value="author">Author</option>
-                          <option value="super_admin">Super Admin</option>
+                          <option value="school">Школа</option>
+                          <option value="moderator">Модератор</option>
+                          <option value="author">Автор</option>
+                          <option value="super_admin">Супер Администратор</option>
                         </>
                       )}
                     </select>
                   ) : (
-                    <span className="text-gray-500">No actions available</span>
+                    <span className="text-gray-500">Нет доступных действий</span>
                   )}
                 </td>
               </tr>
@@ -255,7 +255,7 @@ export default function UserManagement() {
       
       {users.length === 0 && (
         <div className="py-8 text-center text-gray-500">
-          No users found
+          Пользователи не найдены
         </div>
       )}
     </div>

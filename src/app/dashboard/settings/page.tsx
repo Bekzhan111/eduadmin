@@ -69,7 +69,7 @@ export default function SettingsPage() {
           .single();
           
         if (userError) {
-          throw new Error(`Failed to fetch user settings: ${userError.message}`);
+          throw new Error(`Не удалось получить настройки пользователя: ${userError.message}`);
         }
         
         // Fetch school name if user has school_id
@@ -97,7 +97,7 @@ export default function SettingsPage() {
         setLastName(userData.last_name || '');
       } catch (error) {
         console.error('Error fetching user settings:', error);
-        setError(error instanceof Error ? error.message : 'Failed to fetch user settings');
+        setError(error instanceof Error ? error.message : 'Не удалось получить настройки пользователя');
       } finally {
         setIsLoading(false);
       }
@@ -128,10 +128,10 @@ export default function SettingsPage() {
         .eq('id', settings.id);
         
       if (error) {
-        throw new Error(`Failed to update settings: ${error.message}`);
+        throw new Error(`Не удалось обновить настройки: ${error.message}`);
       }
       
-      setSuccess('Settings updated successfully!');
+      setSuccess('Настройки успешно обновлены!');
       
       // Update local state
       setSettings(prev => prev ? {
@@ -143,7 +143,7 @@ export default function SettingsPage() {
       
     } catch (error) {
       console.error('Error saving settings:', error);
-      setError(error instanceof Error ? error.message : 'Failed to save settings');
+      setError(error instanceof Error ? error.message : 'Не удалось сохранить настройки');
     } finally {
       setIsSaving(false);
     }
@@ -158,6 +158,18 @@ export default function SettingsPage() {
       case 'author': return 'bg-purple-500 text-white';
       case 'moderator': return 'bg-orange-500 text-white';
       default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const translateRole = (role: string) => {
+    switch (role) {
+      case 'super_admin': return 'СУПЕР АДМИНИСТРАТОР';
+      case 'school': return 'ШКОЛА';
+      case 'teacher': return 'УЧИТЕЛЬ';
+      case 'student': return 'СТУДЕНТ';
+      case 'author': return 'АВТОР';
+      case 'moderator': return 'МОДЕРАТОР';
+      default: return role.replace('_', ' ').toUpperCase();
     }
   };
 
@@ -197,10 +209,10 @@ export default function SettingsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <p className="text-lg font-semibold">Error</p>
+              <p className="text-lg font-semibold">Ошибка</p>
               <p>{error}</p>
               <Button onClick={() => window.location.reload()} className="mt-4">
-                Reload Page
+                Перезагрузить Страницу
               </Button>
             </div>
           </CardContent>
@@ -215,7 +227,7 @@ export default function SettingsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p>User settings not found.</p>
+              <p>Настройки пользователя не найдены.</p>
             </div>
           </CardContent>
         </Card>
@@ -227,9 +239,9 @@ export default function SettingsPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Настройки</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Manage your account settings and preferences
+          Управляйте настройками аккаунта и предпочтениями
         </p>
       </div>
 
@@ -238,7 +250,7 @@ export default function SettingsPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <div className="text-red-600">
-              <p className="font-semibold">Error</p>
+              <p className="font-semibold">Ошибка</p>
               <p>{error}</p>
             </div>
           </CardContent>
@@ -249,7 +261,7 @@ export default function SettingsPage() {
         <Card className="border-green-200 bg-green-50">
           <CardContent className="pt-6">
             <div className="text-green-600">
-              <p className="font-semibold">Success</p>
+              <p className="font-semibold">Успех</p>
               <p>{success}</p>
             </div>
           </CardContent>
@@ -261,10 +273,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <User className="h-5 w-5 mr-2" />
-            User Information
+            Информация Пользователя
           </CardTitle>
           <CardDescription>
-            Overview of your account information
+            Обзор информации вашего аккаунта
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -281,9 +293,9 @@ export default function SettingsPage() {
               <div className="flex items-center space-x-3">
                 <Shield className="h-5 w-5 text-gray-400" />
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Role</p>
+                  <p className="text-sm font-medium text-gray-500">Роль</p>
                   <Badge className={getRoleBadgeColor(settings.role)}>
-                    {settings.role.replace('_', ' ').toUpperCase()}
+                    {translateRole(settings.role)}
                   </Badge>
                 </div>
               </div>
@@ -294,7 +306,7 @@ export default function SettingsPage() {
                 <div className="flex items-center space-x-3">
                   <School className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">School</p>
+                    <p className="text-sm font-medium text-gray-500">Школа</p>
                     <p className="text-gray-900 dark:text-white">{settings.school_name}</p>
                   </div>
                 </div>
@@ -303,9 +315,9 @@ export default function SettingsPage() {
               <div className="flex items-center space-x-3">
                 <User className="h-5 w-5 text-gray-400" />
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Member Since</p>
+                  <p className="text-sm font-medium text-gray-500">Участник с</p>
                   <p className="text-gray-900 dark:text-white">
-                    {new Date(settings.created_at).toLocaleDateString()}
+                    {new Date(settings.created_at).toLocaleDateString('ru-RU')}
                   </p>
                 </div>
               </div>
@@ -317,45 +329,45 @@ export default function SettingsPage() {
       {/* Profile Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Profile Settings</CardTitle>
+          <CardTitle>Настройки Профиля</CardTitle>
           <CardDescription>
-            Update your profile information
+            Обновите информацию вашего профиля
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Display Name</label>
+                <label className="text-sm font-medium">Отображаемое Имя</label>
                 <Input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Enter your display name"
+                  placeholder="Введите ваше отображаемое имя"
                 />
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">First Name</label>
+                <label className="text-sm font-medium">Имя</label>
                 <Input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Enter your first name"
+                  placeholder="Введите ваше имя"
                 />
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Last Name</label>
+                <label className="text-sm font-medium">Фамилия</label>
                 <Input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Enter your last name"
+                  placeholder="Введите вашу фамилию"
                 />
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">Email (Read-only)</label>
+                <label className="text-sm font-medium">Email (Только для чтения)</label>
                 <Input
                   value={settings.email}
                   disabled
@@ -371,7 +383,7 @@ export default function SettingsPage() {
                 className="min-w-[120px]"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Changes'}
+                {isSaving ? 'Сохранение...' : 'Сохранить Изменения'}
               </Button>
             </div>
           </div>
@@ -381,17 +393,17 @@ export default function SettingsPage() {
       {/* Account Security */}
       <Card>
         <CardHeader>
-          <CardTitle>Account Security</CardTitle>
+          <CardTitle>Безопасность Аккаунта</CardTitle>
           <CardDescription>
-            Manage your account security settings
+            Управляйте настройками безопасности вашего аккаунта
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Password</p>
-                <p className="text-sm text-gray-500">Change your account password</p>
+                <p className="font-medium">Пароль</p>
+                <p className="text-sm text-gray-500">Изменить пароль вашего аккаунта</p>
               </div>
               <Button 
                 variant="outline"
@@ -400,12 +412,12 @@ export default function SettingsPage() {
                 {showPasswordSection ? (
                   <>
                     <EyeOff className="h-4 w-4 mr-2" />
-                    Hide
+                    Скрыть
                   </>
                 ) : (
                   <>
                     <Eye className="h-4 w-4 mr-2" />
-                    Change Password
+                    Изменить Пароль
                   </>
                 )}
               </Button>
@@ -415,11 +427,11 @@ export default function SettingsPage() {
               <Card className="bg-gray-50 dark:bg-gray-800">
                 <CardContent className="pt-6">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    For security reasons, password changes must be done through Supabase Auth. 
-                    You can reset your password by logging out and using the &quot;Forgot Password&quot; option.
+                    По соображениям безопасности изменение пароля должно производиться через Supabase Auth. 
+                    Вы можете сбросить пароль, выйдя из системы и используя опцию &quot;Забыли пароль?&quot;.
                   </p>
                   <Button variant="outline" size="sm">
-                    Request Password Reset
+                    Запросить Сброс Пароля
                   </Button>
                 </CardContent>
               </Card>

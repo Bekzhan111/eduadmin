@@ -89,7 +89,7 @@ export default function UsersPage() {
         .order('created_at', { ascending: false });
       
       if (usersError) {
-        throw new Error(`Failed to fetch users: ${usersError.message}`);
+        throw new Error(`Не удалось получить пользователей: ${usersError.message}`);
       }
       
       // Fetch schools separately to avoid relationship conflicts
@@ -124,7 +124,7 @@ export default function UsersPage() {
       setFilteredUsers(formattedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch users');
+      setError(error instanceof Error ? error.message : 'Не удалось получить пользователей');
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +159,7 @@ export default function UsersPage() {
   useEffect(() => {
     if (!authLoading && userProfile) {
       if (userProfile.role !== 'super_admin') {
-        setError('Access denied. Only super administrators can view this page.');
+        setError('Доступ запрещен. Только суперадминистраторы могут просматривать эту страницу.');
         setIsLoading(false);
         return;
       }
@@ -170,7 +170,7 @@ export default function UsersPage() {
   }, [authLoading, userProfile, fetchUsers, fetchSchools]);
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить этого пользователя? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -182,14 +182,14 @@ export default function UsersPage() {
         .eq('id', userId);
       
       if (error) {
-        throw new Error(`Failed to delete user: ${error.message}`);
+        throw new Error(`Не удалось удалить пользователя: ${error.message}`);
       }
       
       // Refresh the users list
       await fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete user');
+      alert(error instanceof Error ? error.message : 'Не удалось удалить пользователя');
     }
   };
 
@@ -227,10 +227,10 @@ export default function UsersPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <p className="text-lg font-semibold">Error</p>
+              <p className="text-lg font-semibold">Ошибка</p>
               <p>{error}</p>
               <Button onClick={() => window.location.reload()} className="mt-4">
-                Reload Page
+                Перезагрузить Страницу
               </Button>
             </div>
           </CardContent>
@@ -244,15 +244,15 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Users Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Управление Пользователями</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage all users in the system
+            Управление всеми пользователями в системе
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="text-sm">
             <Users className="h-4 w-4 mr-1" />
-            {filteredUsers.length} users
+            {filteredUsers.length} пользователей
           </Badge>
         </div>
       </div>
@@ -262,18 +262,18 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
             <Filter className="h-5 w-5 mr-2" />
-            Filters
+            Фильтры
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
+              <label className="text-sm font-medium">Поиск</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search by name, email, or school..."
+                  placeholder="Поиск по имени, email или школе..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -283,33 +283,33 @@ export default function UsersPage() {
 
             {/* Role Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Role</label>
+              <label className="text-sm font-medium">Роль</label>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by role" />
+                  <SelectValue placeholder="Фильтр по роли" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                  <SelectItem value="school">School Admin</SelectItem>
-                  <SelectItem value="teacher">Teacher</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="author">Author</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="all">Все Роли</SelectItem>
+                  <SelectItem value="super_admin">Суперадминистратор</SelectItem>
+                  <SelectItem value="school">Администратор Школы</SelectItem>
+                  <SelectItem value="teacher">Учитель</SelectItem>
+                  <SelectItem value="student">Студент</SelectItem>
+                  <SelectItem value="author">Автор</SelectItem>
+                  <SelectItem value="moderator">Модератор</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* School Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">School</label>
+              <label className="text-sm font-medium">Школа</label>
               <Select value={schoolFilter} onValueChange={setSchoolFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by school" />
+                  <SelectValue placeholder="Фильтр по школе" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Schools</SelectItem>
-                  <SelectItem value="no-school">No School</SelectItem>
+                  <SelectItem value="all">Все Школы</SelectItem>
+                  <SelectItem value="no-school">Без Школы</SelectItem>
                   {schools.map((school) => (
                     <SelectItem key={school.id} value={school.id}>
                       {school.name}
@@ -325,9 +325,9 @@ export default function UsersPage() {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>Все Пользователи</CardTitle>
           <CardDescription>
-            View and manage all users in the system
+            Просмотр и управление всеми пользователями в системе
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -335,13 +335,13 @@ export default function UsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>School</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Пользователь</TableHead>
+                  <TableHead>Роль</TableHead>
+                  <TableHead>Школа</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Последний Вход</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -350,7 +350,7 @@ export default function UsersPage() {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {user.display_name || 'No name'}
+                          {user.display_name || 'Без имени'}
                         </div>
                         <div className="text-sm text-gray-500">
                           {user.email}
@@ -359,26 +359,32 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge className={getRoleBadgeColor(user.role)}>
-                        {user.role.replace('_', ' ').toUpperCase()}
+                        {user.role === 'super_admin' ? 'СУПЕРАДМИНИСТРАТОР' :
+                         user.role === 'school' ? 'АДМИНИСТРАТОР ШКОЛЫ' :
+                         user.role === 'teacher' ? 'УЧИТЕЛЬ' :
+                         user.role === 'student' ? 'СТУДЕНТ' :
+                         user.role === 'author' ? 'АВТОР' :
+                         user.role === 'moderator' ? 'МОДЕРАТОР' :
+                         user.role.replace('_', ' ').toUpperCase()}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       {user.school_name || (
-                        <span className="text-gray-400 italic">No school</span>
+                        <span className="text-gray-400 italic">Без школы</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
+                      {new Date(user.created_at).toLocaleDateString('ru-RU')}
                     </TableCell>
                     <TableCell>
                       {user.last_login ? 
-                        new Date(user.last_login).toLocaleDateString() : 
-                        <span className="text-gray-400 italic">Never</span>
+                        new Date(user.last_login).toLocaleDateString('ru-RU') : 
+                        <span className="text-gray-400 italic">Никогда</span>
                       }
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.is_active ? "default" : "secondary"}>
-                        {user.is_active ? "Active" : "Inactive"}
+                        {user.is_active ? "Активен" : "Неактивен"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -407,7 +413,7 @@ export default function UsersPage() {
           
           {filteredUsers.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No users found matching your criteria.
+              Пользователи, соответствующие вашим критериям, не найдены.
             </div>
           )}
         </CardContent>

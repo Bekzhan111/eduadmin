@@ -37,22 +37,22 @@ export default function DashboardOverview() {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <StatCard 
-        title="Total Users" 
+        title="Всего Пользователей" 
         value={stats.totalUsers} 
         isLoading={isLoading} 
-        description="Active user accounts"
+        description="Активные аккаунты пользователей"
       />
       <StatCard 
-        title="Total Posts" 
+        title="Всего Постов" 
         value={stats.totalPosts} 
         isLoading={isLoading} 
-        description="Published content"
+        description="Опубликованный контент"
       />
       <StatCard 
-        title="Active Sessions" 
+        title="Активные Сессии" 
         value={stats.activeSessions} 
         isLoading={isLoading} 
-        description="Currently online"
+        description="Сейчас онлайн"
       />
     </div>
   );

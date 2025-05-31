@@ -29,19 +29,19 @@ export default function MarketplaceHeader() {
               href="/marketplace" 
               className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              Books
+              Книги
             </Link>
             <Link 
               href="/school-registration" 
               className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              Schools
+              Школы
             </Link>
             <Link 
               href="/bulk-purchase" 
               className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              Bulk Orders
+              Оптовые Заказы
             </Link>
           </nav>
 
@@ -51,13 +51,13 @@ export default function MarketplaceHeader() {
             <Link href="/login">
               <Button variant="ghost" size="sm">
                 <LogIn className="h-4 w-4 mr-2" />
-                Login
+                Войти
               </Button>
             </Link>
             <Link href="/dashboard">
               <Button variant="default" size="sm">
                 <User className="h-4 w-4 mr-2" />
-                Dashboard
+                Панель
               </Button>
             </Link>
           </div>
@@ -88,33 +88,33 @@ export default function MarketplaceHeader() {
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Books
+                Книги
               </Link>
               <Link 
                 href="/school-registration" 
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Schools
+                Школы
               </Link>
               <Link 
                 href="/bulk-purchase" 
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Bulk Orders
+                Оптовые Заказы
               </Link>
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <LogIn className="h-4 w-4 mr-2" />
-                    Login
+                    Войти
                   </Button>
                 </Link>
                 <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="default" size="sm" className="w-full justify-start">
                     <User className="h-4 w-4 mr-2" />
-                    Dashboard
+                    Панель
                   </Button>
                 </Link>
               </div>

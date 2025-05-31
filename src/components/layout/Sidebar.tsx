@@ -28,26 +28,26 @@ type NavItem = {
 };
 
 const navigationItems: NavItem[] = [
-  { name: 'Dashboard', path: '/dashboard', icon: Home, roles: ['super_admin', 'school', 'teacher', 'student', 'author', 'moderator'] },
+  { name: 'Панель управления', path: '/dashboard', icon: Home, roles: ['super_admin', 'school', 'teacher', 'student', 'author', 'moderator'] },
   
   // Super Admin only
-  { name: 'Users', path: '/dashboard/users', icon: Users, roles: ['super_admin'] },
-  { name: 'Schools', path: '/dashboard/schools', icon: School, roles: ['super_admin'] },
-  { name: 'Authors', path: '/dashboard/authors', icon: BookOpen, roles: ['super_admin'] },
-  { name: 'Moderators', path: '/dashboard/moderators', icon: Shield, roles: ['super_admin'] },
+  { name: 'Пользователи', path: '/dashboard/users', icon: Users, roles: ['super_admin'] },
+  { name: 'Школы', path: '/dashboard/schools', icon: School, roles: ['super_admin'] },
+  { name: 'Авторы', path: '/dashboard/authors', icon: BookOpen, roles: ['super_admin'] },
+  { name: 'Модераторы', path: '/dashboard/moderators', icon: Shield, roles: ['super_admin'] },
   
   // School Admin specific
-  { name: 'Teachers', path: '/dashboard/teachers', icon: GraduationCap, roles: ['super_admin', 'school'] },
-  { name: 'Students', path: '/dashboard/students', icon: Users, roles: ['super_admin', 'school', 'teacher'] },
+  { name: 'Учителя', path: '/dashboard/teachers', icon: GraduationCap, roles: ['super_admin', 'school'] },
+  { name: 'Студенты', path: '/dashboard/students', icon: Users, roles: ['super_admin', 'school', 'teacher'] },
   
   // Role-specific Books access
-  { name: 'Books', path: '/dashboard/books', icon: BookOpen, roles: ['super_admin', 'school', 'teacher', 'student', 'author', 'moderator'] },
+  { name: 'Книги', path: '/dashboard/books', icon: BookOpen, roles: ['super_admin', 'school', 'teacher', 'student', 'author', 'moderator'] },
   
   // Key Management - specific roles only
-  { name: 'Key Management', path: '/dashboard/keys', icon: Key, roles: ['super_admin', 'school', 'teacher'] },
+  { name: 'Управление ключами', path: '/dashboard/keys', icon: Key, roles: ['super_admin', 'school', 'teacher'] },
   
   // Settings for everyone
-  { name: 'Settings', path: '/dashboard/settings', icon: Settings, roles: ['super_admin', 'school', 'teacher', 'student', 'author', 'moderator'] },
+  { name: 'Настройки', path: '/dashboard/settings', icon: Settings, roles: ['super_admin', 'school', 'teacher', 'student', 'author', 'moderator'] },
 ];
 
 export default function Sidebar({ 
@@ -98,6 +98,18 @@ export default function Sidebar({
     userProfile?.role && item.roles.includes(userProfile.role)
   );
 
+  const translateRole = (role: string) => {
+    switch (role) {
+      case 'super_admin': return 'супер администратор';
+      case 'school': return 'школа';
+      case 'teacher': return 'учитель';
+      case 'student': return 'студент';
+      case 'author': return 'автор';
+      case 'moderator': return 'модератор';
+      default: return role.replace('_', ' ');
+    }
+  };
+
   if (error) {
     return (
       <>
@@ -125,7 +137,7 @@ export default function Sidebar({
             
             <div className="flex items-center text-red-600 mb-4">
               <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-              <span className="text-sm">Error loading menu</span>
+              <span className="text-sm">Ошибка загрузки меню</span>
             </div>
             <Button 
               onClick={() => window.location.reload()} 
@@ -133,7 +145,7 @@ export default function Sidebar({
               size="sm"
               className="w-full"
             >
-              Retry
+              Повторить
             </Button>
           </div>
         </aside>
@@ -157,7 +169,7 @@ export default function Sidebar({
         <div className="h-full flex flex-col overflow-hidden">
           {/* Header with close button for mobile */}
           <div className="lg:hidden flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Menu</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Меню</h2>
             {onClose && (
               <button
                 onClick={onClose}
@@ -205,13 +217,13 @@ export default function Sidebar({
             {userProfile && (
               <div className="mb-3">
                 <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Signed in as
+                  Вошли как
                 </div>
                 <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {userProfile.display_name || userProfile.email}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                  {userProfile.role.replace('_', ' ')}
+                  {translateRole(userProfile.role)}
                 </div>
               </div>
             )}
@@ -224,7 +236,7 @@ export default function Sidebar({
               className="w-full flex items-center justify-center"
             >
               <LogOut className="h-4 w-4 mr-2 flex-shrink-0" />
-              {isSigningOut ? 'Signing out...' : 'Sign Out'}
+              {isSigningOut ? 'Выход...' : 'Выйти'}
             </Button>
           </div>
         </div>

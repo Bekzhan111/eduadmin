@@ -55,31 +55,31 @@ export default function SchoolRegistrationPage() {
 
   const validateForm = (): boolean => {
     if (!form.school_name.trim()) {
-      setError('School name is required');
+      setError('Название школы обязательно');
       return false;
     }
     if (!form.contact_person_name.trim()) {
-      setError('Contact person name is required');
+      setError('Имя контактного лица обязательно');
       return false;
     }
     if (!form.contact_email.trim()) {
-      setError('Contact email is required');
+      setError('Контактный email обязателен');
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(form.contact_email)) {
-      setError('Please enter a valid email address');
+      setError('Пожалуйста, введите действительный адрес электронной почты');
       return false;
     }
     if (!form.school_type) {
-      setError('Please select a school type');
+      setError('Пожалуйста, выберите тип школы');
       return false;
     }
     if (form.students_count < 1) {
-      setError('Number of students must be at least 1');
+      setError('Количество студентов должно быть не менее 1');
       return false;
     }
     if (form.teachers_count < 1) {
-      setError('Number of teachers must be at least 1');
+      setError('Количество учителей должно быть не менее 1');
       return false;
     }
     return true;
@@ -123,7 +123,7 @@ export default function SchoolRegistrationPage() {
       setSubmitted(true);
     } catch (error) {
       console.error('Error submitting school registration:', error);
-      setError('Failed to submit registration request. Please try again.');
+      setError('Не удалось отправить запрос на регистрацию. Пожалуйста, попробуйте еще раз.');
     } finally {
       setSubmitting(false);
     }
@@ -137,23 +137,23 @@ export default function SchoolRegistrationPage() {
           <div className="max-w-md mx-auto text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-6" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Registration Request Submitted!
+              Запрос на регистрацию отправлен!
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Thank you for your interest in joining our educational platform. We have received 
-              your registration request for <strong>{form.school_name}</strong> and will review 
-              it within 3-5 business days. You will receive an email confirmation once your 
-              application is approved.
+              Спасибо за ваш интерес к присоединению к нашей образовательной платформе. Мы получили 
+              ваш запрос на регистрацию для <strong>{form.school_name}</strong> и рассмотрим 
+              его в течение 3-5 рабочих дней. Вы получите подтверждение по электронной почте после 
+              одобрения вашей заявки.
             </p>
             <div className="space-y-3">
               <Link href="/bulk-purchase">
                 <Button variant="outline" className="w-full">
-                  Request Bulk Purchase
+                  Запросить оптовую покупку
                 </Button>
               </Link>
               <Link href="/">
                 <Button className="w-full">
-                  Back to Home
+                  Назад на главную
                 </Button>
               </Link>
             </div>
@@ -175,7 +175,7 @@ export default function SchoolRegistrationPage() {
             className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            Назад на главную
           </Link>
         </div>
 
@@ -186,10 +186,10 @@ export default function SchoolRegistrationPage() {
               <School className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              School Registration
+              Регистрация школы
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              Join our educational platform and get access to our complete library of educational books
+              Присоединитесь к нашей образовательной платформе и получите доступ к нашей полной библиотеке образовательных книг
             </p>
           </div>
 
@@ -197,23 +197,23 @@ export default function SchoolRegistrationPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Card className="text-center p-4">
               <Building className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Institutional Access</h3>
+              <h3 className="font-semibold mb-1">Институциональный доступ</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Complete library access for your institution
+                Полный доступ к библиотеке для вашего учреждения
               </p>
             </Card>
             <Card className="text-center p-4">
               <Users className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Student Management</h3>
+              <h3 className="font-semibold mb-1">Управление студентами</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Manage student access and progress
+                Управляйте доступом и прогрессом студентов
               </p>
             </Card>
             <Card className="text-center p-4">
               <GraduationCap className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Bulk Pricing</h3>
+              <h3 className="font-semibold mb-1">Оптовые цены</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Special pricing for educational institutions
+                Специальные цены для образовательных учреждений
               </p>
             </Card>
           </div>
@@ -221,9 +221,9 @@ export default function SchoolRegistrationPage() {
           {/* Registration Form */}
           <Card>
             <CardHeader>
-              <CardTitle>School Information</CardTitle>
+              <CardTitle>Информация о школе</CardTitle>
               <CardDescription>
-                Please provide your school details to join our platform
+                Пожалуйста, предоставьте данные вашей школы для присоединения к нашей платформе
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -237,10 +237,10 @@ export default function SchoolRegistrationPage() {
 
                 {/* School Details */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">School Details</h3>
+                  <h3 className="text-lg font-semibold">Детали школы</h3>
                   
                   <div>
-                    <Label htmlFor="school_name">School Name *</Label>
+                    <Label htmlFor="school_name">Название школы *</Label>
                     <Input
                       id="school_name"
                       type="text"
@@ -252,25 +252,25 @@ export default function SchoolRegistrationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="school_type">School Type *</Label>
+                      <Label htmlFor="school_type">Тип школы *</Label>
                       <Select value={form.school_type} onValueChange={(value) => handleInputChange('school_type', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select school type" />
+                          <SelectValue placeholder="Выберите тип школы" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="primary">Primary School</SelectItem>
-                          <SelectItem value="secondary">Secondary School</SelectItem>
-                          <SelectItem value="high">High School</SelectItem>
-                          <SelectItem value="college">College</SelectItem>
-                          <SelectItem value="university">University</SelectItem>
-                          <SelectItem value="vocational">Vocational School</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="primary">Начальная школа</SelectItem>
+                          <SelectItem value="secondary">Средняя школа</SelectItem>
+                          <SelectItem value="high">Старшая школа</SelectItem>
+                          <SelectItem value="college">Колледж</SelectItem>
+                          <SelectItem value="university">Университет</SelectItem>
+                          <SelectItem value="vocational">Профессиональное училище</SelectItem>
+                          <SelectItem value="other">Другое</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div>
-                      <Label htmlFor="school_bin">Business Identification Number</Label>
+                      <Label htmlFor="school_bin">Бизнес-идентификационный номер</Label>
                       <Input
                         id="school_bin"
                         type="text"
@@ -282,7 +282,7 @@ export default function SchoolRegistrationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="school_address">School Address</Label>
+                      <Label htmlFor="school_address">Адрес школы</Label>
                       <Input
                         id="school_address"
                         type="text"
@@ -292,7 +292,7 @@ export default function SchoolRegistrationPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="school_city">City</Label>
+                      <Label htmlFor="school_city">Город</Label>
                       <Input
                         id="school_city"
                         type="text"
@@ -304,7 +304,7 @@ export default function SchoolRegistrationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="students_count">Number of Students *</Label>
+                      <Label htmlFor="students_count">Количество студентов *</Label>
                       <Input
                         id="students_count"
                         type="number"
@@ -316,7 +316,7 @@ export default function SchoolRegistrationPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="teachers_count">Number of Teachers *</Label>
+                      <Label htmlFor="teachers_count">Количество учителей *</Label>
                       <Input
                         id="teachers_count"
                         type="number"
@@ -329,7 +329,7 @@ export default function SchoolRegistrationPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="website">School Website</Label>
+                    <Label htmlFor="website">Веб-сайт школы</Label>
                     <Input
                       id="website"
                       type="url"
@@ -342,10 +342,10 @@ export default function SchoolRegistrationPage() {
 
                 {/* Contact Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Contact Information</h3>
+                  <h3 className="text-lg font-semibold">Контактная информация</h3>
                   
                   <div>
-                    <Label htmlFor="contact_person_name">Contact Person Name *</Label>
+                    <Label htmlFor="contact_person_name">Имя контактного лица *</Label>
                     <Input
                       id="contact_person_name"
                       type="text"
@@ -357,7 +357,7 @@ export default function SchoolRegistrationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="contact_email">Contact Email *</Label>
+                      <Label htmlFor="contact_email">Контактный Email *</Label>
                       <Input
                         id="contact_email"
                         type="email"
@@ -368,7 +368,7 @@ export default function SchoolRegistrationPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="contact_phone">Contact Phone</Label>
+                      <Label htmlFor="contact_phone">Контактный телефон</Label>
                       <Input
                         id="contact_phone"
                         type="tel"
@@ -381,13 +381,13 @@ export default function SchoolRegistrationPage() {
 
                 {/* Additional Information */}
                 <div>
-                  <Label htmlFor="description">Additional Information</Label>
+                  <Label htmlFor="description">Дополнительная информация</Label>
                   <Textarea
                     id="description"
                     value={form.description}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('description', e.target.value)}
                     rows={4}
-                    placeholder="Tell us more about your school and educational needs"
+                    placeholder="Расскажите нам больше о вашей школе и образовательных потребностях"
                   />
                 </div>
 
@@ -398,12 +398,12 @@ export default function SchoolRegistrationPage() {
                     size="lg"
                     disabled={submitting}
                   >
-                    {submitting ? 'Submitting...' : 'Submit Registration Request'}
+                    {submitting ? 'Отправка...' : 'Отправить запрос на регистрацию'}
                   </Button>
                   
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-                    By submitting this form, you agree to be contacted regarding your registration.
-                    We will review your application and respond within 3-5 business days.
+                    Отправляя эту форму, вы соглашаетесь на контакт относительно вашей регистрации.
+                    Мы рассмотрим вашу заявку и ответим в течение 3-5 рабочих дней.
                   </p>
                 </div>
               </form>

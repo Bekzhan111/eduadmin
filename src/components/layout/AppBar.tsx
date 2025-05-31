@@ -24,7 +24,7 @@ export default function AppBar({
                 {isSidebarOpen ? <LucideX className="h-6 w-6" /> : <LucideMenu className="h-6 w-6" />}
               </Button>
               <h1 className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
-                Educational Platform
+                Образовательная Платформа
               </h1>
             </div>
             
@@ -47,7 +47,7 @@ export default function AppBar({
               {isSidebarOpen ? <LucideX className="h-6 w-6" /> : <LucideMenu className="h-6 w-6" />}
             </Button>
             <h1 className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
-              Educational Platform
+              Образовательная Платформа
             </h1>
           </div>
           

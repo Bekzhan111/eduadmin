@@ -69,7 +69,7 @@ export default function ModeratorsPage() {
         .order('created_at', { ascending: false });
       
       if (moderatorsError) {
-        throw new Error(`Failed to fetch moderators: ${moderatorsError.message}`);
+        throw new Error(`Не удалось получить модераторов: ${moderatorsError.message}`);
       }
       
       // Fetch moderator registration keys
@@ -81,7 +81,7 @@ export default function ModeratorsPage() {
       
       if (keysError) {
         console.error('Error fetching moderator keys:', keysError);
-        setError(`Error fetching moderator keys: ${keysError.message}`);
+        setError(`Ошибка получения ключей модераторов: ${keysError.message}`);
       } else {
         setModeratorKeys(keysData as ModeratorKey[] || []);
       }
@@ -101,7 +101,7 @@ export default function ModeratorsPage() {
       setFilteredModerators(formattedModerators);
     } catch (error) {
       console.error('Error fetching moderators:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch moderators');
+      setError(error instanceof Error ? error.message : 'Не удалось получить модераторов');
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +131,7 @@ export default function ModeratorsPage() {
   useEffect(() => {
     if (!authLoading && userProfile) {
       if (userProfile.role !== 'super_admin') {
-        setError('Access denied. Only super administrators can view this page.');
+        setError('Доступ запрещен. Только суперадминистраторы могут просматривать эту страницу.');
         setIsLoading(false);
         return;
       }
@@ -141,7 +141,7 @@ export default function ModeratorsPage() {
   }, [authLoading, userProfile, fetchModerators]);
 
   const handleDeleteModerator = async (moderatorId: string) => {
-    if (!confirm('Are you sure you want to delete this moderator? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить этого модератора? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -153,19 +153,19 @@ export default function ModeratorsPage() {
         .eq('id', moderatorId);
       
       if (error) {
-        throw new Error(`Failed to delete moderator: ${error.message}`);
+        throw new Error(`Не удалось удалить модератора: ${error.message}`);
       }
       
       // Refresh the moderators list
       await fetchModerators();
     } catch (error) {
       console.error('Error deleting moderator:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete moderator');
+      alert(error instanceof Error ? error.message : 'Не удалось удалить модератора');
     }
   };
 
   const handleDeleteKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this key? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить этот ключ? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -177,14 +177,14 @@ export default function ModeratorsPage() {
         .eq('id', keyId);
       
       if (error) {
-        throw new Error(`Failed to delete key: ${error.message}`);
+        throw new Error(`Не удалось удалить ключ: ${error.message}`);
       }
       
-      setSuccess('Key deleted successfully');
+      setSuccess('Ключ успешно удален');
       await fetchModerators(); // Refresh the keys list
     } catch (error) {
       console.error('Error deleting key:', error);
-      setError(error instanceof Error ? error.message : 'Failed to delete key');
+      setError(error instanceof Error ? error.message : 'Не удалось удалить ключ');
     }
   };
 
@@ -203,7 +203,7 @@ export default function ModeratorsPage() {
       
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        throw new Error('You must be logged in to generate keys');
+        throw new Error('Вы должны войти в систему для генерации ключей');
       }
       
       // Generate a secure key
@@ -227,10 +227,10 @@ export default function ModeratorsPage() {
         }]);
       
       if (error) {
-        throw new Error(`Failed to generate moderator key: ${error.message}`);
+        throw new Error(`Не удалось сгенерировать ключ модератора: ${error.message}`);
       }
       
-      setSuccess(`Moderator key generated successfully: ${keyCode}`);
+      setSuccess(`Ключ модератора успешно сгенерирован: ${keyCode}`);
       
       // Copy to clipboard using safe method
       const copySuccess = await safeCopyToClipboard(keyCode);
@@ -240,7 +240,7 @@ export default function ModeratorsPage() {
       await fetchModerators();
     } catch (error) {
       console.error('Error generating moderator key:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate moderator key');
+      setError(error instanceof Error ? error.message : 'Не удалось сгенерировать ключ модератора');
     } finally {
       setIsGenerating(false);
     }
@@ -253,12 +253,12 @@ export default function ModeratorsPage() {
 
   const getKeyStatus = (key: ModeratorKey) => {
     if (!key.is_active || key.uses >= key.max_uses) {
-      return <Badge className="bg-red-500 text-white">Used</Badge>;
+      return <Badge className="bg-red-500 text-white">Использован</Badge>;
     }
     if (key.expires_at && new Date(key.expires_at) < new Date()) {
-      return <Badge className="bg-yellow-500 text-white">Expired</Badge>;
+      return <Badge className="bg-yellow-500 text-white">Истек</Badge>;
     }
-    return <Badge className="bg-green-500 text-white">Active</Badge>;
+    return <Badge className="bg-green-500 text-white">Активен</Badge>;
   };
 
   if (authLoading || isLoading) {
@@ -311,10 +311,10 @@ export default function ModeratorsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <p className="text-lg font-semibold">Error</p>
+              <p className="text-lg font-semibold">Ошибка</p>
               <p>{error}</p>
               <Button onClick={() => window.location.reload()} className="mt-4">
-                Reload Page
+                Перезагрузить Страницу
               </Button>
             </div>
           </CardContent>
@@ -328,15 +328,15 @@ export default function ModeratorsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Moderators Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Управление Модераторами</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage content moderators and their registration keys
+            Управление модераторами контента и их ключами регистрации
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="text-sm">
             <Shield className="h-4 w-4 mr-1" />
-            {filteredModerators.length} moderators
+            {filteredModerators.length} модераторов
           </Badge>
           <div className="flex items-center space-x-2">
             <Input
@@ -345,17 +345,17 @@ export default function ModeratorsPage() {
               max="365"
               value={expirationDays}
               onChange={(e) => setExpirationDays(parseInt(e.target.value) || 0)}
-              placeholder="Days"
+              placeholder="Дни"
               className="w-20"
             />
-            <span className="text-sm text-gray-500">days (0 = unlimited)</span>
+            <span className="text-sm text-gray-500">дней (0 = безлимитно)</span>
           </div>
           <Button 
             onClick={handleGenerateModeratorKey}
             disabled={isGenerating}
           >
             <Plus className="h-4 w-4 mr-2" />
-            {isGenerating ? 'Generating...' : 'Generate Moderator Key'}
+            {isGenerating ? 'Генерируется...' : 'Сгенерировать Ключ Модератора'}
           </Button>
         </div>
       </div>
@@ -380,7 +380,7 @@ export default function ModeratorsPage() {
             <div className="flex items-center">
               <Shield className="h-8 w-8 text-orange-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Moderators</p>
+                <p className="text-sm font-medium text-gray-600">Всего Модераторов</p>
                 <p className="text-2xl font-bold">{moderators.length}</p>
               </div>
             </div>
@@ -391,7 +391,7 @@ export default function ModeratorsPage() {
             <div className="flex items-center">
               <Eye className="h-8 w-8 text-green-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Moderators</p>
+                <p className="text-sm font-medium text-gray-600">Активные Модераторы</p>
                 <p className="text-2xl font-bold">{moderators.filter(m => m.is_active).length}</p>
               </div>
             </div>
@@ -402,7 +402,7 @@ export default function ModeratorsPage() {
             <div className="flex items-center">
               <Key className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Moderator Keys</p>
+                <p className="text-sm font-medium text-gray-600">Ключи Модераторов</p>
                 <p className="text-2xl font-bold">{moderatorKeys.length}</p>
               </div>
             </div>
@@ -413,7 +413,7 @@ export default function ModeratorsPage() {
             <div className="flex items-center">
               <UserPlus className="h-8 w-8 text-purple-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Available Keys</p>
+                <p className="text-sm font-medium text-gray-600">Доступные Ключи</p>
                 <p className="text-2xl font-bold">
                   {moderatorKeys.filter(k => k.is_active && k.uses < k.max_uses && (!k.expires_at || new Date(k.expires_at) > new Date())).length}
                 </p>
@@ -428,10 +428,10 @@ export default function ModeratorsPage() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Key className="h-5 w-5 mr-2" />
-            Moderator Registration Keys
+            Ключи Регистрации Модераторов
           </CardTitle>
           <CardDescription>
-            Registration keys for moderator account creation
+            Ключи регистрации для создания аккаунтов модераторов
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -440,12 +440,12 @@ export default function ModeratorsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Key</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Uses</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Expires</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Ключ</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead>Использования</TableHead>
+                    <TableHead>Создан</TableHead>
+                    <TableHead>Истекает</TableHead>
+                    <TableHead>Действия</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -463,12 +463,12 @@ export default function ModeratorsPage() {
                         {key.uses} / {key.max_uses}
                       </TableCell>
                       <TableCell>
-                        {new Date(key.created_at).toLocaleDateString()}
+                        {new Date(key.created_at).toLocaleDateString('ru-RU')}
                       </TableCell>
                       <TableCell>
                         {key.expires_at ? 
-                          new Date(key.expires_at).toLocaleDateString() : 
-                          <span className="text-gray-400 italic">No expiry</span>
+                          new Date(key.expires_at).toLocaleDateString('ru-RU') : 
+                          <span className="text-gray-400 italic">Без истечения</span>
                         }
                       </TableCell>
                       <TableCell>
@@ -497,7 +497,7 @@ export default function ModeratorsPage() {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              No moderator registration keys found. Generate some keys to enable moderator registration.
+              Ключи регистрации модераторов не найдены. Сгенерируйте ключи для включения регистрации модераторов.
             </div>
           )}
         </CardContent>
@@ -508,18 +508,18 @@ export default function ModeratorsPage() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
             <Filter className="h-5 w-5 mr-2" />
-            Moderator Filters
+            Фильтры Модераторов
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
+              <label className="text-sm font-medium">Поиск</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Поиск по имени или email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -529,15 +529,15 @@ export default function ModeratorsPage() {
 
             {/* Status Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+              <label className="text-sm font-medium">Статус</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder="Фильтр по статусу" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Moderators</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="all">Все Модераторы</SelectItem>
+                  <SelectItem value="active">Активные</SelectItem>
+                  <SelectItem value="inactive">Неактивные</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -548,9 +548,9 @@ export default function ModeratorsPage() {
       {/* Moderators Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Registered Moderators</CardTitle>
+          <CardTitle>Зарегистрированные Модераторы</CardTitle>
           <CardDescription>
-            View and manage content moderators in the system
+            Просмотр и управление модераторами контента в системе
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -558,12 +558,12 @@ export default function ModeratorsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Moderator</TableHead>
+                  <TableHead>Модератор</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Создан</TableHead>
+                  <TableHead>Последний Вход</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -571,7 +571,7 @@ export default function ModeratorsPage() {
                   <TableRow key={moderator.id}>
                     <TableCell>
                       <div className="font-medium">
-                        {moderator.display_name || 'No name'}
+                        {moderator.display_name || 'Без имени'}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -580,17 +580,17 @@ export default function ModeratorsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {new Date(moderator.created_at).toLocaleDateString()}
+                      {new Date(moderator.created_at).toLocaleDateString('ru-RU')}
                     </TableCell>
                     <TableCell>
                       {moderator.last_login ? 
-                        new Date(moderator.last_login).toLocaleDateString() : 
-                        <span className="text-gray-400 italic">Never</span>
+                        new Date(moderator.last_login).toLocaleDateString('ru-RU') : 
+                        <span className="text-gray-400 italic">Никогда</span>
                       }
                     </TableCell>
                     <TableCell>
                       <Badge variant={moderator.is_active ? "default" : "secondary"}>
-                        {moderator.is_active ? "Active" : "Inactive"}
+                        {moderator.is_active ? "Активен" : "Неактивен"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -619,7 +619,7 @@ export default function ModeratorsPage() {
           
           {filteredModerators.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No moderators found matching your criteria.
+              Модераторы, соответствующие вашим критериям, не найдены.
             </div>
           )}
         </CardContent>

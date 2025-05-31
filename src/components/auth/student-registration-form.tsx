@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 const studentRegSchema = z.object({
-  schoolKey: z.string().min(6, 'School registration key must be at least 6 characters'),
+  schoolKey: z.string().min(6, 'Ключ регистрации школы должен содержать не менее 6 символов'),
 });
 
 type StudentRegValues = z.infer<typeof studentRegSchema>;
@@ -40,7 +40,7 @@ export default function StudentRegistrationForm() {
       // First, check if the user is logged in
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        setError('You must be logged in to register as a student');
+        setError('Вы должны войти в систему для регистрации в качестве студента');
         return;
       }
       
@@ -59,17 +59,17 @@ export default function StudentRegistrationForm() {
       }
       
       if (result === true) {
-        setSuccess('Successfully registered as a student');
+        setSuccess('Успешно зарегистрированы как студент');
         // Redirect to dashboard after short delay
         setTimeout(() => {
           router.push('/dashboard');
           router.refresh();
         }, 1500);
       } else {
-        setError('Invalid school registration key or the school has reached its student limit');
+        setError('Недействительный ключ регистрации школы или школа достигла лимита студентов');
       }
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Произошла неожиданная ошибка. Пожалуйста, попробуйте снова.');
       console.error('Student registration error:', error);
     } finally {
       setIsLoading(false);
@@ -78,16 +78,16 @@ export default function StudentRegistrationForm() {
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Student Registration</h2>
+      <h2 className="text-xl font-semibold mb-4">Регистрация Студента</h2>
       
       <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Enter your school&apos;s registration key to register as a student.
+        Введите ключ регистрации вашей школы для регистрации в качестве студента.
       </p>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="schoolKey" className="block text-sm font-medium">
-            School Registration Key
+            Ключ Регистрации Школы
           </label>
           <div className="mt-1">
             <Input
@@ -116,7 +116,7 @@ export default function StudentRegistrationForm() {
 
         <div>
           <Button className="w-full" type="submit" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register as Student'}
+            {isLoading ? 'Регистрация...' : 'Зарегистрироваться как Студент'}
           </Button>
         </div>
       </form>

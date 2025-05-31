@@ -9,9 +9,9 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 const schoolSchema = z.object({
-  name: z.string().min(2, 'School name must be at least 2 characters'),
-  registrationKey: z.string().min(6, 'Registration key must be at least 6 characters'),
-  maxStudents: z.coerce.number().min(1, 'Max students must be a positive number'),
+  name: z.string().min(2, 'Название школы должно содержать не менее 2 символов'),
+  registrationKey: z.string().min(6, 'Ключ регистрации должен содержать не менее 6 символов'),
+  maxStudents: z.coerce.number().min(1, 'Максимальное количество студентов должно быть положительным числом'),
 });
 
 type SchoolFormValues = z.infer<typeof schoolSchema>;
@@ -55,10 +55,10 @@ export default function SchoolRegistration() {
         return;
       }
       
-      setSuccess(`School "${data.name}" registered successfully with registration key: ${data.registrationKey}`);
+      setSuccess(`Школа "${data.name}" успешно зарегистрирована с ключом регистрации: ${data.registrationKey}`);
       reset();
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Произошла неожиданная ошибка. Пожалуйста, попробуйте снова.');
       console.error('School registration error:', error);
     } finally {
       setIsLoading(false);
@@ -67,12 +67,12 @@ export default function SchoolRegistration() {
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Register New School</h2>
+      <h2 className="text-xl font-semibold mb-4">Зарегистрировать Новую Школу</h2>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium">
-            School Name
+            Название Школы
           </label>
           <div className="mt-1">
             <Input
@@ -89,7 +89,7 @@ export default function SchoolRegistration() {
 
         <div>
           <label htmlFor="registrationKey" className="block text-sm font-medium">
-            Registration Key
+            Ключ Регистрации
           </label>
           <div className="mt-1">
             <Input
@@ -103,13 +103,13 @@ export default function SchoolRegistration() {
             )}
           </div>
           <p className="mt-1 text-xs text-gray-500">
-            This key will be used by school administrators to register their account
+            Этот ключ будет использоваться администраторами школы для регистрации их аккаунта
           </p>
         </div>
 
         <div>
           <label htmlFor="maxStudents" className="block text-sm font-medium">
-            Maximum Students
+            Максимальное Количество Студентов
           </label>
           <div className="mt-1">
             <Input
@@ -139,7 +139,7 @@ export default function SchoolRegistration() {
 
         <div>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register School'}
+            {isLoading ? 'Регистрация...' : 'Зарегистрировать Школу'}
           </Button>
         </div>
       </form>

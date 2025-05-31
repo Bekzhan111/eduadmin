@@ -61,7 +61,7 @@ export default function TeachersPage() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        setError('Authentication error. Please sign in again.');
+        setError('Ошибка аутентификации. Пожалуйста, войдите снова.');
         setIsLoading(false);
         return;
       }
@@ -75,7 +75,7 @@ export default function TeachersPage() {
       
       if (userError) {
         console.error('Error fetching user data:', userError);
-        setError(`Error fetching user data: ${userError.message}`);
+        setError(`Ошибка получения данных пользователя: ${userError.message}`);
         setIsLoading(false);
         return;
       }
@@ -92,7 +92,7 @@ export default function TeachersPage() {
           
         if (schoolsError) {
           console.error('Error fetching schools:', schoolsError);
-          setError(`Error fetching schools: ${schoolsError.message}`);
+          setError(`Ошибка получения школ: ${schoolsError.message}`);
         } else {
           setSchools(schoolsData || []);
         }
@@ -113,7 +113,7 @@ export default function TeachersPage() {
       
       if (teachersError) {
         console.error('Error fetching teachers:', teachersError);
-        setError(`Error fetching teachers: ${teachersError.message}`);
+        setError(`Ошибка получения учителей: ${teachersError.message}`);
         setIsLoading(false);
         return;
       }
@@ -134,7 +134,7 @@ export default function TeachersPage() {
       
       if (keysError) {
         console.error('Error fetching registration keys:', keysError);
-        setError(`Error fetching registration keys: ${keysError.message}`);
+        setError(`Ошибка получения ключей регистрации: ${keysError.message}`);
       } else {
         setAvailableKeys(keysData as TeacherKey[] || []);
       }
@@ -168,7 +168,7 @@ export default function TeachersPage() {
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
-      setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Неожиданная ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       setIsLoading(false);
     }
   }, []);
@@ -181,13 +181,13 @@ export default function TeachersPage() {
     e.preventDefault();
     
     if (generateCount <= 0) {
-      setError('Please enter a valid number of keys to generate');
+      setError('Пожалуйста, введите действительное количество ключей для генерации');
       return;
     }
     
     // For super admin, require school selection
     if (userRole === 'super_admin' && !selectedSchoolId) {
-      setError('Please select a school to generate teacher keys for');
+      setError('Пожалуйста, выберите школу для генерации ключей учителей');
       return;
     }
     
@@ -201,7 +201,7 @@ export default function TeachersPage() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        setError('Authentication error. Please sign in again.');
+        setError('Ошибка аутентификации. Пожалуйста, войдите снова.');
         setIsLoading(false);
         return;
       }
@@ -221,22 +221,22 @@ export default function TeachersPage() {
       
       if (generateError) {
         console.error('Error generating keys:', generateError);
-        setError(`Error generating keys: ${generateError.message}`);
+        setError(`Ошибка генерации ключей: ${generateError.message}`);
         setIsLoading(false);
         return;
       }
       
       const schoolName = userRole === 'super_admin' 
-        ? schools.find(s => s.id === selectedSchoolId)?.name || 'selected school'
-        : 'your school';
+        ? schools.find(s => s.id === selectedSchoolId)?.name || 'выбранной школы'
+        : 'вашей школы';
       
-      setSuccess(`Successfully generated ${generateCount} teacher registration keys for ${schoolName}!`);
+      setSuccess(`Успешно сгенерированы ${generateCount} ключей регистрации учителей для ${schoolName}!`);
       setShowGenerateForm(false);
       setSelectedSchoolId(''); // Reset selection
       fetchTeachers(); // Refresh data
     } catch (error) {
       console.error('Error generating keys:', error);
-      setError(`Error generating keys: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Ошибка генерации ключей: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
     } finally {
       setIsLoading(false);
     }
@@ -273,7 +273,7 @@ export default function TeachersPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          Unable to determine your role. Please sign in again.
+          Не удается определить вашу роль. Пожалуйста, войдите снова.
         </div>
       </div>
     );
@@ -284,10 +284,10 @@ export default function TeachersPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          You don&apos;t have permission to access this page.
+          У вас нет разрешения на доступ к этой странице.
         </div>
         <Button className="mt-4" onClick={() => router.push('/dashboard')}>
-          Back to Dashboard
+          Назад к Панели Управления
         </Button>
       </div>
     );
@@ -296,12 +296,12 @@ export default function TeachersPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Teacher Management</h1>
+        <h1 className="text-2xl font-bold">Управление Учителями</h1>
         <Button 
           onClick={() => router.push('/dashboard')}
           variant="outline"
         >
-          Back to Dashboard
+          Назад к Панели Управления
         </Button>
       </div>
       
@@ -320,12 +320,12 @@ export default function TeachersPage() {
       {/* Teacher Registration Keys */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Teacher Registration Keys</h2>
+          <h2 className="text-xl font-semibold">Ключи Регистрации Учителей</h2>
           <Button 
             onClick={() => setShowGenerateForm(!showGenerateForm)}
             size="sm"
           >
-            {showGenerateForm ? 'Cancel' : 'Generate New Keys'}
+            {showGenerateForm ? 'Отмена' : 'Сгенерировать Новые Ключи'}
           </Button>
         </div>
         
@@ -336,7 +336,7 @@ export default function TeachersPage() {
               {userRole === 'super_admin' && (
                 <div>
                   <label htmlFor="schoolSelect" className="block text-sm font-medium mb-1">
-                    Select School
+                    Выберите Школу
                   </label>
                   <select
                     id="schoolSelect"
@@ -345,7 +345,7 @@ export default function TeachersPage() {
                     className="block w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     required
                   >
-                    <option value="">Select a school</option>
+                    <option value="">Выберите школу</option>
                     {schools.map((school) => (
                       <option key={school.id} value={school.id}>
                         {school.name}
@@ -359,7 +359,7 @@ export default function TeachersPage() {
               <div className="flex flex-col md:flex-row md:space-x-4 md:items-end">
                 <div className="flex-1">
                   <label htmlFor="generateCount" className="block text-sm font-medium mb-1">
-                    Number of Keys to Generate
+                    Количество Ключей для Генерации
                   </label>
                   <Input
                     id="generateCount"
@@ -372,7 +372,7 @@ export default function TeachersPage() {
                   />
                 </div>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Generating...' : 'Generate Keys'}
+                  {isLoading ? 'Генерируется...' : 'Сгенерировать Ключи'}
                 </Button>
               </div>
             </div>
@@ -385,16 +385,16 @@ export default function TeachersPage() {
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Registration Key
+                    Ключ Регистрации
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
+                    Статус
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Uses
+                    Использования
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Created
+                    Создан
                   </th>
                 </tr>
               </thead>
@@ -406,14 +406,14 @@ export default function TeachersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Active
+                        Активен
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {key.uses} / {key.max_uses}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(key.created_at).toLocaleDateString()}
+                      {new Date(key.created_at).toLocaleDateString('ru-RU')}
                     </td>
                   </tr>
                 ))}
@@ -422,14 +422,14 @@ export default function TeachersPage() {
           </div>
         ) : (
           <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-            No available teacher registration keys. Generate some keys to register teachers.
+            Нет доступных ключей регистрации учителей. Сгенерируйте ключи для регистрации учителей.
           </div>
         )}
       </div>
       
       {/* Registered Teachers */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Registered Teachers</h2>
+        <h2 className="text-xl font-semibold mb-4">Зарегистрированные Учителя</h2>
         
         {teachers.length > 0 ? (
           <div className="overflow-x-auto">
@@ -437,21 +437,21 @@ export default function TeachersPage() {
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Name
+                    Имя
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Email
                   </th>
                   {userRole === 'super_admin' && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      School
+                      Школа
                     </th>
                   )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Students
+                    Студенты
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Created
+                    Создан
                   </th>
                 </tr>
               </thead>
@@ -460,7 +460,7 @@ export default function TeachersPage() {
                   <tr key={teacher.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium">
-                        {teacher.display_name || 'N/A'}
+                        {teacher.display_name || 'Не указано'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -472,10 +472,10 @@ export default function TeachersPage() {
                       </td>
                     )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {teacher.students_count} / {teacher.max_students || 'Unlimited'}
+                      {teacher.students_count} / {teacher.max_students || 'Неограниченно'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(teacher.created_at).toLocaleDateString()}
+                      {new Date(teacher.created_at).toLocaleDateString('ru-RU')}
                     </td>
                   </tr>
                 ))}
@@ -484,20 +484,20 @@ export default function TeachersPage() {
           </div>
         ) : (
           <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-            No teachers registered yet.
+            Учителя пока не зарегистрированы.
           </div>
         )}
       </div>
       
       {/* How to Register Teachers */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">How to Register Teachers</h2>
+        <h2 className="text-xl font-semibold mb-4">Как Зарегистрировать Учителей</h2>
         <ol className="list-decimal pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-          <li>Generate registration keys using the button above</li>
-          <li>Share a registration key with each teacher</li>
-          <li>Teachers should visit the registration page and enter their key</li>
-          <li>After registration, teachers will be able to access their dashboard</li>
-          <li>Teachers can then manage their assigned students</li>
+          <li>Сгенерируйте ключи регистрации, используя кнопку выше</li>
+          <li>Поделитесь ключом регистрации с каждым учителем</li>
+          <li>Учителя должны посетить страницу регистрации и ввести свой ключ</li>
+          <li>После регистрации учителя смогут получить доступ к своей панели управления</li>
+          <li>Учителя затем смогут управлять назначенными им студентами</li>
         </ol>
       </div>
     </div>

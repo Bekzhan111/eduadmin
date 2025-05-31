@@ -30,47 +30,47 @@ export default function DashboardSidebar({ userRole = 'student' }: SidebarProps)
 
   const navItems: NavItem[] = [
     { 
-      name: 'Dashboard', 
+      name: 'Панель управления', 
       href: '/dashboard', 
       icon: <LayoutDashboard className="h-5 w-5" /> 
     },
     { 
-      name: 'Register Role', 
+      name: 'Регистрация роли', 
       href: '/register', 
       icon: <UserCog className="h-5 w-5" /> 
     },
     { 
-      name: 'Users Management', 
+      name: 'Управление пользователями', 
       href: '/dashboard/users', 
       icon: <Users className="h-5 w-5" />,
       role: ['super_admin', 'school']
     },
     { 
-      name: 'Keys Management', 
+      name: 'Управление ключами', 
       href: '/dashboard/keys', 
       icon: <KeyRound className="h-5 w-5" />,
       role: ['super_admin', 'school']
     },
     { 
-      name: 'Schools', 
+      name: 'Школы', 
       href: '/dashboard/schools', 
       icon: <School className="h-5 w-5" />,
       role: ['super_admin']
     },
     { 
-      name: 'Content', 
+      name: 'Контент', 
       href: '/dashboard/content', 
       icon: <FileText className="h-5 w-5" />,
       role: ['author', 'moderator']
     },
     { 
-      name: 'Students', 
+      name: 'Студенты', 
       href: '/dashboard/students', 
       icon: <GraduationCap className="h-5 w-5" />,
       role: ['school', 'teacher']
     },
     { 
-      name: 'Settings', 
+      name: 'Настройки', 
       href: '/dashboard/settings', 
       icon: <Settings className="h-5 w-5" /> 
     },
@@ -84,7 +84,7 @@ export default function DashboardSidebar({ userRole = 'student' }: SidebarProps)
     <div className="hidden md:flex md:w-64 md:flex-col">
       <div className="flex min-h-0 flex-1 flex-col border-r bg-white dark:bg-slate-900">
         <div className="flex h-16 items-center border-b px-6">
-          <span className="font-semibold text-lg">Admin Panel</span>
+          <span className="font-semibold text-lg">Админ Панель</span>
         </div>
         <div className="flex flex-1 flex-col overflow-y-auto p-4">
           <nav className="flex-1 space-y-1">

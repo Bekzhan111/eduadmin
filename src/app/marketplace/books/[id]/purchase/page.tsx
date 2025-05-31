@@ -69,7 +69,7 @@ export default function PurchasePage() {
       setBook(data);
     } catch (error) {
       console.error('Error fetching book:', error);
-      setError('Failed to load book details');
+      setError('Не удалось загрузить детали книги');
     } finally {
       setLoading(false);
     }
@@ -91,19 +91,19 @@ export default function PurchasePage() {
 
   const validateForm = (): boolean => {
     if (!form.customer_name.trim()) {
-      setError('Name is required');
+      setError('Имя обязательно');
       return false;
     }
     if (!form.customer_email.trim()) {
-      setError('Email is required');
+      setError('Email обязателен');
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(form.customer_email)) {
-      setError('Please enter a valid email address');
+      setError('Пожалуйста, введите действительный адрес электронной почты');
       return false;
     }
     if (form.quantity < 1) {
-      setError('Quantity must be at least 1');
+      setError('Количество должно быть не менее 1');
       return false;
     }
     return true;
@@ -143,7 +143,7 @@ export default function PurchasePage() {
       setSubmitted(true);
     } catch (error) {
       console.error('Error submitting purchase request:', error);
-      setError('Failed to submit purchase request. Please try again.');
+      setError('Не удалось отправить запрос на покупку. Пожалуйста, попробуйте еще раз.');
     } finally {
       setSubmitting(false);
     }
@@ -172,13 +172,13 @@ export default function PurchasePage() {
           <div className="text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Book Not Available
+              Книга недоступна
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
             <Link href="/marketplace">
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Books
+                Назад к книгам
               </Button>
             </Link>
           </div>
@@ -195,22 +195,22 @@ export default function PurchasePage() {
           <div className="max-w-md mx-auto text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-6" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Purchase Request Submitted!
+              Запрос на покупку отправлен!
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Thank you for your purchase request. We have received your order for{' '}
-              <strong>{book?.title}</strong> and will contact you within 1-2 business days 
-              to confirm your order and arrange delivery.
+              Спасибо за ваш запрос на покупку. Мы получили ваш заказ на{' '}
+              <strong>{book?.title}</strong> и свяжемся с вами в течение 1-2 рабочих дней 
+              для подтверждения заказа и организации доставки.
             </p>
             <div className="space-y-3">
               <Link href={`/marketplace/books/${book?.id}`}>
                 <Button variant="outline" className="w-full">
-                  View Book Details
+                  Посмотреть детали книги
                 </Button>
               </Link>
               <Link href="/marketplace">
                 <Button className="w-full">
-                  Continue Shopping
+                  Продолжить покупки
                 </Button>
               </Link>
             </div>
@@ -234,7 +234,7 @@ export default function PurchasePage() {
             className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Book Details
+            Назад к деталям книги
           </Link>
         </div>
 
@@ -245,7 +245,7 @@ export default function PurchasePage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <ShoppingCart className="h-5 w-5 mr-2" />
-                  Order Summary
+                  Сводка заказа
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -292,7 +292,7 @@ export default function PurchasePage() {
                       )}
                       
                       <div className="text-lg font-bold text-gray-900 dark:text-white">
-                        ${book.price || 'Free'} each
+                        ${book.price || 'Бесплатно'} за штуку
                       </div>
                     </div>
                   </div>
@@ -300,11 +300,11 @@ export default function PurchasePage() {
 
                 <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4">
                   <div className="flex justify-between items-center text-sm">
-                    <span>Quantity:</span>
+                    <span>Количество:</span>
                     <span className="font-medium">{form.quantity}</span>
                   </div>
                   <div className="flex justify-between items-center text-lg font-bold mt-2">
-                    <span>Total:</span>
+                    <span>Итого:</span>
                     <span>${totalPrice.toFixed(2)}</span>
                   </div>
                 </div>
@@ -316,9 +316,9 @@ export default function PurchasePage() {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>Purchase Request</CardTitle>
+                <CardTitle>Запрос на покупку</CardTitle>
                 <p className="text-gray-600">
-                  Fill out the form below to request this book. We&apos;ll contact you to arrange payment and delivery.
+                  Заполните форму ниже, чтобы запросить эту книгу. Мы свяжемся с вами для организации оплаты и доставки.
                 </p>
               </CardHeader>
               <CardContent>
@@ -332,7 +332,7 @@ export default function PurchasePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="customer_name">Full Name *</Label>
+                      <Label htmlFor="customer_name">Полное имя *</Label>
                       <Input
                         id="customer_name"
                         type="text"
@@ -343,7 +343,7 @@ export default function PurchasePage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="customer_email">Email Address *</Label>
+                      <Label htmlFor="customer_email">Адрес электронной почты *</Label>
                       <Input
                         id="customer_email"
                         type="email"
@@ -355,7 +355,7 @@ export default function PurchasePage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="customer_phone">Phone Number</Label>
+                    <Label htmlFor="customer_phone">Номер телефона</Label>
                     <Input
                       id="customer_phone"
                       type="tel"
@@ -365,18 +365,18 @@ export default function PurchasePage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="customer_address">Delivery Address</Label>
+                    <Label htmlFor="customer_address">Адрес доставки</Label>
                     <Textarea
                       id="customer_address"
                       value={form.customer_address}
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('customer_address', e.target.value)}
                       rows={3}
-                      placeholder="Enter your full delivery address"
+                      placeholder="Введите ваш полный адрес доставки"
                     />
                   </div>
 
                   <div>
-                    <Label>Quantity</Label>
+                    <Label>Количество</Label>
                     <div className="flex items-center gap-3 mt-1">
                       <Button
                         type="button"
@@ -407,13 +407,13 @@ export default function PurchasePage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="notes">Additional Notes</Label>
+                    <Label htmlFor="notes">Дополнительные заметки</Label>
                     <Textarea
                       id="notes"
                       value={form.notes}
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('notes', e.target.value)}
                       rows={3}
-                      placeholder="Any special instructions or requirements"
+                      placeholder="Любые специальные инструкции или требования"
                     />
                   </div>
 
@@ -424,11 +424,11 @@ export default function PurchasePage() {
                       size="lg"
                       disabled={submitting}
                     >
-                      {submitting ? 'Submitting...' : 'Submit Purchase Request'}
+                      {submitting ? 'Отправка...' : 'Отправить запрос на покупку'}
                     </Button>
                     
                     <p className="text-xs text-gray-500 mt-4">
-                      By submitting this request, you agree to our terms of service. We&apos;ll contact you to confirm your order and arrange payment.
+                      Отправляя этот запрос, вы соглашаетесь с нашими условиями обслуживания. Мы свяжемся с вами для подтверждения заказа и организации оплаты.
                     </p>
                   </div>
                 </form>

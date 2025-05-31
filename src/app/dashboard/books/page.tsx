@@ -66,24 +66,39 @@ export default function BooksPage() {
 
   // Available filters
   const gradeOptions = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-  const courseOptions = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'Literature', 'History', 'Geography', 'English', 'Kazakh', 'Russian'];
-  const categoryOptions = ['Textbook', 'Workbook', 'Reference', 'Guide', 'Assessment'];
+  const courseOptions = ['Математика', 'Физика', 'Химия', 'Биология', 'Литература', 'История', 'География', 'Английский', 'Казахский', 'Русский'];
+  const categoryOptions = ['Учебник', 'Рабочая тетрадь', 'Справочник', 'Руководство', 'Оценка'];
   
   // Status options based on role
   const getStatusOptions = () => {
     switch (userProfile?.role) {
       case 'author':
-        return ['Draft', 'Moderation']; // Authors see their books in these statuses
+        return ['Черновик', 'Модерация']; // Authors see their books in these statuses
       case 'moderator':
-        return ['Moderation', 'Approved']; // Moderators see books for moderation
+        return ['Модерация', 'Одобрено']; // Moderators see books for moderation
       case 'super_admin':
-        return ['Draft', 'Moderation', 'Approved', 'Active']; // Super admin sees all
+        return ['Черновик', 'Модерация', 'Одобрено', 'Активна']; // Super admin sees all
       default:
-        return ['Active']; // School admin, teachers, students see only active books
+        return ['Активна']; // School admin, teachers, students see only active books
     }
   };
 
   const statusOptions = getStatusOptions();
+
+  // Status translation mapping
+  const translateStatus = (status: string): string => {
+    switch (status) {
+      case 'Draft': return 'Черновик';
+      case 'Moderation': return 'Модерация';
+      case 'Approved': return 'Одобрено';
+      case 'Active': return 'Активна';
+      default: return status;
+    }
+  };
+
+  const isStatusMatch = (bookStatus: string, targetStatus: string): boolean => {
+    return bookStatus === targetStatus || translateStatus(bookStatus) === targetStatus;
+  };
 
   const fetchBooks = useCallback(async () => {
     setIsLoading(true);
@@ -199,63 +214,79 @@ export default function BooksPage() {
           const baseMockBooks: Book[] = [
             {
               id: '1',
-              base_url: 'https://example.com/books/advanced-math-grade-10',
-              title: 'Advanced Mathematics Grade 10',
-              description: 'Comprehensive mathematics textbook for grade 10 students',
-              grade_level: '10',
-              course: 'Mathematics',
-              category: 'Textbook',
-              status: 'Active',
+              base_url: 'math-grade-5',
+              title: 'Математика 5 класс',
+              description: 'Комплексный учебник математики для 5 класса',
+              grade_level: '5',
+              course: 'Математика',
+              category: 'Учебник',
+              status: 'Active' as const,
               author_id: 'author1',
-              author_name: 'Dr. Smith',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              schools_purchased: 15,
-              schools_added: 25,
-              teachers_added: 45,
-              students_added: 890,
+              author_name: 'Проф. Айгуль Нурланова',
+              created_at: '2024-01-15T10:00:00Z',
+              updated_at: '2024-01-15T10:00:00Z',
               price: 2500,
-              downloads_count: 1250
+              schools_purchased: 45,
+              schools_added: 38,
+              teachers_added: 156,
+              students_added: 2340
             },
             {
               id: '2',
-              base_url: 'https://example.com/books/physics-fundamentals-grade-11',
-              title: 'Physics Fundamentals Grade 11',
-              description: 'Essential physics concepts for high school students',
-              grade_level: '11',
-              course: 'Physics',
-              category: 'Textbook',
-              status: 'Moderation',
+              base_url: 'physics-grade-8',
+              title: 'Физика 8 класс',
+              description: 'Введение в физику с практическими экспериментами',
+              grade_level: '8',
+              course: 'Физика',
+              category: 'Учебник',
+              status: 'Active' as const,
               author_id: 'author2',
-              author_name: 'Prof. Johnson',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              schools_purchased: 8,
-              schools_added: 12,
-              teachers_added: 23,
-              students_added: 456,
-              price: 3000,
-              downloads_count: 650
+              author_name: 'Д-р Ерлан Жанбулатов',
+              created_at: '2024-01-10T14:30:00Z',
+              updated_at: '2024-01-10T14:30:00Z',
+              price: 3200,
+              schools_purchased: 32,
+              schools_added: 28,
+              teachers_added: 89,
+              students_added: 1564
             },
             {
               id: '3',
-              base_url: 'https://example.com/books/chemistry-basics-grade-9',
-              title: 'Chemistry Basics Grade 9',
-              description: 'Introduction to chemistry for young learners',
-              grade_level: '9',
-              course: 'Chemistry',
-              category: 'Textbook',
-              status: 'Draft',
+              base_url: 'kazakh-literature-grade-10',
+              title: 'Казахская литература 10 класс',
+              description: 'Классическая и современная казахская литература',
+              grade_level: '10',
+              course: 'Литература',
+              category: 'Учебник',
+              status: 'Active' as const,
               author_id: 'author3',
-              author_name: 'Dr. Williams',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+              author_name: 'Проф. Жанар Оспанова',
+              created_at: '2024-01-08T09:15:00Z',
+              updated_at: '2024-01-08T09:15:00Z',
+              price: 2800,
+              schools_purchased: 58,
+              schools_added: 51,
+              teachers_added: 234,
+              students_added: 3120
+            },
+            {
+              id: '4',
+              base_url: 'chemistry-workbook-grade-9',
+              title: 'Рабочая тетрадь по химии 9 класс',
+              description: 'Практические упражнения и лабораторные работы',
+              grade_level: '9',
+              course: 'Химия',
+              category: 'Рабочая тетрадь',
+              status: 'Moderation' as const,
+              author_id: 'author4',
+              author_name: 'Проф. Асел Токтарова',
+              created_at: '2024-01-05T16:45:00Z',
+              updated_at: '2024-01-05T16:45:00Z',
+              price: 1800,
               schools_purchased: 0,
               schools_added: 0,
               teachers_added: 0,
-              students_added: 0,
-              price: 2800,
-              downloads_count: 0
+              students_added: 0
             }
           ];
 
@@ -329,7 +360,7 @@ export default function BooksPage() {
       
     } catch (error) {
       console.error('Error fetching books:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch books');
+      setError(error instanceof Error ? error.message : 'Не удалось получить книги');
     } finally {
       setIsLoading(false);
     }
@@ -385,16 +416,25 @@ export default function BooksPage() {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-500 text-white';
-      case 'Approved': return 'bg-blue-500 text-white';
-      case 'Moderation': return 'bg-orange-500 text-white';
-      case 'Draft': return 'bg-gray-500 text-white';
-      default: return 'bg-gray-500 text-white';
+      case 'Active':
+      case 'Активна':
+        return 'bg-green-500 text-white';
+      case 'Approved':
+      case 'Одобрено':
+        return 'bg-blue-500 text-white';
+      case 'Moderation':
+      case 'Модерация':
+        return 'bg-yellow-500 text-white';
+      case 'Draft':
+      case 'Черновик':
+        return 'bg-gray-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
     }
   };
 
   const handleDeleteBook = async (bookId: string) => {
-    if (!confirm('Are you sure you want to delete this book? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить эту книгу? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -409,11 +449,11 @@ export default function BooksPage() {
         throw new Error(`Failed to delete book: ${error.message}`);
       }
       
-      setSuccess('Book deleted successfully');
+      setSuccess('Книга удалена успешно');
       await fetchBooks();
     } catch (error) {
       console.error('Error deleting book:', error);
-      setError(error instanceof Error ? error.message : 'Failed to delete book');
+      setError(error instanceof Error ? error.message : 'Не удалось удалить книгу');
     }
   };
 
@@ -423,7 +463,7 @@ export default function BooksPage() {
       return;
     }
     
-    if (!confirm('Are you sure you want to remove this book from your school library? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите удалить эту книгу из библиотеки школы?')) {
       return;
     }
     
@@ -439,11 +479,11 @@ export default function BooksPage() {
         throw new Error(`Failed to remove book from school library: ${error.message}`);
       }
       
-      setSuccess('Book removed from school library successfully');
+      setSuccess('Книга удалена из библиотеки школы успешно');
       await fetchBooks();
     } catch (error) {
       console.error('Error removing book from school library:', error);
-      setError(error instanceof Error ? error.message : 'Failed to remove book from school library');
+      setError(error instanceof Error ? error.message : 'Не удалось удалить книгу из библиотеки школы');
     }
   };
 
@@ -453,7 +493,7 @@ export default function BooksPage() {
       return;
     }
     
-    if (!confirm('Are you sure you want to add this book to your school library? This action cannot be undone.')) {
+    if (!confirm('Вы уверены, что хотите добавить эту книгу в библиотеку школы? Это действие не может быть отменено.')) {
       return;
     }
     
@@ -470,11 +510,11 @@ export default function BooksPage() {
         throw new Error(`Failed to add book to school library: ${error.message}`);
       }
       
-      setSuccess('Book added to school library successfully');
+      setSuccess('Книга добавлена в библиотеку школы успешно');
       await fetchBooks();
     } catch (error) {
       console.error('Error adding book to school library:', error);
-      setError(error instanceof Error ? error.message : 'Failed to add book to school library');
+      setError(error instanceof Error ? error.message : 'Не удалось добавить книгу в библиотеку школы');
     }
   };
 
@@ -495,10 +535,10 @@ export default function BooksPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <p className="text-lg font-semibold mb-2">Error loading books</p>
-              <p className="text-sm mb-4">{error}</p>
+              <p className="text-lg font-semibold">Ошибка</p>
+              <p>{error}</p>
               <Button onClick={() => window.location.reload()} className="mt-4">
-                Reload Page
+                Перезагрузить Страницу
               </Button>
             </div>
           </CardContent>
@@ -548,13 +588,13 @@ export default function BooksPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Books Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Управление Книгами</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {userProfile?.role === 'author' && 'Manage your authored books and create new content'}
-            {userProfile?.role === 'moderator' && 'Review and approve books for publication'}
-            {userProfile?.role === 'super_admin' && 'Manage all educational books and their distribution'}
-            {userProfile?.role === 'school' && (viewMode === 'all' ? 'Browse all available books to add to your school library' : 'Manage your school\'s book library')}
-            {(userProfile?.role === 'teacher' || userProfile?.role === 'student') && 'Browse your school\'s educational books'}
+            {userProfile?.role === 'author' && 'Управляйте своими авторскими книгами и создавайте новый контент'}
+            {userProfile?.role === 'moderator' && 'Рассматривайте и одобряйте книги для публикации'}
+            {userProfile?.role === 'super_admin' && 'Управляйте всеми образовательными книгами и их распространением'}
+            {userProfile?.role === 'school' && (viewMode === 'all' ? 'Просматривайте все доступные книги для добавления в библиотеку школы' : 'Управляйте библиотекой книг вашей школы')}
+            {(userProfile?.role === 'teacher' || userProfile?.role === 'student') && 'Просматривайте образовательные книги вашей школы'}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -566,32 +606,32 @@ export default function BooksPage() {
                 size="sm"
                 onClick={() => setViewMode('all')}
               >
-                All Books
+                Все Книги
               </Button>
               <Button 
                 variant={viewMode === 'library' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('library')}
               >
-                My Library
+                Моя Библиотека
               </Button>
             </div>
           )}
           
           <Badge variant="outline" className="text-sm">
             <BookOpen className="h-4 w-4 mr-1" />
-            {filteredBooks.length} books
+            {filteredBooks.length} книг
           </Badge>
           {userProfile?.role === 'author' && (
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Create Book
+              Создать Книгу
             </Button>
           )}
           {userProfile?.role === 'super_admin' && (
             <Button variant="outline">
               <Plus className="h-4 w-4 mr-2" />
-              Add Book to System
+              Добавить Книгу в Систему
             </Button>
           )}
         </div>
@@ -618,7 +658,7 @@ export default function BooksPage() {
               <div className="flex items-center">
                 <BookOpen className="h-8 w-8 text-blue-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Books</p>
+                  <p className="text-sm font-medium text-gray-600">Всего Книг</p>
                   <p className="text-2xl font-bold">{bookStats.total_books}</p>
                 </div>
               </div>
@@ -629,7 +669,7 @@ export default function BooksPage() {
               <div className="flex items-center">
                 <Eye className="h-8 w-8 text-green-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active</p>
+                  <p className="text-sm font-medium text-gray-600">Активные</p>
                   <p className="text-2xl font-bold">{bookStats.active_books}</p>
                 </div>
               </div>
@@ -640,7 +680,7 @@ export default function BooksPage() {
               <div className="flex items-center">
                 <Edit className="h-8 w-8 text-orange-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Moderation</p>
+                  <p className="text-sm font-medium text-gray-600">Модерация</p>
                   <p className="text-2xl font-bold">{bookStats.moderation_books}</p>
                 </div>
               </div>
@@ -651,7 +691,7 @@ export default function BooksPage() {
               <div className="flex items-center">
                 <Edit className="h-8 w-8 text-gray-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Draft</p>
+                  <p className="text-sm font-medium text-gray-600">Черновики</p>
                   <p className="text-2xl font-bold">{bookStats.draft_books}</p>
                 </div>
               </div>
@@ -662,7 +702,7 @@ export default function BooksPage() {
               <div className="flex items-center">
                 <Edit className="h-8 w-8 text-blue-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Approved</p>
+                  <p className="text-sm font-medium text-gray-600">Одобрено</p>
                   <p className="text-2xl font-bold">{bookStats.approved_books}</p>
                 </div>
               </div>
@@ -676,18 +716,18 @@ export default function BooksPage() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
             <Filter className="h-5 w-5 mr-2" />
-            Book Filters
+            Фильтры Книг
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {/* Search */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
+              <label className="text-sm font-medium">Поиск</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search books..."
+                  placeholder="Поиск книг..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -697,15 +737,15 @@ export default function BooksPage() {
 
             {/* Grade Level Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Grade Level</label>
+              <label className="text-sm font-medium">Класс</label>
               <Select value={gradeFilter} onValueChange={setGradeFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Grades" />
+                  <SelectValue placeholder="Все Классы" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Grades</SelectItem>
+                  <SelectItem value="all">Все Классы</SelectItem>
                   {gradeOptions.map(grade => (
-                    <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
+                    <SelectItem key={grade} value={grade}>{grade} Класс</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -713,13 +753,13 @@ export default function BooksPage() {
 
             {/* Course Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Course</label>
+              <label className="text-sm font-medium">Предмет</label>
               <Select value={courseFilter} onValueChange={setCourseFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Courses" />
+                  <SelectValue placeholder="Все Предметы" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Courses</SelectItem>
+                  <SelectItem value="all">Все Предметы</SelectItem>
                   {courseOptions.map(course => (
                     <SelectItem key={course} value={course}>{course}</SelectItem>
                   ))}
@@ -729,13 +769,13 @@ export default function BooksPage() {
 
             {/* Category Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
+              <label className="text-sm font-medium">Категория</label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
+                  <SelectValue placeholder="Все Категории" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="all">Все Категории</SelectItem>
                   {categoryOptions.map(category => (
                     <SelectItem key={category} value={category}>{category}</SelectItem>
                   ))}
@@ -745,13 +785,13 @@ export default function BooksPage() {
 
             {/* Status Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+              <label className="text-sm font-medium">Статус</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
+                  <SelectValue placeholder="Все Статусы" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="all">Все Статусы</SelectItem>
                   {statusOptions.map(status => (
                     <SelectItem key={status} value={status}>{status}</SelectItem>
                   ))}
@@ -765,9 +805,9 @@ export default function BooksPage() {
       {/* Books Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Books Library</CardTitle>
+          <CardTitle>Библиотека Книг</CardTitle>
           <CardDescription>
-            Educational books with purchase and usage statistics
+            Образовательные книги со статистикой покупок и использования
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -775,17 +815,17 @@ export default function BooksPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Book</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Author</TableHead>
-                  <TableHead>Schools</TableHead>
-                  <TableHead>Teachers</TableHead>
-                  <TableHead>Students</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Книга</TableHead>
+                  <TableHead>Класс</TableHead>
+                  <TableHead>Предмет</TableHead>
+                  <TableHead>Категория</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Автор</TableHead>
+                  <TableHead>Школы</TableHead>
+                  <TableHead>Учителя</TableHead>
+                  <TableHead>Студенты</TableHead>
+                  <TableHead>Цена</TableHead>
+                  <TableHead>Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -798,7 +838,7 @@ export default function BooksPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">Grade {book.grade_level}</Badge>
+                      <Badge variant="outline">{book.grade_level} Класс</Badge>
                     </TableCell>
                     <TableCell>{book.course}</TableCell>
                     <TableCell>
@@ -806,14 +846,14 @@ export default function BooksPage() {
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusBadgeColor(book.status)}>
-                        {book.status}
+                        {translateStatus(book.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>{book.author_name}</TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <div className="text-sm font-medium">{book.schools_purchased} purchased</div>
-                        <div className="text-xs text-gray-500">{book.schools_added} added</div>
+                        <div className="text-sm font-medium">{book.schools_purchased} куплено</div>
+                        <div className="text-xs text-gray-500">{book.schools_added} добавлено</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -823,7 +863,7 @@ export default function BooksPage() {
                       <div className="text-center text-sm">{book.students_added}</div>
                     </TableCell>
                     <TableCell>
-                      {book.price ? `₸${book.price.toLocaleString()}` : 'Free'}
+                      {book.price ? `₸${book.price.toLocaleString()}` : 'Бесплатно'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -834,9 +874,9 @@ export default function BooksPage() {
                         {/* Author actions */}
                         {userProfile?.role === 'author' && book.author_id === userProfile.id && (
                           <>
-                            {book.status === 'Draft' && (
+                            {isStatusMatch(book.status, 'Draft') && (
                               <Button variant="ghost" size="sm" className="text-blue-600">
-                                Send for Moderation
+                                Отправить на Модерацию
                               </Button>
                             )}
                             <Button variant="ghost" size="sm">
@@ -854,18 +894,18 @@ export default function BooksPage() {
                         )}
 
                         {/* Moderator actions */}
-                        {userProfile?.role === 'moderator' && book.status === 'Moderation' && (
+                        {userProfile?.role === 'moderator' && isStatusMatch(book.status, 'Moderation') && (
                           <Button variant="ghost" size="sm" className="text-green-600">
-                            Approve Book
+                            Одобрить Книгу
                           </Button>
                         )}
 
                         {/* Super Admin actions */}
                         {userProfile?.role === 'super_admin' && (
                           <>
-                            {book.status === 'Approved' && (
+                            {isStatusMatch(book.status, 'Approved') && (
                               <Button variant="ghost" size="sm" className="text-green-600">
-                                Activate Book
+                                Активировать Книгу
                               </Button>
                             )}
                             <Button variant="ghost" size="sm">
@@ -890,7 +930,7 @@ export default function BooksPage() {
                             className="text-green-600 hover:text-green-700"
                             onClick={() => handleAddBookToSchool(book.id)}
                           >
-                            Add to Library
+                            Добавить в Библиотеку
                           </Button>
                         )}
                         
@@ -901,14 +941,14 @@ export default function BooksPage() {
                             className="text-red-600 hover:text-red-700"
                             onClick={() => handleRemoveBookFromSchool(book.id)}
                           >
-                            Remove from Library
+                            Удалить из Библиотеки
                           </Button>
                         )}
 
                         {/* School users - view only */}
                         {(userProfile?.role === 'school' || userProfile?.role === 'teacher' || userProfile?.role === 'student') && (
                           <Button variant="ghost" size="sm" className="text-blue-600">
-                            Open Book
+                            Открыть Книгу
                           </Button>
                         )}
                       </div>
@@ -921,7 +961,7 @@ export default function BooksPage() {
           
           {filteredBooks.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No books found matching your criteria.
+              Книги, соответствующие вашим критериям, не найдены.
             </div>
           )}
         </CardContent>
