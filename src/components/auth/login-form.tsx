@@ -145,7 +145,7 @@ export default function LoginForm() {
       }
       
       if (keyData.role === 'school') {
-        setError('Регистрация школы требует дополнительной информации. Пожалуйста, используйте полную страницу регистрации.');
+        setError('Ключи школы можно использовать только в разделе "Регистрация с ролью" для ввода полной информации о школе.');
         return;
       } else {
         // For other roles, directly register with the key and full name
@@ -359,7 +359,7 @@ export default function LoginForm() {
 
           <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
             <p className="font-medium mb-1">Примечание для администраторов школ:</p>
-            <p>Регистрация школы требует дополнительной информации. Пожалуйста, используйте <a href="/register" className="text-primary underline">полную страницу регистрации</a> для школьных аккаунтов.</p>
+            <p>Регистрация администратора школы требует дополнительной информации. Пожалуйста, используйте <a href="/register" className="text-primary underline">&quot;Регистрация с ролью&quot;</a> для школьных аккаунтов - там откроется форма с полями для информации о школе.</p>
           </div>
 
           <Button

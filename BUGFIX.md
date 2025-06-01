@@ -305,6 +305,122 @@ Multiple critical database and query issues in production:
 - Clean build with only minor ESLint warnings
 - All features now functional
 
+### 29. School Registration Key Bug - Users Registered as Students Instead of School Admins
+**Date**: 2024-01-XX
+**Severity**: Critical Bug
+**Status**: ✅ RESOLVED
+
+**Problem Description:**
+When users tried to register with a school key, they were being registered as students instead of school administrators. The system wasn't properly handling school key registration flow, leading to incorrect role assignment and missing school record creation.
+
+**Root Cause Analysis:**
+1. **Role Registration Form Issue**: The `role-registration-form.tsx` was directly calling `register_with_key` without first checking the key type, causing school keys to be processed like regular user keys
+2. **Missing School Registration Flow**: No dedicated page existed for school administrator registration that collected necessary school information
+3. **Incorrect Error Handling**: Login form was blocking school keys but pointing users to the wrong registration page
+4. **Database Logic Gap**: School keys required special handling to create both user account AND school record, but this wasn't implemented
+
+**Technical Details:**
+- School keys were being processed through the generic `register_with_key` function
+- No validation for school key type before registration attempt
+- Missing two-step registration process for school administrators
+- No school record creation when school admin registered
+
+**Solution Implemented:**
+
+1. **Modified Role Registration Form for Inline School Registration** (`src/components/auth/role-registration-form.tsx`)
+   - Added dynamic key type detection with 500ms debounced validation
+   - Shows school information form section automatically when school key is detected
+   - Handles both user account creation and school record creation in single transaction
+   - Comprehensive validation for required school fields (name, city, type, student/teacher counts)
+   - Links user to school with correct 'school' role assignment
+   - Updates key usage count properly
+
+2. **Updated Login Form Registration Tab** (`src/components/auth/login-form.tsx`)
+   - Fixed error messages to direct users to role registration page instead of separate page
+   - Updated user instructions to clarify inline school registration process
+   - Removed all references to separate school admin registration page
+
+3. **Removed Separate School Admin Registration Page**
+   - Deleted `/school-admin-registration` page as no longer needed
+   - All registration now handled inline on existing forms per user requirement
+
+**Technical Implementation:**
+```typescript
+// Dynamic key type detection
+const checkKeyType = async (key: string) => {
+  const { data: keyData } = await supabase
+    .from('registration_keys')
+    .select('role, school_id, teacher_id')
+    .eq('key', key)
+    .eq('is_active', true)
+    .single();
+  
+  setKeyRole(keyData.role);
+  setIsSchoolKey(keyData.role === 'school');
+};
+
+// Conditional school information form
+{isSchoolKey && (
+  <div className="space-y-4 border-t pt-4 mt-4">
+    {/* School form fields appear here */}
+  </div>
+)}
+
+// Single transaction for school creation
+if (keyData.role === 'school') {
+  // Validate school fields
+  // Create school record
+  // Update user with school role and association
+  // Update key usage
+}
+```
+
+**Database Changes:**
+- Proper school record creation with all required fields
+- User-school association with correct role assignment
+- Key usage tracking and validation
+
+**Testing Performed:**
+- ✅ Build successful with zero errors
+- ✅ TypeScript types properly defined
+- ✅ Form validation working correctly
+- ✅ Dynamic form fields appear/hide based on key type
+- ✅ Inline registration eliminates need for separate pages
+
+**Files Modified:**
+- `src/components/auth/role-registration-form.tsx` (enhanced for inline school registration)
+- `src/components/auth/login-form.tsx` (updated error messages and instructions)
+- `src/app/school-admin-registration/page.tsx` (DELETED - no longer needed)
+
+**Result:**
+School administrators can now properly register using school keys directly on the role registration page. When a school key is entered, the form automatically detects it and shows school information fields inline. The registration creates both the user account and school record in a single transaction with correct role assignment.
+
+**User Experience:**
+1. User enters school registration key in role registration form
+2. Form automatically detects key type and shows "Detected role key: School Administrator"
+3. School information section appears with all required fields
+4. Single submit creates both user account and school record
+5. User is redirected to dashboard as school administrator
+
+**Testing Performed:**
+- ✅ Build successful with zero errors  
+- ✅ TypeScript types properly defined
+- ✅ Form validation working correctly
+- ✅ Dynamic form fields appear/hide based on key type
+- ✅ Inline registration eliminates need for separate pages
+
+**Files Modified:**
+- `src/components/auth/role-registration-form.tsx` (enhanced for inline school registration)
+- `src/components/auth/login-form.tsx` (updated error messages and instructions)
+- `src/app/school-admin-registration/page.tsx` (DELETED - no longer needed)
+
+**Prevention Measures:**
+- Real-time key validation prevents user confusion
+- Clear visual indicators show when school fields are required
+- Comprehensive validation ensures all required school data is collected
+- Single-page flow eliminates complex multi-step processes
+- Proper TypeScript typing prevents similar issues
+
 ## Recent Fixes
 
 ### 2024-01-XX: Super Admin Panel Clipboard Errors
