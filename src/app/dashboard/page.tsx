@@ -90,6 +90,7 @@ export default function DashboardPage() {
         return;
       }
       
+      // Используем данные напрямую из функции базы данных
       setSummary(summaryData);
     } catch (error) {
       console.error('Dashboard error:', error);

@@ -28,32 +28,38 @@ export async function getUserProfile() {
   if (!session) {
     return null;
   }
-  
+
   const supabase = createClient();
   
-  // Update last login timestamp
-  await supabase.rpc('update_last_login', {
-    user_id: session.user.id
-  });
-  
-  // Get full user profile with role information
-  const { data, error } = await supabase.rpc('get_user_profile', {
-    user_id: session.user.id
-  });
-  
-  if (error) {
-    console.error('Error fetching user profile:', error);
+  // Get user profile data directly from users table
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role, email, display_name, school_id')
+    .eq('id', session.user.id)
+    .maybeSingle();
+
+  if (userError) {
+    console.error('Error fetching user profile:', userError);
     return null;
   }
-  
-  if (!data.success) {
-    console.error('Profile fetch unsuccessful:', data.message);
+
+  // If user not found in users table but exists in auth
+  if (!userData) {
+    console.warn('User exists in auth but not in users table:', session.user.id);
     return null;
   }
-  
+
+  const userProfile = {
+    id: session.user.id,
+    role: userData.role || 'unknown',
+    email: userData.email || session.user.email || '',
+    display_name: userData.display_name || null,
+    school_id: userData.school_id || null,
+  };
+
   return {
     session,
-    profile: data.profile
+    profile: userProfile
   };
 }
 

@@ -148,24 +148,24 @@ export default function LoginForm() {
         setError('Ключи школы можно использовать только в разделе "Регистрация с ролью" для ввода полной информации о школе.');
         return;
       } else {
-        // For other roles, directly register with the key and full name
-        const { data: regResult, error: regError } = await supabase.rpc(
-          'register_with_key',
-          {
+        // For other roles, use our API endpoint instead of direct function call
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             registration_key: data.registration_key,
             user_id: userData.user.id,
             display_name: data.full_name
-          }
-        );
+          })
+        });
         
-        if (regError) {
-          console.error('Registration error:', regError);
-          setError(`Ошибка регистрации: ${regError.message}`);
-          return;
-        }
+        const regResult = await response.json();
         
-        if (!regResult.success) {
-          setError(regResult.message);
+        if (!response.ok || !regResult.success) {
+          console.error('Registration error:', regResult);
+          setError(`Ошибка регистрации: ${regResult.message || 'Неизвестная ошибка'}`);
           return;
         }
         

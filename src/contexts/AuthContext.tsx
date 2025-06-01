@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearAuth = useCallback(() => {
     if (!isMountedRef.current) return;
     
+    console.log('🧹 AuthContext: Clearing auth state');
     setAuthState({
       user: null,
       session: null,
@@ -60,13 +61,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isMountedRef.current || isRefreshingRef.current) return;
 
     isRefreshingRef.current = true;
+    console.log('🔄 AuthContext: Starting auth refresh');
 
     try {
       const supabase = createClient();
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.error('Session error:', sessionError.message);
+        console.error('❌ AuthContext: Session error:', sessionError.message);
         if (isMountedRef.current) {
           setAuthState(prev => ({
             ...prev,
@@ -78,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!sessionData?.session) {
-        // No session is normal - user is not logged in
+        console.log('ℹ️ AuthContext: No session found - user not logged in');
         if (isMountedRef.current) {
           setAuthState({
             user: null,
@@ -91,15 +93,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      console.log('✅ AuthContext: Session found for user:', sessionData.session.user.email, 'ID:', sessionData.session.user.id);
+
       // Get user profile data
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('role, email, display_name, school_id')
         .eq('id', sessionData.session.user.id)
-        .single();
+        .maybeSingle();
 
       if (userError) {
-        console.error('Error fetching user profile:', userError.message);
+        console.error('❌ AuthContext: Error fetching user profile:', userError.message);
         if (isMountedRef.current) {
           setAuthState(prev => ({
             ...prev,
@@ -110,13 +114,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Если пользователь не найден в таблице users, но есть в auth
+      if (!userData) {
+        console.error('❌ AuthContext: User exists in auth but not in users table:', sessionData.session.user.id);
+        console.error('❌ AuthContext: This will cause "User profile not found" error');
+        if (isMountedRef.current) {
+          setAuthState(prev => ({
+            ...prev,
+            error: 'User profile not found. Please contact administrator.',
+            isLoading: false,
+          }));
+        }
+        return;
+      }
+
+      console.log('✅ AuthContext: User profile found:', userData);
+
       const userProfile = {
         id: sessionData.session.user.id,
-        role: userData?.role || 'unknown',
-        email: userData?.email || sessionData.session.user.email || '',
-        display_name: userData?.display_name || null,
-        school_id: userData?.school_id || null,
+        role: userData.role || 'unknown',
+        email: userData.email || sessionData.session.user.email || '',
+        display_name: userData.display_name || null,
+        school_id: userData.school_id || null,
       };
+
+      console.log('✅ AuthContext: Setting auth state with profile:', userProfile);
 
       if (isMountedRef.current) {
         setAuthState({
@@ -129,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
     } catch (error) {
-      console.error('Auth refresh error:', error instanceof Error ? error.message : String(error));
+      console.error('❌ AuthContext: Auth refresh error:', error instanceof Error ? error.message : String(error));
       if (isMountedRef.current) {
         setAuthState(prev => ({
           ...prev,
@@ -139,24 +161,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       isRefreshingRef.current = false;
+      console.log('🏁 AuthContext: Auth refresh completed');
     }
   }, []);
 
   useEffect(() => {
+    console.log('🚀 AuthContext: Initializing auth provider');
     // Initial auth check
     refreshAuth();
 
     // Listen for auth state changes
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'Session:', !!session);
+      console.log('🔔 AuthContext: Auth event:', event, 'Session exists:', !!session);
       
       if (event === 'SIGNED_OUT') {
         clearAuth();
       } else if (event === 'SIGNED_IN' && session) {
+        console.log('🔑 AuthContext: User signed in, refreshing auth');
         // Trigger refresh to get user profile
         await refreshAuth();
       } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('🔄 AuthContext: Token refreshed');
         // Update session without full refresh
         if (isMountedRef.current) {
           setAuthState(prev => ({
@@ -169,9 +195,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      console.log('🛑 AuthContext: Cleaning up auth provider');
       subscription.unsubscribe();
     };
-  }, [refreshAuth, clearAuth]); // Add dependencies
+  }, [refreshAuth, clearAuth]);
 
   return (
     <AuthContext.Provider value={{ ...authState, refreshAuth, clearAuth }}>

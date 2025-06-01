@@ -89,24 +89,23 @@ export default function RegisterPage() {
       }
       
       // For all roles, directly register with the key and full name
-      const { data: regResult, error: regError } = await supabase.rpc(
-        'register_with_key',
-        {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           registration_key: data.key,
           user_id: userData.user.id,
           display_name: data.full_name
-        }
-      );
+        })
+      });
       
-      if (regError) {
-        console.error('Registration error:', regError);
-        setError(`Ошибка регистрации: ${regError.message}`);
-        setIsLoading(false);
-        return;
-      }
+      const regResult = await response.json();
       
-      if (!regResult.success) {
-        setError(regResult.message);
+      if (!response.ok || !regResult.success) {
+        console.error('Registration error:', regResult);
+        setError(`Ошибка регистрации: ${regResult.message}`);
         setIsLoading(false);
         return;
       }
