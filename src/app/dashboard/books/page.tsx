@@ -74,7 +74,7 @@ export default function BooksPage() {
   const getStatusOptions = () => {
     switch (userProfile?.role) {
       case 'author':
-        return ['Черновик', 'Модерация']; // Authors see their books in these statuses
+        return ['Черновик', 'Модерация', 'Одобрено', 'Активна']; // Authors see ALL their books statuses
       case 'moderator':
         return ['Модерация', 'Одобрено']; // Moderators see books for moderation
       case 'super_admin':
@@ -431,6 +431,26 @@ export default function BooksPage() {
         return 'bg-gray-500 text-white';
       default:
         return 'bg-gray-500 text-white';
+    }
+  };
+
+  // Get status waiting message for authors
+  const getStatusWaitingMessage = (status: string) => {
+    switch (status) {
+      case 'Moderation':
+      case 'Модерация':
+        return '⏳ Ожидает модерацию';
+      case 'Approved':
+      case 'Одобрено':
+        return '✅ Одобрено! Ожидает активации';
+      case 'Active':
+      case 'Активна':
+        return '🎉 Активна и доступна пользователям';
+      case 'Draft':
+      case 'Черновик':
+        return '📝 Черновик - можно редактировать';
+      default:
+        return '';
     }
   };
 
@@ -924,9 +944,16 @@ export default function BooksPage() {
                       <Badge variant="secondary">{book.category}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getStatusBadgeColor(book.status)}>
-                        {translateStatus(book.status)}
-                      </Badge>
+                      <div>
+                        <Badge className={getStatusBadgeColor(book.status)}>
+                          {translateStatus(book.status)}
+                        </Badge>
+                        {userProfile?.role === 'author' && book.author_id === userProfile.id && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            {getStatusWaitingMessage(book.status)}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>{book.author_name}</TableCell>
                     <TableCell>
@@ -954,26 +981,46 @@ export default function BooksPage() {
                         {userProfile?.role === 'author' && book.author_id === userProfile.id && (
                           <>
                             {isStatusMatch(book.status, 'Draft') && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-blue-600"
-                                onClick={() => handleSendToModeration(book.id)}
-                              >
-                                Отправить на модерацию
-                              </Button>
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-blue-600"
+                                  onClick={() => handleSendToModeration(book.id)}
+                                >
+                                  Отправить на модерацию
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleDeleteBook(book.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
                             )}
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleDeleteBook(book.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            
+                            {isStatusMatch(book.status, 'Moderation') && (
+                              <div className="text-xs text-yellow-600 font-medium">
+                                ⏳ На модерации - редактирование недоступно
+                              </div>
+                            )}
+                            
+                            {isStatusMatch(book.status, 'Approved') && (
+                              <div className="text-xs text-blue-600 font-medium">
+                                ✅ Одобрено - ожидает активации администратором
+                              </div>
+                            )}
+                            
+                            {isStatusMatch(book.status, 'Active') && (
+                              <div className="text-xs text-green-600 font-medium">
+                                🎉 Активна - доступна всем пользователям!
+                              </div>
+                            )}
                           </>
                         )}
 
