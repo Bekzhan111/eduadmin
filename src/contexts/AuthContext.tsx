@@ -21,6 +21,7 @@ type AuthState = {
 type AuthContextType = AuthState & {
   refreshAuth: () => Promise<void>;
   clearAuth: () => void;
+  clearError: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const clearError = useCallback(() => {
+    if (!isMountedRef.current) return;
+    
+    console.log('🧹 AuthContext: Clearing error state');
+    setAuthState(prev => ({
+      ...prev,
+      error: null,
+    }));
+  }, []);
+
   const refreshAuth = useCallback(async () => {
     if (!isMountedRef.current || isRefreshingRef.current) return;
 
@@ -69,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // First, check if we can reach Supabase
       let sessionData;
       try {
+        console.log('🔍 AuthContext: Getting session...');
         const result = await supabase.auth.getSession();
         sessionData = result.data;
         
@@ -83,8 +95,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           return;
         }
+        console.log('✅ AuthContext: Session retrieved successfully');
       } catch (networkError) {
         console.error('❌ AuthContext: Network error getting session:', networkError);
+        console.error('❌ AuthContext: Error details:', {
+          name: networkError instanceof Error ? networkError.name : 'Unknown',
+          message: networkError instanceof Error ? networkError.message : String(networkError),
+          stack: networkError instanceof Error ? networkError.stack : 'No stack'
+        });
+        
         // If it's a network error during logout, just clear auth without showing error
         if (isMountedRef.current) {
           setAuthState({
@@ -92,7 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             session: null,
             userProfile: null,
             isLoading: false,
-            error: null, // Don't show error for network issues during logout
+            error: (networkError instanceof Error && networkError.message.includes('Load failed')) ? 
+              'Ошибка подключения. Проверьте интернет-соединение и перезагрузите страницу.' : 
+              (networkError instanceof Error ? networkError.message : String(networkError)),
           });
         }
         return;
@@ -117,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Get user profile data with retry logic
       let userData;
       try {
+        console.log('👤 AuthContext: Fetching user profile...');
         const result = await supabase
           .from('users')
           .select('role, email, display_name, school_id')
@@ -125,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (result.error) {
           console.error('❌ AuthContext: Error fetching user profile:', result.error.message);
+          console.error('❌ AuthContext: Error details:', result.error);
           if (isMountedRef.current) {
             setAuthState(prev => ({
               ...prev,
@@ -136,13 +159,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         userData = result.data;
+        console.log('✅ AuthContext: User profile fetched successfully:', userData);
       } catch (networkError) {
         console.error('❌ AuthContext: Network error fetching user profile:', networkError);
-        // For network errors, just set loading to false but don't clear session
+        console.error('❌ AuthContext: Error details:', {
+          name: networkError instanceof Error ? networkError.name : 'Unknown',
+          message: networkError instanceof Error ? networkError.message : String(networkError),
+          stack: networkError instanceof Error ? networkError.stack : 'No stack'
+        });
+        
+        // For network errors, show better error message
         if (isMountedRef.current) {
           setAuthState(prev => ({
             ...prev,
-            error: 'Network error. Please check your connection.',
+            error: (networkError instanceof Error && networkError.message.includes('Load failed')) ? 
+              'Ошибка загрузки профиля. Проверьте подключение и обновите страницу.' : 
+              `Network error: ${networkError instanceof Error ? networkError.message : String(networkError)}`,
             isLoading: false,
           }));
         }
@@ -156,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isMountedRef.current) {
           setAuthState(prev => ({
             ...prev,
-            error: 'User profile not found. Please contact administrator.',
+            error: 'Профиль пользователя не найден. Обратитесь к администратору.',
             isLoading: false,
           }));
         }
@@ -187,6 +219,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     } catch (error) {
       console.error('❌ AuthContext: Auth refresh error:', error instanceof Error ? error.message : String(error));
+      console.error('❌ AuthContext: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
       if (isMountedRef.current) {
         // For unexpected errors, check if it looks like a network issue
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -196,18 +230,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                               errorMessage.includes('NetworkError');
         
         if (isNetworkError) {
-          // For network errors, clear auth state gracefully
+          // For network errors, clear auth state gracefully with better message
           setAuthState({
             user: null,
             session: null,
             userProfile: null,
             isLoading: false,
-            error: null,
+            error: 'Проблема с подключением. Проверьте интернет и обновите страницу.',
           });
         } else {
           setAuthState(prev => ({
             ...prev,
-            error: 'Authentication error',
+            error: `Ошибка аутентификации: ${errorMessage}`,
             isLoading: false,
           }));
         }
@@ -254,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshAuth, clearAuth]);
 
   return (
-    <AuthContext.Provider value={{ ...authState, refreshAuth, clearAuth }}>
+    <AuthContext.Provider value={{ ...authState, refreshAuth, clearAuth, clearError }}>
       {children}
     </AuthContext.Provider>
   );

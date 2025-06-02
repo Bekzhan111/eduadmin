@@ -10,8 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SkeletonLoader } from '@/components/ui/skeleton';
-import { Search, BookOpen, Plus, Edit, Trash2, Eye, Filter, RefreshCw } from 'lucide-react';
+import { Search, BookOpen, Plus, Edit, Trash2, Eye, Filter, RefreshCw, X } from 'lucide-react';
 import Link from 'next/link';
+import { fetchBooksWithCorrectClient } from '@/utils/supabase-admin';
 
 type Book = {
   id: string;
@@ -65,6 +66,12 @@ export default function BooksPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'all' | 'library'>('all'); // For school admin: view all books or just library
 
+  // States for adding existing books
+  const [showAddExistingModal, setShowAddExistingModal] = useState(false);
+  const [existingBooks, setExistingBooks] = useState<Book[]>([]);
+  const [existingBooksSearch, setExistingBooksSearch] = useState('');
+  const [isLoadingExisting, setIsLoadingExisting] = useState(false);
+
   // Available filters
   const gradeOptions = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   const courseOptions = ['Математика', 'Физика', 'Химия', 'Биология', 'Литература', 'История', 'География', 'Английский', 'Казахский', 'Русский'];
@@ -108,222 +115,58 @@ export default function BooksPage() {
     try {
       const supabase = createClient();
       
-      // Build query based on user role
-      let query = supabase
-        .from('books')
-        .select(`
-          id,
-          base_url,
-          title,
-          description,
-          grade_level,
-          course,
-          category,
-          status,
-          author_id,
-          moderator_id,
-          created_at,
-          updated_at,
-          price,
-          cover_image,
-          file_size,
-          pages_count,
-          language,
-          isbn,
-          publisher,
-          publication_date,
-          downloads_count,
-          users:author_id (display_name, email)
-        `);
-
-      // Apply role-based filters
-      switch (userProfile?.role) {
-        case 'author':
-          // Authors see only their own books
-          query = query.eq('author_id', userProfile.id);
-          break;
-        case 'moderator':
-          // Moderators see all books in moderation status
-          query = query.eq('status', 'Moderation');
-          break;
-        case 'school':
-        case 'teacher':
-        case 'student':
-          if (userProfile?.role === 'school') {
-            if (viewMode === 'all') {
-              // School Admin sees all active books to add to their library
-              query = query.eq('status', 'Active');
-            } else {
-              // School Admin sees only books in their library
-              if (userProfile.school_id) {
-                const { data: schoolBooks } = await supabase
-                  .from('school_books')
-                  .select('book_id')
-                  .eq('school_id', userProfile.school_id);
-                
-                const schoolBookIds = schoolBooks?.map(sb => sb.book_id) || [];
-                if (schoolBookIds.length > 0) {
-                  query = query
-                    .eq('status', 'Active')
-                    .in('id', schoolBookIds);
-                } else {
-                  // No books for this school, return empty result
-                  query = query.eq('id', 'no-books-found');
-                }
-              } else {
-                // User has no school_id, return empty result
-                query = query.eq('id', 'no-books-found');
-              }
-            }
-          } else {
-            // Teachers and Students see only active books associated with their school
-            // First get school book IDs, then filter books
-            if (userProfile.school_id) {
-              const { data: schoolBooks } = await supabase
-                .from('school_books')
-                .select('book_id')
-                .eq('school_id', userProfile.school_id);
-              
-              const schoolBookIds = schoolBooks?.map(sb => sb.book_id) || [];
-              if (schoolBookIds.length > 0) {
-                query = query
-                  .eq('status', 'Active')
-                  .in('id', schoolBookIds);
-              } else {
-                // No books for this school, return empty result
-                query = query.eq('id', 'no-books-found');
-              }
-            } else {
-              // User has no school_id, return empty result
-              query = query.eq('id', 'no-books-found');
-            }
-          }
-          break;
-        case 'super_admin':
-          // Super admin sees all books - no additional filters
-          break;
-        default:
-          throw new Error('Invalid role');
-      }
-
-      const { data: booksData, error: booksError } = await query.order('created_at', { ascending: false });
+      console.log('🔍 Fetching books for role:', userProfile?.role, 'User ID:', userProfile?.id);
+      
+      // Используем новую функцию для получения книг с правильным клиентом
+      const { data: booksData, error: booksError } = await fetchBooksWithCorrectClient(
+        userProfile?.role,
+        userProfile?.id,
+        supabase
+      );
       
       if (booksError) {
-        // If books table doesn't exist, we'll create role-specific mock data
-        console.warn('Books table not found, using mock data');
-        const getMockBooks = (): Book[] => {
-          const baseMockBooks: Book[] = [
-            {
-              id: '1',
-              base_url: 'math-grade-5',
-              title: 'Математика 5 класс',
-              description: 'Комплексный учебник математики для 5 класса',
-              grade_level: '5',
-              course: 'Математика',
-              category: 'Учебник',
-              status: 'Active' as const,
-              author_id: 'author1',
-              author_name: 'Проф. Айгуль Нурланова',
-              created_at: '2024-01-15T10:00:00Z',
-              updated_at: '2024-01-15T10:00:00Z',
-              price: 2500,
-              schools_purchased: 45,
-              schools_added: 38,
-              teachers_added: 156,
-              students_added: 2340
-            },
-            {
-              id: '2',
-              base_url: 'physics-grade-8',
-              title: 'Физика 8 класс',
-              description: 'Введение в физику с практическими экспериментами',
-              grade_level: '8',
-              course: 'Физика',
-              category: 'Учебник',
-              status: 'Active' as const,
-              author_id: 'author2',
-              author_name: 'Д-р Ерлан Жанбулатов',
-              created_at: '2024-01-10T14:30:00Z',
-              updated_at: '2024-01-10T14:30:00Z',
-              price: 3200,
-              schools_purchased: 32,
-              schools_added: 28,
-              teachers_added: 89,
-              students_added: 1564
-            },
-            {
-              id: '3',
-              base_url: 'kazakh-literature-grade-10',
-              title: 'Казахская литература 10 класс',
-              description: 'Классическая и современная казахская литература',
-              grade_level: '10',
-              course: 'Литература',
-              category: 'Учебник',
-              status: 'Active' as const,
-              author_id: 'author3',
-              author_name: 'Проф. Жанар Оспанова',
-              created_at: '2024-01-08T09:15:00Z',
-              updated_at: '2024-01-08T09:15:00Z',
-              price: 2800,
-              schools_purchased: 58,
-              schools_added: 51,
-              teachers_added: 234,
-              students_added: 3120
-            },
-            {
-              id: '4',
-              base_url: 'chemistry-workbook-grade-9',
-              title: 'Рабочая тетрадь по химии 9 класс',
-              description: 'Практические упражнения и лабораторные работы',
-              grade_level: '9',
-              course: 'Химия',
-              category: 'Рабочая тетрадь',
-              status: 'Moderation' as const,
-              author_id: 'author4',
-              author_name: 'Проф. Асел Токтарова',
-              created_at: '2024-01-05T16:45:00Z',
-              updated_at: '2024-01-05T16:45:00Z',
-              price: 1800,
-              schools_purchased: 0,
-              schools_added: 0,
-              teachers_added: 0,
-              students_added: 0
-            }
-          ];
-
-          // Filter mock data based on role
-          switch (userProfile?.role) {
-            case 'author':
-              return baseMockBooks.filter(book => book.author_id === userProfile.id);
-            case 'moderator':
-              return baseMockBooks.filter(book => book.status === 'Moderation');
-            case 'school':
-            case 'teacher':
-            case 'student':
-              return baseMockBooks.filter(book => book.status === 'Active');
-            case 'super_admin':
-              return baseMockBooks;
-            default:
-              return [];
-          }
-        };
-
-        const mockBooks = getMockBooks();
-        setBooks(mockBooks);
-        setFilteredBooks(mockBooks);
+        console.error('❌ Database error:', booksError);
+        console.error('📊 Error details:', JSON.stringify(booksError, null, 2));
+        
+        // Show the actual error to the user instead of falling back to mock data
+        setError(`Ошибка загрузки книг: ${booksError.message}. Проверьте подключение к базе данных.`);
+        setBooks([]);
+        setFilteredBooks([]);
         setBookStats({
-          total_books: mockBooks.length,
-          active_books: mockBooks.filter(b => b.status === 'Active').length,
-          draft_books: mockBooks.filter(b => b.status === 'Draft').length,
-          moderation_books: mockBooks.filter(b => b.status === 'Moderation').length,
-          approved_books: mockBooks.filter(b => b.status === 'Approved').length, // Using Approved instead of In Progress
+          total_books: 0,
+          active_books: 0,
+          draft_books: 0,
+          moderation_books: 0,
+          approved_books: 0,
         });
         return;
       }
       
-      // Process real data if available
-      const formattedBooks = (booksData || []).map(book => {
-        const authorData = Array.isArray(book.users) ? book.users[0] : book.users;
+      console.log('✅ Books fetched successfully:', booksData?.length || 0, 'books');
+      
+      // Получаем данные авторов отдельным запросом
+      let authorsData: any[] = [];
+      if (booksData && booksData.length > 0) {
+        const authorIds = [...new Set(booksData.map((book: any) => book.author_id).filter(Boolean))];
+        if (authorIds.length > 0) {
+          console.log('👥 Fetching authors data for', authorIds.length, 'authors');
+          const { data: authors, error: authorsError } = await supabase
+            .from('users')
+            .select('id, display_name, email')
+            .in('id', authorIds);
+          
+          if (!authorsError && authors) {
+            authorsData = authors;
+            console.log('✅ Authors data fetched:', authorsData.length, 'authors');
+          } else {
+            console.warn('⚠️ Could not fetch authors data:', authorsError?.message);
+          }
+        }
+      }
+
+      // Форматируем данные
+      const formattedBooks = (booksData || []).map((book: any) => {
+        const authorData = authorsData.find(author => author.id === book.author_id);
         return {
           id: book.id,
           base_url: book.base_url,
@@ -332,40 +175,58 @@ export default function BooksPage() {
           grade_level: book.grade_level,
           course: book.course,
           category: book.category,
-          status: book.status as 'Draft' | 'Moderation' | 'Approved' | 'Active',
+          status: book.status,
           author_id: book.author_id,
           author_name: authorData?.display_name || authorData?.email || 'Unknown Author',
           created_at: book.created_at,
           updated_at: book.updated_at,
           price: book.price,
           cover_image: book.cover_image,
-          schools_purchased: 0, // Would be calculated from purchases table
-          schools_added: 0,     // Would be calculated from school_books table
-          teachers_added: 0,    // Would be calculated from teacher_books table
-          students_added: 0,    // Would be calculated from student_books table
+          schools_purchased: 0,
+          schools_added: 0,
+          teachers_added: 0,
+          students_added: 0,
         };
+      });
+      
+      console.log('📊 Formatted books:', formattedBooks.length);
+      console.log('📊 Status breakdown:', {
+        draft: formattedBooks.filter((b: any) => b.status === 'Draft').length,
+        moderation: formattedBooks.filter((b: any) => b.status === 'Moderation').length,
+        approved: formattedBooks.filter((b: any) => b.status === 'Approved').length,
+        active: formattedBooks.filter((b: any) => b.status === 'Active').length,
       });
       
       setBooks(formattedBooks);
       setFilteredBooks(formattedBooks);
       
-      // Calculate stats
+      // Считаем статистику
       const stats: BookStats = {
         total_books: formattedBooks.length,
-        active_books: formattedBooks.filter(b => b.status === 'Active').length,
-        draft_books: formattedBooks.filter(b => b.status === 'Draft').length,
-        moderation_books: formattedBooks.filter(b => b.status === 'Moderation').length,
-        approved_books: formattedBooks.filter(b => b.status === 'Approved').length, // Using Approved instead of In Progress
+        active_books: formattedBooks.filter((b: any) => b.status === 'Active').length,
+        draft_books: formattedBooks.filter((b: any) => b.status === 'Draft').length,
+        moderation_books: formattedBooks.filter((b: any) => b.status === 'Moderation').length,
+        approved_books: formattedBooks.filter((b: any) => b.status === 'Approved').length,
       };
       setBookStats(stats);
       
     } catch (error) {
-      console.error('Error fetching books:', error);
-      setError(error instanceof Error ? error.message : 'Не удалось получить книги');
+      console.error('❌ Error fetching books:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      setError(`Не удалось получить книги: ${errorMessage}`);
+      setBooks([]);
+      setFilteredBooks([]);
+      setBookStats({
+        total_books: 0,
+        active_books: 0,
+        draft_books: 0,
+        moderation_books: 0,
+        approved_books: 0,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [userProfile, viewMode]);
+  }, [userProfile]);
 
   // Filter books based on search term and filters
   useEffect(() => {
@@ -442,7 +303,7 @@ export default function BooksPage() {
         return '⏳ Ожидает модерацию';
       case 'Approved':
       case 'Одобрено':
-        return '✅ Одобрено! Ожидает активации';
+        return '✅ Одобрено! Ожидает публикации администратором';
       case 'Active':
       case 'Активна':
         return '🎉 Активна и доступна пользователям';
@@ -452,6 +313,41 @@ export default function BooksPage() {
       default:
         return '';
     }
+  };
+
+  // Get moderator status info
+  const getModeratorStatusInfo = (book: Book) => {
+    if (book.moderator_id && book.status === 'Approved') {
+      return {
+        approved: true,
+        moderatorId: book.moderator_id,
+        message: '✅ Одобрено модератором',
+        submessage: '🔄 Ожидает публикации администратором'
+      };
+    }
+    return null;
+  };
+
+  // Get book workflow status for different roles
+  const getWorkflowStatus = (book: Book, userRole?: string) => {
+    switch (userRole) {
+      case 'author':
+        if (book.status === 'Moderation') return '📤 Отправлено на модерацию - ожидает проверки';
+        if (book.status === 'Approved') return '✅ Одобрено модератором - ожидает публикации';
+        if (book.status === 'Active') return '🎉 Опубликовано - доступно всем пользователям!';
+        if (book.status === 'Draft') return '📝 Черновик - можно редактировать и отправить на модерацию';
+        break;
+      case 'moderator':
+        if (book.status === 'Moderation') return '📋 Требует вашего решения';
+        if (book.status === 'Approved') return '✅ Одобрено - передано администратору';
+        break;
+      case 'super_admin':
+        if (book.status === 'Moderation') return '⏳ На модерации - ожидает проверки модератором';
+        if (book.status === 'Approved') return '📋 Готово к публикации';
+        if (book.status === 'Active') return '✅ Опубликовано и доступно всем';
+        break;
+    }
+    return '';
   };
 
   const handleDeleteBook = async (bookId: string) => {
@@ -505,66 +401,56 @@ export default function BooksPage() {
     }
   };
 
-  const handleApproveBook = async (bookId: string) => {
-    if (!confirm('Одобрить эту книгу? Она будет передана суперадминистратору для активации.')) {
-      return;
-    }
-    
+  const handleApproveBook = async (bookId: string, bookTitle: string, moderatorName: string) => {
+    const confirmed = confirm(`Вы уверены, что хотите одобрить книгу "${bookTitle}"?\n\nМодератор: ${moderatorName}`)
+    if (!confirmed) return
+
     try {
       const supabase = createClient();
       const { error } = await supabase
         .from('books')
         .update({ 
           status: 'Approved',
-          moderator_id: userProfile?.id,
           updated_at: new Date().toISOString()
         })
-        .eq('id', bookId);
-      
-      if (error) {
-        throw new Error(`Failed to approve book: ${error.message}`);
-      }
-      
-      setSuccess('Книга одобрена! Она передана суперадминистратору для активации.');
-      await fetchBooks();
-    } catch (error) {
-      console.error('Error approving book:', error);
-      setError(error instanceof Error ? error.message : 'Не удалось одобрить книгу');
-    }
-  };
+        .eq('id', bookId)
 
-  const handleRejectBook = async (bookId: string) => {
-    const reason = prompt('Укажите причину отклонения книги:');
-    if (!reason) return;
-    
+      if (error) throw error
+
+      setSuccess(`Книга "${bookTitle}" одобрена модератором ${moderatorName}!`)
+      await fetchBooks()
+    } catch (error: any) {
+      setError(`Ошибка при одобрении книги: ${error.message}`)
+    }
+  }
+
+  const handleRejectBook = async (bookId: string, bookTitle: string, moderatorName: string) => {
+    const reason = prompt(`Укажите причину отклонения книги "${bookTitle}":\n\nМодератор: ${moderatorName}`)
+    if (!reason) return
+
     try {
       const supabase = createClient();
       const { error } = await supabase
         .from('books')
         .update({ 
           status: 'Draft',
-          moderator_id: userProfile?.id,
           updated_at: new Date().toISOString()
         })
-        .eq('id', bookId);
-      
-      if (error) {
-        throw new Error(`Failed to reject book: ${error.message}`);
-      }
-      
-      setSuccess(`Книга отклонена и возвращена автору как черновик. Причина: ${reason}`);
-      await fetchBooks();
-    } catch (error) {
-      console.error('Error rejecting book:', error);
-      setError(error instanceof Error ? error.message : 'Не удалось отклонить книгу');
-    }
-  };
+        .eq('id', bookId)
 
-  const handleActivateBook = async (bookId: string) => {
-    if (!confirm('Активировать эту книгу? Она станет доступна всем пользователям системы.')) {
-      return;
+      if (error) throw error
+
+      setSuccess(`Книга "${bookTitle}" отклонена модератором ${moderatorName}. Причина: ${reason}`)
+      await fetchBooks()
+    } catch (error: any) {
+      setError(`Ошибка при отклонении книги: ${error.message}`)
     }
-    
+  }
+
+  const handleActivateBook = async (bookId: string, bookTitle: string, adminName: string) => {
+    const confirmed = confirm(`Вы уверены, что хотите опубликовать книгу "${bookTitle}"?\n\nАдминистратор: ${adminName}\n\nКнига станет доступна всем пользователям.`)
+    if (!confirmed) return
+
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -573,19 +459,16 @@ export default function BooksPage() {
           status: 'Active',
           updated_at: new Date().toISOString()
         })
-        .eq('id', bookId);
-      
-      if (error) {
-        throw new Error(`Failed to activate book: ${error.message}`);
-      }
-      
-      setSuccess('Книга активирована! Теперь она доступна всем пользователям системы.');
-      await fetchBooks();
-    } catch (error) {
-      console.error('Error activating book:', error);
-      setError(error instanceof Error ? error.message : 'Не удалось активировать книгу');
+        .eq('id', bookId)
+
+      if (error) throw error
+
+      setSuccess(`Книга "${bookTitle}" опубликована администратором ${adminName} и теперь доступна всем пользователям!`)
+      await fetchBooks()
+    } catch (error: any) {
+      setError(`Ошибка при публикации книги: ${error.message}`)
     }
-  };
+  }
 
   const handleRemoveBookFromSchool = async (bookId: string) => {
     if (!userProfile?.school_id) {
@@ -647,6 +530,155 @@ export default function BooksPage() {
       setError(error instanceof Error ? error.message : 'Не удалось добавить книгу в библиотеку школы');
     }
   };
+
+  const handleAddExistingBook = async (originalBookId: string, originalTitle: string) => {
+    if (!userProfile) {
+      setError('Пользователь не авторизован');
+      return;
+    }
+
+    if (!confirm(`Вы уверены, что хотите добавить книгу "${originalTitle}" в ваш список? Будет создана копия этой книги со статусом "Черновик".`)) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      
+      // Get the original book data
+      const { data: originalBook, error: fetchError } = await supabase
+        .from('books')
+        .select('*')
+        .eq('id', originalBookId)
+        .single();
+
+      if (fetchError || !originalBook) {
+        throw new Error('Не удалось найти оригинальную книгу');
+      }
+
+      // Generate a new base_url for the copied book
+      const timestamp = Date.now();
+      const newBaseUrl = `${originalBook.base_url}-copy-${timestamp}`;
+      const newTitle = `${originalBook.title} (Копия)`;
+
+      // Create a new book based on the existing one
+      const { data: newBook, error: createError } = await supabase
+        .from('books')
+        .insert({
+          title: newTitle,
+          description: originalBook.description,
+          grade_level: originalBook.grade_level,
+          course: originalBook.course,
+          category: originalBook.category,
+          language: originalBook.language || 'Русский',
+          pages_count: originalBook.pages_count,
+          price: originalBook.price,
+          cover_image: originalBook.cover_image,
+          base_url: newBaseUrl,
+          author_id: userProfile.id, // Set current user as author
+          status: 'Draft' // Start as draft for editing
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        throw new Error(`Ошибка создания копии книги: ${createError.message}`);
+      }
+
+      setSuccess(`Книга "${newTitle}" успешно добавлена как черновик! Вы можете отредактировать ее и отправить на модерацию.`);
+      setShowAddExistingModal(false);
+      await fetchBooks();
+
+    } catch (err) {
+      console.error('Error adding existing book:', err);
+      setError(err instanceof Error ? err.message : 'Произошла ошибка при добавлении существующей книги');
+    }
+  };
+
+  const fetchExistingBooks = async () => {
+    if (!userProfile) return;
+
+    setIsLoadingExisting(true);
+    try {
+      const supabase = createClient();
+      
+      // Fetch books that are published and not authored by current user
+      let query = supabase
+        .from('books')
+        .select(`
+          id,
+          title,
+          description,
+          grade_level,
+          course,
+          category,
+          status,
+          author_id,
+          base_url,
+          language,
+          pages_count,
+          price,
+          cover_image,
+          created_at
+        `)
+        .eq('status', 'Active') // Only active/published books
+        .neq('author_id', userProfile.id); // Exclude books by current author
+
+      // Apply search filter if provided
+      if (existingBooksSearch.trim()) {
+        query = query.or(`title.ilike.%${existingBooksSearch}%,description.ilike.%${existingBooksSearch}%,course.ilike.%${existingBooksSearch}%`);
+      }
+
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        throw error;
+      }
+
+      // Get author information for the books
+      const authorIds = [...new Set(data?.map(book => book.author_id).filter(Boolean))];
+      let authorsData: any[] = [];
+
+      if (authorIds.length > 0) {
+        const { data: authors, error: authorsError } = await supabase
+          .from('users')
+          .select('id, display_name, email')
+          .in('id', authorIds);
+        
+        if (!authorsError && authors) {
+          authorsData = authors;
+        }
+      }
+
+      const formattedBooks = (data || []).map(book => {
+        const authorData = authorsData.find(author => author.id === book.author_id);
+        return {
+          ...book,
+          author_name: authorData?.display_name || authorData?.email || 'Unknown Author',
+          schools_purchased: 0,
+          schools_added: 0,
+          teachers_added: 0,
+          students_added: 0,
+          updated_at: book.created_at,
+        };
+      });
+
+      setExistingBooks(formattedBooks);
+    } catch (err) {
+      console.error('Error fetching existing books:', err);
+      setError('Не удалось загрузить существующие книги');
+    } finally {
+      setIsLoadingExisting(false);
+    }
+  };
+
+  // Fetch existing books when modal opens
+  useEffect(() => {
+    if (showAddExistingModal) {
+      fetchExistingBooks();
+    }
+  }, [showAddExistingModal, existingBooksSearch]);
 
   if (authLoading || isLoading) {
     return (
@@ -722,12 +754,21 @@ export default function BooksPage() {
         </h1>
         <div className="flex items-center space-x-4">
           {userProfile?.role === 'author' && (
-            <Link href="/dashboard/books/create">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Создать книгу
+            <>
+              <Link href="/dashboard/books/create">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Создать книгу
+                </Button>
+              </Link>
+              <Button 
+                onClick={() => setShowAddExistingModal(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Добавить существующую книгу
               </Button>
-            </Link>
+            </>
           )}
           <Button variant="outline" onClick={fetchBooks}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -948,9 +989,26 @@ export default function BooksPage() {
                         <Badge className={getStatusBadgeColor(book.status)}>
                           {translateStatus(book.status)}
                         </Badge>
+                        {/* Показываем дополнительную информацию в зависимости от роли */}
                         {userProfile?.role === 'author' && book.author_id === userProfile.id && (
                           <div className="text-xs text-gray-600 mt-1">
-                            {getStatusWaitingMessage(book.status)}
+                            {getWorkflowStatus(book, 'author')}
+                          </div>
+                        )}
+                        {userProfile?.role === 'moderator' && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            {getWorkflowStatus(book, 'moderator')}
+                          </div>
+                        )}
+                        {userProfile?.role === 'super_admin' && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            {getWorkflowStatus(book, 'super_admin')}
+                          </div>
+                        )}
+                        {/* Показываем информацию о модераторе для одобренных книг */}
+                        {getModeratorStatusInfo(book) && (
+                          <div className="text-xs text-blue-600 mt-1 font-medium">
+                            {getModeratorStatusInfo(book)?.message}
                           </div>
                         )}
                       </div>
@@ -972,135 +1030,127 @@ export default function BooksPage() {
                       {book.price ? `₸${book.price.toLocaleString()}` : 'Бесплатно'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        
-                        {/* Author actions */}
+                      <div className="flex gap-2 flex-wrap">
+                        {/* Автор */}
                         {userProfile?.role === 'author' && book.author_id === userProfile.id && (
                           <>
-                            {isStatusMatch(book.status, 'Draft') && (
-                              <>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-blue-600"
-                                  onClick={() => handleSendToModeration(book.id)}
-                                >
-                                  Отправить на модерацию
-                                </Button>
-                                <Button variant="ghost" size="sm">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleDeleteBook(book.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                            
-                            {isStatusMatch(book.status, 'Moderation') && (
-                              <div className="text-xs text-yellow-600 font-medium">
-                                ⏳ На модерации - редактирование недоступно
-                              </div>
-                            )}
-                            
-                            {isStatusMatch(book.status, 'Approved') && (
-                              <div className="text-xs text-blue-600 font-medium">
-                                ✅ Одобрено - ожидает активации администратором
-                              </div>
-                            )}
-                            
-                            {isStatusMatch(book.status, 'Active') && (
-                              <div className="text-xs text-green-600 font-medium">
-                                🎉 Активна - доступна всем пользователям!
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                        {/* Moderator actions */}
-                        {userProfile?.role === 'moderator' && isStatusMatch(book.status, 'Moderation') && (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-green-600"
-                              onClick={() => handleApproveBook(book.id)}
-                            >
-                              Одобрить
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-red-600"
-                              onClick={() => handleRejectBook(book.id)}
-                            >
-                              Отклонить
-                            </Button>
-                          </>
-                        )}
-
-                        {/* Super Admin actions */}
-                        {userProfile?.role === 'super_admin' && (
-                          <>
-                            {isStatusMatch(book.status, 'Approved') && (
+                            {book.status === 'Draft' && (
                               <Button 
-                                variant="ghost" 
                                 size="sm" 
-                                className="text-green-600"
-                                onClick={() => handleActivateBook(book.id)}
+                                onClick={() => handleSendToModeration(book.id)}
+                                className="bg-blue-600 hover:bg-blue-700"
                               >
-                                Активировать Книгу
+                                📝 Отправить на модерацию
                               </Button>
                             )}
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            {book.status !== 'Draft' && (
+                              <div className="text-xs text-gray-500 italic">
+                                {getWorkflowStatus(book, 'author')}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Модератор */}
+                        {userProfile?.role === 'moderator' && (
+                          <>
+                            {book.status === 'Moderation' && (
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleApproveBook(book.id, book.title, userProfile?.display_name || userProfile?.email || 'Модератор')}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  ✅ Одобрить
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  onClick={() => handleRejectBook(book.id, book.title, userProfile?.display_name || userProfile?.email || 'Модератор')}
+                                >
+                                  ❌ Отклонить
+                                </Button>
+                              </div>
+                            )}
+                            {book.status === 'Approved' && (
+                              <div className="text-xs text-green-600 font-medium">
+                                ✅ Одобрено вами - ожидает публикации администратором
+                              </div>
+                            )}
+                            {book.status === 'Active' && (
+                              <div className="text-xs text-blue-600 font-medium">
+                                📚 Опубликовано и доступно пользователям
+                              </div>
+                            )}
+                            {book.status === 'Draft' && (
+                              <div className="text-xs text-gray-500">
+                                📝 Черновик - ожидает отправки на модерацию
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Супер админ */}
+                        {userProfile?.role === 'super_admin' && (
+                          <>
+                            {book.status === 'Moderation' && (
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleApproveBook(book.id, book.title, userProfile?.display_name || userProfile?.email || 'Модератор')}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  ✅ Одобрить
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  onClick={() => handleRejectBook(book.id, book.title, userProfile?.display_name || userProfile?.email || 'Модератор')}
+                                >
+                                  ❌ Отклонить
+                                </Button>
+                              </div>
+                            )}
+                            {book.status === 'Approved' && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleActivateBook(book.id, book.title, userProfile?.display_name || userProfile?.email || 'Суперадмин')}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                🚀 Опубликовать
+                              </Button>
+                            )}
+                            {book.status === 'Active' && (
+                              <div className="text-xs text-green-600 font-medium">
+                                📚 Опубликовано вами
+                              </div>
+                            )}
+                            {book.status === 'Draft' && (
+                              <div className="text-xs text-gray-500">
+                                📝 Черновик - ожидает отправки на модерацию
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Админ школы */}
+                        {userProfile?.role === 'school_admin' && book.status === 'Active' && (
+                          <>
                             <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleDeleteBook(book.id)}
-                              className="text-red-600 hover:text-red-700"
+                              size="sm" 
+                              onClick={() => handleAddBookToSchool(book.id)}
+                              className="bg-green-600 hover:bg-green-700"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              ➕ Добавить в библиотеку
                             </Button>
                           </>
                         )}
 
-                        {/* School Admin actions based on view mode */}
-                        {userProfile?.role === 'school' && viewMode === 'all' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-green-600 hover:text-green-700"
-                            onClick={() => handleAddBookToSchool(book.id)}
-                          >
-                            Добавить в Библиотеку
-                          </Button>
-                        )}
-                        
-                        {userProfile?.role === 'school' && viewMode === 'library' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => handleRemoveBookFromSchool(book.id)}
-                          >
-                            Удалить из Библиотеки
-                          </Button>
-                        )}
-
-                        {/* School users - view only */}
-                        {(userProfile?.role === 'school' || userProfile?.role === 'teacher' || userProfile?.role === 'student') && (
-                          <Button variant="ghost" size="sm" className="text-blue-600">
-                            Открыть Книгу
-                          </Button>
+                        {/* Пользователи школы */}
+                        {(userProfile?.role === 'teacher' || userProfile?.role === 'student') && book.status === 'Active' && (
+                          <div className="text-xs text-blue-600">
+                            📚 Доступно для изучения
+                          </div>
                         )}
                       </div>
                     </TableCell>
@@ -1117,6 +1167,110 @@ export default function BooksPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Existing Book Modal */}
+      {showAddExistingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold">Добавить существующую книгу</h2>
+              <button
+                onClick={() => setShowAddExistingModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Search Input */}
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Поиск по названию, описанию или предмету..."
+                    value={existingBooksSearch}
+                    onChange={(e) => setExistingBooksSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Books List */}
+              <div className="max-h-96 overflow-y-auto">
+                {isLoadingExisting ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-2">Загрузка книг...</span>
+                  </div>
+                ) : existingBooks.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    {existingBooksSearch ? 'Книги не найдены по вашему запросу' : 'Нет доступных книг для добавления'}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {existingBooks.map((book) => (
+                      <div key={book.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg mb-2">{book.title}</h3>
+                            <p className="text-gray-600 text-sm mb-2 line-clamp-2">{book.description}</p>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {book.grade_level} класс
+                              </span>
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {book.course}
+                              </span>
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                {book.category}
+                              </span>
+                              {book.language && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  {book.language}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              <p>Автор: {book.author_name}</p>
+                              <p>Страниц: {book.pages_count || 'Не указано'}</p>
+                              {book.price && <p>Цена: {book.price} ₽</p>}
+                            </div>
+                          </div>
+                          <div className="ml-4 flex flex-col items-end">
+                            {book.cover_image && (
+                              <img
+                                src={book.cover_image}
+                                alt={book.title}
+                                className="w-16 h-20 object-cover rounded mb-2"
+                              />
+                            )}
+                            <Button
+                              onClick={() => handleAddExistingBook(book.id, book.title)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium min-w-[100px]"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              ДОБАВИТЬ
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t bg-gray-50">
+              <p className="text-sm text-gray-600">
+                <strong>Внимание:</strong> При добавлении существующей книги будет создана ее копия со статусом "Черновик". 
+                Вы сможете отредактировать копию и отправить ее на модерацию.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

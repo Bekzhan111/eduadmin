@@ -31,7 +31,7 @@ type BookForm = {
 };
 
 export default function CreateBookPage() {
-  const { userProfile } = useAuth();
+  const { userProfile, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +150,7 @@ export default function CreateBookPage() {
           cover_image: formData.cover_image.trim() || null,
           base_url: formData.base_url,
           author_id: userProfile.id,
-          status: 'Moderation' // Set status to Moderation for approval workflow
+          status: 'Draft' // Set status to Draft so author can edit before sending to moderation
         })
         .select()
         .single();
@@ -159,7 +159,7 @@ export default function CreateBookPage() {
         throw new Error(bookError.message);
       }
 
-      setSuccess('Книга успешно создана и отправлена на модерацию!');
+      setSuccess('Книга успешно создана как черновик! Вы можете отредактировать ее и отправить на модерацию.');
       
       // Reset form
       setFormData({
@@ -187,6 +187,35 @@ export default function CreateBookPage() {
       setIsLoading(false);
     }
   };
+
+  // Показываем загрузку если аутентификация еще не завершена
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Показываем ошибку если пользователь не найден
+  if (!userProfile) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600">Ошибка аутентификации</h1>
+          <p className="text-gray-600 mt-2">Пользователь не найден. Войдите в систему снова.</p>
+          <Link href="/login">
+            <Button className="mt-4">
+              Войти в систему
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Проверяем, что пользователь - автор
   if (userProfile?.role !== 'author') {
@@ -240,7 +269,7 @@ export default function CreateBookPage() {
           <CardHeader>
             <CardTitle>Информация о книге</CardTitle>
             <CardDescription>
-              После создания книга будет отправлена на модерацию
+              Книга будет создана как черновик. Вы сможете отредактировать ее и затем отправить на модерацию.
             </CardDescription>
           </CardHeader>
           <CardContent>
