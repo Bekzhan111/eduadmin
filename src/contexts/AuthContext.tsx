@@ -65,16 +65,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const supabase = createClient();
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        console.error('❌ AuthContext: Session error:', sessionError.message);
+      
+      // First, check if we can reach Supabase
+      let sessionData;
+      try {
+        const result = await supabase.auth.getSession();
+        sessionData = result.data;
+        
+        if (result.error) {
+          console.error('❌ AuthContext: Session error:', result.error.message);
+          if (isMountedRef.current) {
+            setAuthState(prev => ({
+              ...prev,
+              error: result.error.message,
+              isLoading: false,
+            }));
+          }
+          return;
+        }
+      } catch (networkError) {
+        console.error('❌ AuthContext: Network error getting session:', networkError);
+        // If it's a network error during logout, just clear auth without showing error
         if (isMountedRef.current) {
-          setAuthState(prev => ({
-            ...prev,
-            error: sessionError.message,
+          setAuthState({
+            user: null,
+            session: null,
+            userProfile: null,
             isLoading: false,
-          }));
+            error: null, // Don't show error for network issues during logout
+          });
         }
         return;
       }
@@ -95,19 +114,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('✅ AuthContext: Session found for user:', sessionData.session.user.email, 'ID:', sessionData.session.user.id);
 
-      // Get user profile data
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role, email, display_name, school_id')
-        .eq('id', sessionData.session.user.id)
-        .maybeSingle();
+      // Get user profile data with retry logic
+      let userData;
+      try {
+        const result = await supabase
+          .from('users')
+          .select('role, email, display_name, school_id')
+          .eq('id', sessionData.session.user.id)
+          .maybeSingle();
 
-      if (userError) {
-        console.error('❌ AuthContext: Error fetching user profile:', userError.message);
+        if (result.error) {
+          console.error('❌ AuthContext: Error fetching user profile:', result.error.message);
+          if (isMountedRef.current) {
+            setAuthState(prev => ({
+              ...prev,
+              error: `Error fetching user profile: ${result.error.message}`,
+              isLoading: false,
+            }));
+          }
+          return;
+        }
+        
+        userData = result.data;
+      } catch (networkError) {
+        console.error('❌ AuthContext: Network error fetching user profile:', networkError);
+        // For network errors, just set loading to false but don't clear session
         if (isMountedRef.current) {
           setAuthState(prev => ({
             ...prev,
-            error: `Error fetching user profile: ${userError.message}`,
+            error: 'Network error. Please check your connection.',
             isLoading: false,
           }));
         }
@@ -153,11 +188,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('❌ AuthContext: Auth refresh error:', error instanceof Error ? error.message : String(error));
       if (isMountedRef.current) {
-        setAuthState(prev => ({
-          ...prev,
-          error: 'Authentication error',
-          isLoading: false,
-        }));
+        // For unexpected errors, check if it looks like a network issue
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isNetworkError = errorMessage.includes('Load failed') || 
+                              errorMessage.includes('fetch') || 
+                              errorMessage.includes('network') ||
+                              errorMessage.includes('NetworkError');
+        
+        if (isNetworkError) {
+          // For network errors, clear auth state gracefully
+          setAuthState({
+            user: null,
+            session: null,
+            userProfile: null,
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          setAuthState(prev => ({
+            ...prev,
+            error: 'Authentication error',
+            isLoading: false,
+          }));
+        }
       }
     } finally {
       isRefreshingRef.current = false;

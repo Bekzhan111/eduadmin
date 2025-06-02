@@ -76,11 +76,26 @@ export default function Sidebar({
     setIsSigningOut(true);
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
-      clearAuth(); // Clear the auth context
+      
+      // First, clear the auth context immediately to avoid UI issues
+      clearAuth();
+      
+      // Then attempt to sign out from Supabase
+      try {
+        await supabase.auth.signOut();
+        console.log('✅ Successfully signed out from Supabase');
+      } catch (signOutError) {
+        // If sign out fails (e.g., network error), that's OK - we've already cleared local state
+        console.warn('⚠️ Failed to sign out from Supabase (but local state cleared):', signOutError);
+      }
+      
+      // Always redirect to login regardless of Supabase sign out success
       router.push('/login');
     } catch (error) {
-      console.error('Error signing out:', error instanceof Error ? error.message : String(error));
+      console.error('Error during sign out process:', error instanceof Error ? error.message : String(error));
+      // Even if there's an error, clear auth and redirect
+      clearAuth();
+      router.push('/login');
     } finally {
       setIsSigningOut(false);
     }
