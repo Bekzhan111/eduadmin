@@ -960,7 +960,7 @@ export default function BooksPage() {
                                 className="text-blue-600"
                                 onClick={() => handleSendToModeration(book.id)}
                               >
-                                Send to Moderation
+                                Отправить на модерацию
                               </Button>
                             )}
                             <Button variant="ghost" size="sm">
@@ -986,7 +986,7 @@ export default function BooksPage() {
                               className="text-green-600"
                               onClick={() => handleApproveBook(book.id)}
                             >
-                              Одобрить Книгу
+                              Одобрить
                             </Button>
                             <Button 
                               variant="ghost" 

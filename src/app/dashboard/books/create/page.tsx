@@ -91,6 +91,13 @@ export default function CreateBookPage() {
     if (!formData.category.trim()) return 'Категория обязательна'
     if (!formData.pages_count || parseInt(formData.pages_count) <= 0) return 'Количество страниц должно быть больше 0'
     if (!formData.price || parseFloat(formData.price) < 0) return 'Цена не может быть отрицательной'
+    
+    // Validate that price can be converted to integer (no decimals for now)
+    const priceValue = parseFloat(formData.price);
+    if (!Number.isInteger(priceValue)) {
+      return 'Цена должна быть целым числом (без копеек). Например: 5000, 2800';
+    }
+    
     return null
   };
 
@@ -139,7 +146,7 @@ export default function CreateBookPage() {
           category: formData.category.trim(),
           language: formData.language,
           pages_count: parseInt(formData.pages_count),
-          price: parseFloat(formData.price),
+          price: Math.round(parseFloat(formData.price)), // Convert to integer for database
           cover_image: formData.cover_image.trim() || null,
           base_url: formData.base_url,
           author_id: userProfile.id,
