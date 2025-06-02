@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SkeletonLoader } from '@/components/ui/skeleton';
-import { Search, BookOpen, Plus, Edit, Trash2, Eye, Filter } from 'lucide-react';
+import { Search, BookOpen, Plus, Edit, Trash2, Eye, Filter, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 
 type Book = {
   id: string;
@@ -142,8 +143,8 @@ export default function BooksPage() {
           query = query.eq('author_id', userProfile.id);
           break;
         case 'moderator':
-          // Moderators see only books assigned to them
-          query = query.eq('moderator_id', userProfile.id);
+          // Moderators see all books in moderation status
+          query = query.eq('status', 'Moderation');
           break;
         case 'school':
         case 'teacher':
@@ -457,6 +458,115 @@ export default function BooksPage() {
     }
   };
 
+  const handleSendToModeration = async (bookId: string) => {
+    if (!confirm('Отправить книгу на модерацию? После отправки вы не сможете редактировать книгу до завершения модерации.')) {
+      return;
+    }
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ 
+          status: 'Moderation',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookId);
+      
+      if (error) {
+        throw new Error(`Failed to send book to moderation: ${error.message}`);
+      }
+      
+      setSuccess('Книга отправлена на модерацию! Модераторы рассмотрят ее в ближайшее время.');
+      await fetchBooks();
+    } catch (error) {
+      console.error('Error sending book to moderation:', error);
+      setError(error instanceof Error ? error.message : 'Не удалось отправить книгу на модерацию');
+    }
+  };
+
+  const handleApproveBook = async (bookId: string) => {
+    if (!confirm('Одобрить эту книгу? Она будет передана суперадминистратору для активации.')) {
+      return;
+    }
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ 
+          status: 'Approved',
+          moderator_id: userProfile?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookId);
+      
+      if (error) {
+        throw new Error(`Failed to approve book: ${error.message}`);
+      }
+      
+      setSuccess('Книга одобрена! Она передана суперадминистратору для активации.');
+      await fetchBooks();
+    } catch (error) {
+      console.error('Error approving book:', error);
+      setError(error instanceof Error ? error.message : 'Не удалось одобрить книгу');
+    }
+  };
+
+  const handleRejectBook = async (bookId: string) => {
+    const reason = prompt('Укажите причину отклонения книги:');
+    if (!reason) return;
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ 
+          status: 'Draft',
+          moderator_id: userProfile?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookId);
+      
+      if (error) {
+        throw new Error(`Failed to reject book: ${error.message}`);
+      }
+      
+      setSuccess(`Книга отклонена и возвращена автору как черновик. Причина: ${reason}`);
+      await fetchBooks();
+    } catch (error) {
+      console.error('Error rejecting book:', error);
+      setError(error instanceof Error ? error.message : 'Не удалось отклонить книгу');
+    }
+  };
+
+  const handleActivateBook = async (bookId: string) => {
+    if (!confirm('Активировать эту книгу? Она станет доступна всем пользователям системы.')) {
+      return;
+    }
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ 
+          status: 'Active',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookId);
+      
+      if (error) {
+        throw new Error(`Failed to activate book: ${error.message}`);
+      }
+      
+      setSuccess('Книга активирована! Теперь она доступна всем пользователям системы.');
+      await fetchBooks();
+    } catch (error) {
+      console.error('Error activating book:', error);
+      setError(error instanceof Error ? error.message : 'Не удалось активировать книгу');
+    }
+  };
+
   const handleRemoveBookFromSchool = async (bookId: string) => {
     if (!userProfile?.school_id) {
       setError('School ID not found. Please contact administrator.');
@@ -586,54 +696,23 @@ export default function BooksPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Управление Книгами</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {userProfile?.role === 'author' && 'Управляйте своими авторскими книгами и создавайте новый контент'}
-            {userProfile?.role === 'moderator' && 'Рассматривайте и одобряйте книги для публикации'}
-            {userProfile?.role === 'super_admin' && 'Управляйте всеми образовательными книгами и их распространением'}
-            {userProfile?.role === 'school' && (viewMode === 'all' ? 'Просматривайте все доступные книги для добавления в библиотеку школы' : 'Управляйте библиотекой книг вашей школы')}
-            {(userProfile?.role === 'teacher' || userProfile?.role === 'student') && 'Просматривайте образовательные книги вашей школы'}
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          {/* School Admin View Toggle */}
-          {userProfile?.role === 'school' && (
-            <div className="flex items-center space-x-2 mr-4">
-              <Button 
-                variant={viewMode === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('all')}
-              >
-                Все Книги
-              </Button>
-              <Button 
-                variant={viewMode === 'library' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('library')}
-              >
-                Моя Библиотека
-              </Button>
-            </div>
-          )}
-          
-          <Badge variant="outline" className="text-sm">
-            <BookOpen className="h-4 w-4 mr-1" />
-            {filteredBooks.length} книг
-          </Badge>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Управление Книгами
+        </h1>
+        <div className="flex items-center space-x-4">
           {userProfile?.role === 'author' && (
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Создать Книгу
-            </Button>
+            <Link href="/dashboard/books/create">
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Создать книгу
+              </Button>
+            </Link>
           )}
-          {userProfile?.role === 'super_admin' && (
-            <Button variant="outline">
-              <Plus className="h-4 w-4 mr-2" />
-              Добавить Книгу в Систему
-            </Button>
-          )}
+          <Button variant="outline" onClick={fetchBooks}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Обновить
+          </Button>
         </div>
       </div>
 
@@ -875,8 +954,13 @@ export default function BooksPage() {
                         {userProfile?.role === 'author' && book.author_id === userProfile.id && (
                           <>
                             {isStatusMatch(book.status, 'Draft') && (
-                              <Button variant="ghost" size="sm" className="text-blue-600">
-                                Отправить на Модерацию
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-blue-600"
+                                onClick={() => handleSendToModeration(book.id)}
+                              >
+                                Send to Moderation
                               </Button>
                             )}
                             <Button variant="ghost" size="sm">
@@ -895,16 +979,36 @@ export default function BooksPage() {
 
                         {/* Moderator actions */}
                         {userProfile?.role === 'moderator' && isStatusMatch(book.status, 'Moderation') && (
-                          <Button variant="ghost" size="sm" className="text-green-600">
-                            Одобрить Книгу
-                          </Button>
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-green-600"
+                              onClick={() => handleApproveBook(book.id)}
+                            >
+                              Одобрить Книгу
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => handleRejectBook(book.id)}
+                            >
+                              Отклонить
+                            </Button>
+                          </>
                         )}
 
                         {/* Super Admin actions */}
                         {userProfile?.role === 'super_admin' && (
                           <>
                             {isStatusMatch(book.status, 'Approved') && (
-                              <Button variant="ghost" size="sm" className="text-green-600">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-green-600"
+                                onClick={() => handleActivateBook(book.id)}
+                              >
                                 Активировать Книгу
                               </Button>
                             )}
