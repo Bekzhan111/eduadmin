@@ -450,10 +450,12 @@ function DraggableCanvasElement({
         isEditing ? 'cursor-text' : 'cursor-move'
       }`}
       onClick={(e) => {
+        e.preventDefault();
         e.stopPropagation();
         onSelect(element.id);
       }}
       onDoubleClick={(e) => {
+        e.preventDefault();
         e.stopPropagation();
         onDoubleClick(element.id);
       }}
@@ -900,6 +902,7 @@ function BookEditorPage() {
   // Handle canvas click (deselect)
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
+      e.preventDefault();
       setSelectedElements([]);
       setEditingText(null);
     }
@@ -1105,7 +1108,13 @@ function BookEditorPage() {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      <div 
+        className="h-screen bg-gray-100 flex flex-col overflow-hidden"
+        onSubmit={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
+        onDrop={(e) => e.preventDefault()}
+        onDragOver={(e) => e.preventDefault()}
+      >
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-4">
