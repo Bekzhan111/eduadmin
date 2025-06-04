@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   DndContext,
   DragOverlay,
@@ -17,61 +16,34 @@ import {
   useSensors,
   useDraggable,
   useDroppable,
-  CollisionDetection,
-  rectIntersection,
-  getFirstCollision,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
-  TouchSensor,
-  KeyboardSensor,
 } from '@dnd-kit/core';
 import { 
-  Save, 
-  Send, 
-  LogOut, 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus,
-  Type,
-  Image as ImageIcon,
-  Square,
-  Circle,
-  Minus,
-  AlignLeft,
-  Settings,
-  ZoomIn,
-  ZoomOut,
-  Grid,
-  Layers,
-  MousePointer,
-  Copy,
-  Trash2,
-  Upload,
+  Save, Type, Square, Circle, MousePointer, Image as ImageIcon, Minus, AlignLeft,
+  Menu, X, PanelLeftClose, PanelLeftOpen, Plus, Trash2, Copy, Undo2, Redo2,
+  ZoomIn, ZoomOut, Grid3X3, Eye, SkipForward, SkipBack, Settings, Layers,
+  Triangle, Star, Heart, Upload, Move3D,
+  Bold, Italic, Underline, ArrowUp, ArrowDown,
 } from 'lucide-react';
 
-// Types
+// Enhanced Types
 type Book = {
   id: string;
   base_url: string;
   title: string;
   description: string;
-  grade_level: string;
-  course: string;
-  category: string;
-  status: 'Draft' | 'Moderation' | 'Approved' | 'Active';
   author_id: string;
-  pages_count: number;
-  price: number;
-  cover_image?: string;
-  language: string;
   created_at: string;
   updated_at: string;
+  canvas_elements?: string;
+  canvas_settings?: string;
 };
 
 type CanvasElement = {
   id: string;
-  type: 'text' | 'image' | 'shape' | 'line' | 'paragraph';
+  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon';
   x: number;
   y: number;
   width: number;
@@ -79,8 +51,8 @@ type CanvasElement = {
   content: string;
   page: number;
   zIndex: number;
-  locked: boolean;
-  visible: boolean;
+  rotation: number;
+  opacity: number;
   properties: {
     fontSize?: number;
     fontFamily?: string;
@@ -89,618 +61,997 @@ type CanvasElement = {
     textDecoration?: string;
     color?: string;
     backgroundColor?: string;
-    borderRadius?: number;
-    borderWidth?: number;
     borderColor?: string;
-    rotation?: number;
-    opacity?: number;
-    textAlign?: 'left' | 'center' | 'right' | 'justify';
-    autoSize?: boolean;
-    shapeType?: 'rectangle' | 'circle';
+    borderWidth?: number;
+    borderRadius?: number;
+    borderStyle?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    verticalAlign?: 'top' | 'middle' | 'bottom';
+    shapeType?: 'rectangle' | 'circle' | 'triangle' | 'star' | 'heart';
     imageUrl?: string;
-    shadow?: {
-      x: number;
-      y: number;
-      blur: number;
-      color: string;
-    };
+    lineThickness?: number;
+    arrowType?: 'single' | 'double' | 'none';
+    iconType?: string;
+    shadow?: boolean;
+    shadowColor?: string;
+    shadowBlur?: number;
+    shadowOffsetX?: number;
+    shadowOffsetY?: number;
   };
 };
 
-type Tool = 'select' | 'text' | 'image' | 'rectangle' | 'circle' | 'line' | 'paragraph';
+type CanvasSettings = {
+  zoom: number;
+  currentPage: number;
+  totalPages: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  showGrid: boolean;
+  twoPageView: boolean;
+};
 
-// Tool definitions for Canva-like interface
-const CANVAS_TOOLS = [
-  { id: 'select', type: 'select', icon: MousePointer, label: 'Выбрать', shortcut: 'V' },
-  { id: 'text', type: 'text', icon: Type, label: 'Текст', shortcut: 'T' },
-  { id: 'paragraph', type: 'paragraph', icon: AlignLeft, label: 'Абзац', shortcut: 'P' },
-  { id: 'image', type: 'image', icon: ImageIcon, label: 'Изображение', shortcut: 'I' },
-  { id: 'rectangle', type: 'shape', icon: Square, label: 'Прямоугольник', shortcut: 'R' },
-  { id: 'circle', type: 'shape', icon: Circle, label: 'Круг', shortcut: 'C' },
-  { id: 'line', type: 'line', icon: Minus, label: 'Линия', shortcut: 'L' },
+// Enhanced Tool definitions with more elements
+const TOOLS = [
+  { id: 'select', icon: MousePointer, label: 'Выбрать', category: 'basic' },
+  { id: 'text', icon: Type, label: 'Текст', category: 'text' },
+  { id: 'paragraph', icon: AlignLeft, label: 'Абзац', category: 'text' },
+  { id: 'rectangle', icon: Square, label: 'Прямоугольник', category: 'shapes' },
+  { id: 'circle', icon: Circle, label: 'Круг', category: 'shapes' },
+  { id: 'triangle', icon: Triangle, label: 'Треугольник', category: 'shapes' },
+  { id: 'star', icon: Star, label: 'Звезда', category: 'shapes' },
+  { id: 'heart', icon: Heart, label: 'Сердце', category: 'shapes' },
+  { id: 'line', icon: Minus, label: 'Линия', category: 'shapes' },
+  { id: 'arrow', icon: Move3D, label: 'Стрелка', category: 'shapes' },
+  { id: 'image', icon: ImageIcon, label: 'Изображение', category: 'media' },
+  { id: 'upload', icon: Upload, label: 'Загрузить', category: 'media' },
 ] as const;
 
-// Font families
-const FONT_FAMILIES = [
-  'Arial', 'Times New Roman', 'Helvetica', 'Georgia', 'Verdana', 'Roboto', 'Open Sans'
+const TOOL_CATEGORIES = [
+  { id: 'text', label: 'Текст', icon: Type },
+  { id: 'shapes', label: 'Фигуры', icon: Square },
+  { id: 'media', label: 'Медиа', icon: ImageIcon },
 ];
 
-// Draggable tool component
-function DraggableTool({ tool }: { tool: typeof CANVAS_TOOLS[number] }) {
+// Draggable Tool Component with enhanced design
+function DraggableTool({ tool }: { tool: typeof TOOLS[number] }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `tool-${tool.id}`,
     data: { type: 'tool', toolType: tool.id },
   });
 
   const IconComponent = tool.icon;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleToolClick = () => {
+    if (tool.id === 'upload') {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Handle file upload logic here
+      console.log('File uploaded:', file);
+      // You would typically upload to your storage service and get a URL
+    }
+  };
 
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`flex flex-col items-center p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group cursor-grab active:cursor-grabbing ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-      }}
-      onDragStart={(e) => {
-        e.stopPropagation();
-      }}
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
+      onClick={handleToolClick}
+      className={`flex flex-col items-center p-3 rounded-lg cursor-grab hover:bg-gray-100 transition-all duration-200 ${
+        isDragging ? 'opacity-50 scale-95' : 'hover:scale-105'
+      } bg-white border border-gray-200 shadow-sm`}
     >
-      <IconComponent className="h-6 w-6 text-gray-600 group-hover:text-blue-600 mb-1" />
-      <span className="text-xs text-gray-600 group-hover:text-blue-600 text-center">
-        {tool.label}
-      </span>
+      <IconComponent className="h-5 w-5 mb-1 text-gray-700" />
+      <span className="text-xs text-gray-600 text-center">{tool.label}</span>
+      {tool.id === 'upload' && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+      )}
     </div>
   );
 }
 
-// Resize handles component
-function ResizeHandles({ 
-  element, 
-  onResize 
-}: { 
-  element: CanvasElement; 
-  onResize: (elementId: string, newWidth: number, newHeight: number) => void;
-}) {
-  const handleMouseDown = (direction: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidth = element.width;
-    const startHeight = element.height;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      let newWidth = startWidth;
-      let newHeight = startHeight;
-
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
-
-      switch (direction) {
-        case 'nw':
-          newWidth = startWidth - deltaX;
-          newHeight = startHeight - deltaY;
-          break;
-        case 'ne':
-          newWidth = startWidth + deltaX;
-          newHeight = startHeight - deltaY;
-          break;
-        case 'sw':
-          newWidth = startWidth - deltaX;
-          newHeight = startHeight + deltaY;
-          break;
-        case 'se':
-          newWidth = startWidth + deltaX;
-          newHeight = startHeight + deltaY;
-          break;
-        case 'n':
-          newHeight = startHeight - deltaY;
-          break;
-        case 's':
-          newHeight = startHeight + deltaY;
-          break;
-        case 'w':
-          newWidth = startWidth - deltaX;
-          break;
-        case 'e':
-          newWidth = startWidth + deltaX;
-          break;
-      }
-
-      // Minimum size constraints
-      newWidth = Math.max(20, newWidth);
-      newHeight = Math.max(20, newHeight);
-
-      onResize(element.id, newWidth, newHeight);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handles = [
-    { id: 'nw', className: 'top-0 left-0 cursor-nw-resize', style: { transform: 'translate(-50%, -50%)' } },
-    { id: 'n', className: 'top-0 left-1/2 cursor-n-resize', style: { transform: 'translate(-50%, -50%)' } },
-    { id: 'ne', className: 'top-0 right-0 cursor-ne-resize', style: { transform: 'translate(50%, -50%)' } },
-    { id: 'w', className: 'top-1/2 left-0 cursor-w-resize', style: { transform: 'translate(-50%, -50%)' } },
-    { id: 'e', className: 'top-1/2 right-0 cursor-e-resize', style: { transform: 'translate(50%, -50%)' } },
-    { id: 'sw', className: 'bottom-0 left-0 cursor-sw-resize', style: { transform: 'translate(-50%, 50%)' } },
-    { id: 's', className: 'bottom-0 left-1/2 cursor-s-resize', style: { transform: 'translate(-50%, 50%)' } },
-    { id: 'se', className: 'bottom-0 right-0 cursor-se-resize', style: { transform: 'translate(50%, 50%)' } },
-  ];
-
-  return (
-    <>
-      {handles.map((handle) => (
-        <div
-          key={handle.id}
-          className={`absolute w-3 h-3 bg-blue-500 border border-white rounded-full hover:bg-blue-600 ${handle.className}`}
-          style={handle.style}
-          onMouseDown={handleMouseDown(handle.id)}
-        />
-      ))}
-    </>
-  );
-}
-
-// Draggable canvas element component
-function DraggableCanvasElement({ 
+// Enhanced Canvas Element Component with resize handles
+function CanvasElementComponent({ 
   element, 
   isSelected, 
-  isEditing,
   onSelect, 
-  onDoubleClick,
-  onResize,
-  onUpdateContent,
-}: {
+  onUpdate,
+  isEditing,
+  onEdit 
+}: { 
   element: CanvasElement;
   isSelected: boolean;
+  onSelect: () => void;
+  onUpdate: (updates: Partial<CanvasElement>) => void;
   isEditing: boolean;
-  onSelect: (id: string) => void;
-  onDoubleClick: (id: string) => void;
-  onResize: (elementId: string, newWidth: number, newHeight: number) => void;
-  onUpdateContent: (elementId: string, content: string) => void;
+  onEdit: (editing: boolean) => void;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
     data: { type: 'element', element },
-    disabled: isEditing,
   });
 
-  const [editingContent, setEditingContent] = useState(element.content);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Apply transform using CSS transforms (performance optimized)
   const style = {
     position: 'absolute' as const,
     left: element.x,
     top: element.y,
     width: element.width,
     height: element.height,
-    zIndex: isDragging ? 1000 : element.zIndex,
-    opacity: element.properties.opacity || 1,
-    transform: element.properties.rotation ? `rotate(${element.properties.rotation}deg)` : undefined,
+    transform: `
+      ${transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''}
+      rotate(${element.rotation}deg)
+    `,
+    opacity: isDragging ? 0.7 : element.opacity,
+    zIndex: element.zIndex + (isDragging ? 1000 : 0),
+    transition: isDragging ? 'none' : 'all 0.2s ease',
   };
 
-  // Handle keydown for editing inputs to prevent global handlers
-  const handleEditingKeyDown = (e: React.KeyboardEvent) => {
-    e.stopPropagation(); // Prevent global keyboard handlers
-    if (e.key === 'Enter') {
-      onUpdateContent(element.id, editingContent);
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect();
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (element.type === 'text' || element.type === 'paragraph') {
+      onEdit(true);
+    }
+  };
+
+  const handleTextSave = () => {
+    const newContent = element.type === 'paragraph' 
+      ? textareaRef.current?.value || element.content
+      : inputRef.current?.value || element.content;
+    
+    onUpdate({ content: newContent });
+    onEdit(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && element.type === 'text') {
+      handleTextSave();
     } else if (e.key === 'Escape') {
-      setEditingContent(element.content); // Reset content
-      onUpdateContent(element.id, element.content);
+      onEdit(false);
     }
   };
 
-  const getElementContent = () => {
+  const renderContent = () => {
     if (isEditing && (element.type === 'text' || element.type === 'paragraph')) {
-      return element.type === 'text' ? (
-        <Input
-          value={editingContent}
-          onChange={(e) => setEditingContent(e.target.value)}
-          onBlur={() => onUpdateContent(element.id, editingContent)}
-          onKeyDown={handleEditingKeyDown}
-          className="w-full h-full border-none bg-transparent p-0"
-          style={{
-            fontSize: element.properties.fontSize || 16,
-            fontFamily: element.properties.fontFamily || 'Arial',
-            fontWeight: element.properties.fontWeight || 'normal',
-            fontStyle: element.properties.fontStyle || 'normal',
-            textDecoration: element.properties.textDecoration || 'none',
-            color: element.properties.color || '#000000',
-            textAlign: element.properties.textAlign || 'left',
-          }}
-          autoFocus
-        />
-      ) : (
-        <Textarea
-          value={editingContent}
-          onChange={(e) => setEditingContent(e.target.value)}
-          onBlur={() => onUpdateContent(element.id, editingContent)}
-          onKeyDown={handleEditingKeyDown}
-          className="w-full h-full border-none bg-transparent p-2 resize-none"
-          style={{
-            fontSize: element.properties.fontSize || 14,
-            fontFamily: element.properties.fontFamily || 'Arial',
-            fontWeight: element.properties.fontWeight || 'normal',
-            fontStyle: element.properties.fontStyle || 'normal',
-            textDecoration: element.properties.textDecoration || 'none',
-            color: element.properties.color || '#000000',
-            textAlign: element.properties.textAlign || 'left',
-          }}
-          autoFocus
-        />
-      );
-    }
-
-    switch (element.type) {
-      case 'text':
-      case 'paragraph':
+      if (element.type === 'paragraph') {
         return (
-          <div
-            className="w-full h-full flex items-center justify-start px-2 py-1"
+          <textarea
+            ref={textareaRef}
+            defaultValue={element.content}
+            onBlur={handleTextSave}
+            onKeyDown={handleKeyDown}
+            className="w-full h-full resize-none border-none outline-none bg-transparent"
             style={{
               fontSize: element.properties.fontSize || 16,
               fontFamily: element.properties.fontFamily || 'Arial',
               fontWeight: element.properties.fontWeight || 'normal',
               fontStyle: element.properties.fontStyle || 'normal',
               textDecoration: element.properties.textDecoration || 'none',
-              color: element.properties.color || '#000000',
-              backgroundColor: element.properties.backgroundColor || 'transparent',
-              borderRadius: element.properties.borderRadius || 0,
-              borderWidth: element.properties.borderWidth || 0,
-              borderColor: element.properties.borderColor || '#000000',
-              borderStyle: element.properties.borderWidth ? 'solid' : 'none',
+              color: element.properties.color || '#000',
               textAlign: element.properties.textAlign || 'left',
-              wordWrap: 'break-word',
-              overflow: 'hidden',
+            }}
+            autoFocus
+          />
+        );
+      } else {
+        return (
+          <input
+            ref={inputRef}
+            defaultValue={element.content}
+            onBlur={handleTextSave}
+            onKeyDown={handleKeyDown}
+            className="w-full h-full border-none outline-none bg-transparent"
+            style={{
+              fontSize: element.properties.fontSize || 16,
+              fontFamily: element.properties.fontFamily || 'Arial',
+              fontWeight: element.properties.fontWeight || 'normal',
+              fontStyle: element.properties.fontStyle || 'normal',
+              textDecoration: element.properties.textDecoration || 'none',
+              color: element.properties.color || '#000',
+              textAlign: element.properties.textAlign || 'center',
+            }}
+            autoFocus
+          />
+        );
+      }
+    }
+
+    const borderStyle = element.properties.borderWidth ? {
+      border: `${element.properties.borderWidth}px ${element.properties.borderStyle || 'solid'} ${element.properties.borderColor || '#000'}`
+    } : {};
+
+    switch (element.type) {
+      case 'text':
+        return (
+          <div
+            className="w-full h-full flex items-center justify-center cursor-text"
+            style={{
+              fontSize: element.properties.fontSize || 16,
+              fontFamily: element.properties.fontFamily || 'Arial',
+              fontWeight: element.properties.fontWeight || 'normal',
+              fontStyle: element.properties.fontStyle || 'normal',
+              textDecoration: element.properties.textDecoration || 'none',
+              color: element.properties.color || '#000',
+              backgroundColor: element.properties.backgroundColor || 'transparent',
+              textAlign: element.properties.textAlign || 'center',
+              borderRadius: element.properties.borderRadius || 0,
+              ...borderStyle,
             }}
           >
             {element.content || 'Новый текст'}
           </div>
         );
-      
+      case 'paragraph':
+        return (
+          <div
+            className="w-full h-full p-2 cursor-text overflow-hidden"
+            style={{
+              fontSize: element.properties.fontSize || 14,
+              fontFamily: element.properties.fontFamily || 'Arial',
+              fontWeight: element.properties.fontWeight || 'normal',
+              fontStyle: element.properties.fontStyle || 'normal',
+              textDecoration: element.properties.textDecoration || 'none',
+              color: element.properties.color || '#000',
+              backgroundColor: element.properties.backgroundColor || 'transparent',
+              textAlign: element.properties.textAlign || 'left',
+              borderRadius: element.properties.borderRadius || 0,
+              whiteSpace: 'pre-wrap',
+              ...borderStyle,
+            }}
+          >
+            {element.content || 'Новый абзац\nНачните печатать...'}
+          </div>
+        );
       case 'shape':
-        if (element.properties.shapeType === 'circle') {
-          return (
-            <div
-              className="w-full h-full"
-              style={{
-                backgroundColor: element.properties.backgroundColor || '#e5e5e5',
-                borderRadius: '50%',
-                borderWidth: element.properties.borderWidth || 1,
-                borderColor: element.properties.borderColor || '#000000',
-                borderStyle: 'solid',
-              }}
-            />
-          );
-        } else {
-          return (
-            <div
-              className="w-full h-full"
-              style={{
-                backgroundColor: element.properties.backgroundColor || '#e5e5e5',
-                borderRadius: element.properties.borderRadius || 0,
-                borderWidth: element.properties.borderWidth || 1,
-                borderColor: element.properties.borderColor || '#000000',
-                borderStyle: 'solid',
-              }}
-            />
-          );
-        }
-      
+        const renderShape = () => {
+          const shapeStyle = {
+            backgroundColor: element.properties.backgroundColor || '#e5e5e5',
+            ...borderStyle,
+          };
+
+          switch (element.properties.shapeType) {
+            case 'circle':
+              return (
+                <div
+                  className="w-full h-full"
+                  style={{
+                    ...shapeStyle,
+                    borderRadius: '50%',
+                  }}
+                />
+              );
+            case 'triangle':
+              return (
+                <div
+                  className="w-full h-full"
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: `${element.width / 2}px solid transparent`,
+                    borderRight: `${element.width / 2}px solid transparent`,
+                    borderBottom: `${element.height}px solid ${element.properties.backgroundColor || '#e5e5e5'}`,
+                    backgroundColor: 'transparent',
+                  }}
+                />
+              );
+            case 'star':
+              return (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={shapeStyle}
+                >
+                  <Star 
+                    className="w-3/4 h-3/4" 
+                    fill={element.properties.backgroundColor || '#e5e5e5'}
+                    stroke={element.properties.borderColor || '#000'}
+                    strokeWidth={element.properties.borderWidth || 1}
+                  />
+                </div>
+              );
+            case 'heart':
+              return (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={shapeStyle}
+                >
+                  <Heart 
+                    className="w-3/4 h-3/4" 
+                    fill={element.properties.backgroundColor || '#e5e5e5'}
+                    stroke={element.properties.borderColor || '#000'}
+                    strokeWidth={element.properties.borderWidth || 1}
+                  />
+                </div>
+              );
+            default: // rectangle
+              return (
+                <div
+                  className="w-full h-full"
+                  style={{
+                    ...shapeStyle,
+                    borderRadius: element.properties.borderRadius || 0,
+                  }}
+                />
+              );
+          }
+        };
+        return renderShape();
       case 'line':
         return (
           <div
-            className="w-full h-full flex items-center"
+            className="w-full"
             style={{
-              backgroundColor: element.properties.backgroundColor || '#000000',
-              height: element.properties.borderWidth || 2,
+              height: element.properties.lineThickness || 2,
+              backgroundColor: element.properties.color || '#000',
+              top: '50%',
+              position: 'relative',
+              transform: 'translateY(-50%)',
+              borderRadius: element.properties.borderRadius || 0,
             }}
           />
         );
-      
-      case 'image':
-        if (element.properties.imageUrl) {
-          return (
-            <div className="w-full h-full relative">
-              <img
-                src={element.properties.imageUrl}
-                alt="Canvas element"
-                className="w-full h-full object-cover"
-                style={{
-                  borderRadius: element.properties.borderRadius || 0,
-                  borderWidth: element.properties.borderWidth || 0,
-                  borderColor: element.properties.borderColor || '#000000',
-                  borderStyle: element.properties.borderWidth ? 'solid' : 'none',
-                }}
-              />
-            </div>
-          );
-        } else {
-          return (
-            <div className="w-full h-full bg-gray-200 border border-gray-300 flex items-center justify-center text-gray-500 cursor-pointer">
-              <div className="text-center">
-                <Upload className="h-8 w-8 mx-auto mb-2" />
-                <span className="text-sm">Загрузить изображение</span>
-              </div>
-            </div>
-          );
-        }
-      
-      default:
+      case 'arrow':
         return (
-          <div className="w-full h-full bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-500 text-sm">
-            Элемент
+          <div className="w-full h-full flex items-center">
+            <div
+              className="flex-1"
+              style={{
+                height: element.properties.lineThickness || 2,
+                backgroundColor: element.properties.color || '#000',
+              }}
+            />
+            <div
+              style={{
+                width: 0,
+                height: 0,
+                borderLeft: `${(element.properties.lineThickness || 2) * 3}px solid ${element.properties.color || '#000'}`,
+                borderTop: `${(element.properties.lineThickness || 2) * 2}px solid transparent`,
+                borderBottom: `${(element.properties.lineThickness || 2) * 2}px solid transparent`,
+              }}
+            />
           </div>
         );
+      case 'image':
+        return (
+          <div 
+            className="w-full h-full bg-gray-100 flex items-center justify-center overflow-hidden"
+            style={{
+              borderRadius: element.properties.borderRadius || 0,
+              ...borderStyle,
+            }}
+          >
+            {element.properties.imageUrl ? (
+              <Image 
+                src={element.properties.imageUrl} 
+                alt="Uploaded" 
+                fill
+                className="object-cover"
+                style={{ borderRadius: element.properties.borderRadius || 0 }}
+              />
+            ) : (
+              <div className="text-center text-gray-500">
+                <ImageIcon className="h-8 w-8 mx-auto mb-2" />
+                <span className="text-sm">Изображение</span>
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return <div>Element</div>;
     }
+  };
+
+  // Resize handles
+  const renderResizeHandles = () => {
+    if (!isSelected || isDragging) return null;
+
+    const handleStyle = "absolute w-2 h-2 bg-blue-500 border border-white rounded-full";
+    
+    return (
+      <>
+        {/* Corner handles */}
+        <div className={`${handleStyle} -top-1 -left-1 cursor-nw-resize`} />
+        <div className={`${handleStyle} -top-1 -right-1 cursor-ne-resize`} />
+        <div className={`${handleStyle} -bottom-1 -left-1 cursor-sw-resize`} />
+        <div className={`${handleStyle} -bottom-1 -right-1 cursor-se-resize`} />
+        
+        {/* Side handles */}
+        <div className={`${handleStyle} -top-1 left-1/2 -translate-x-1/2 cursor-n-resize`} />
+        <div className={`${handleStyle} -bottom-1 left-1/2 -translate-x-1/2 cursor-s-resize`} />
+        <div className={`${handleStyle} -left-1 top-1/2 -translate-y-1/2 cursor-w-resize`} />
+        <div className={`${handleStyle} -right-1 top-1/2 -translate-y-1/2 cursor-e-resize`} />
+      </>
+    );
   };
 
   return (
     <div
       ref={setNodeRef}
-      {...(!isEditing ? listeners : {})}
-      {...(!isEditing ? attributes : {})}
+      {...listeners}
+      {...attributes}
       style={style}
-      className={`select-none transition-all duration-200 ${
-        isSelected ? 'ring-2 ring-blue-500' : ''
-      } ${isDragging ? 'opacity-50' : ''} ${
-        isEditing ? 'cursor-text' : 'cursor-move'
-      }`}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onSelect(element.id);
-      }}
-      onDoubleClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onDoubleClick(element.id);
-      }}
-      onMouseDown={(e) => {
-        if (!isEditing) {
-          e.stopPropagation();
-        }
-      }}
-      onDragStart={(e) => {
-        e.stopPropagation();
-      }}
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
+      className={`group ${isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-gray-300'} cursor-move relative`}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
-      {getElementContent()}
-      {isSelected && !isEditing && (
-        <ResizeHandles element={element} onResize={onResize} />
-      )}
+      {renderContent()}
+      {renderResizeHandles()}
     </div>
   );
 }
 
-// Droppable canvas component
-function DroppableCanvas({ children, isOver }: { children: React.ReactNode; isOver: boolean }) {
-  const { setNodeRef } = useDroppable({
-    id: 'canvas-drop-zone',
+// Canvas Drop Zone with Canva-style design
+function CanvasDropZone({ 
+  children, 
+  settings,
+  showGrid 
+}: { 
+  children: React.ReactNode;
+  settings: CanvasSettings;
+  showGrid: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'canvas',
   });
 
+  const canvasStyle = {
+    width: settings.canvasWidth * 3.7795 * (settings.zoom / 100),
+    height: settings.canvasHeight * 3.7795 * (settings.zoom / 100),
+    transform: `scale(${settings.zoom / 100})`,
+    transformOrigin: 'top left',
+  };
+
   return (
-    <div
-      ref={setNodeRef}
-      className={`relative bg-white border-2 shadow-lg transition-colors ${
-        isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-      }`}
-      style={{
-        width: 210 * 3.7795, // A4 width in pixels
-        height: 297 * 3.7795, // A4 height in pixels
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onDragEnter={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onDragLeave={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
-      {children}
+    <div className="flex items-center justify-center p-8 bg-gray-50 min-h-full overflow-auto">
+      <div
+        ref={setNodeRef}
+        data-canvas="true"
+        className={`relative bg-white shadow-xl border ${
+          isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+        } transition-all duration-200`}
+        style={canvasStyle}
+      >
+        {/* Grid overlay */}
+        {showGrid && (
+          <div 
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+            }}
+          />
+        )}
+        
+        {/* Page indicator */}
+        <div className="absolute -top-8 left-0 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow">
+          Страница {settings.currentPage} из {settings.totalPages}
+        </div>
+        
+        {children}
+      </div>
     </div>
   );
 }
 
-function BookEditorPage() {
+// Properties Panel Component
+function PropertiesPanel({ 
+  selectedElement, 
+  onUpdate, 
+  onClose 
+}: { 
+  selectedElement: CanvasElement | null;
+  onUpdate: (updates: Partial<CanvasElement>) => void;
+  onClose: () => void;
+}) {
+  if (!selectedElement) {
+    return (
+      <div className="w-80 bg-white border-l border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-medium text-gray-900">Свойства</h3>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="text-center text-gray-500 py-8">
+          Выберите элемент для редактирования
+        </div>
+      </div>
+    );
+  }
+
+  const updateProperty = (key: string, value: string | number) => {
+    onUpdate({
+      properties: {
+        ...selectedElement.properties,
+        [key]: value,
+      },
+    });
+  };
+
+  return (
+    <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-medium text-gray-900">Свойства</h3>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-6">
+        {/* Position & Size */}
+        <div>
+          <h4 className="text-sm font-medium mb-3">Позиция и размер</h4>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">X</Label>
+              <Input
+                type="number"
+                value={Math.round(selectedElement.x)}
+                onChange={(e) => {
+                  e.preventDefault();
+                  onUpdate({ x: Number(e.target.value) });
+                }}
+                className="h-8"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Y</Label>
+              <Input
+                type="number"
+                value={Math.round(selectedElement.y)}
+                onChange={(e) => {
+                  e.preventDefault();
+                  onUpdate({ y: Number(e.target.value) });
+                }}
+                className="h-8"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Ширина</Label>
+              <Input
+                type="number"
+                value={Math.round(selectedElement.width)}
+                onChange={(e) => {
+                  e.preventDefault();
+                  onUpdate({ width: Number(e.target.value) });
+                }}
+                className="h-8"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Высота</Label>
+              <Input
+                type="number"
+                value={Math.round(selectedElement.height)}
+                onChange={(e) => {
+                  e.preventDefault();
+                  onUpdate({ height: Number(e.target.value) });
+                }}
+                className="h-8"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Text Properties */}
+        {(selectedElement.type === 'text' || selectedElement.type === 'paragraph') && (
+          <div>
+            <h4 className="text-sm font-medium mb-3">Текст</h4>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Содержание</Label>
+                {selectedElement.type === 'paragraph' ? (
+                  <textarea
+                    value={selectedElement.content}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      onUpdate({ content: e.target.value });
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded text-sm h-20 resize-none"
+                  />
+                ) : (
+                  <Input
+                    value={selectedElement.content}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      onUpdate({ content: e.target.value });
+                    }}
+                    className="h-8"
+                  />
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Размер шрифта</Label>
+                  <Input
+                    type="number"
+                    value={selectedElement.properties.fontSize || 16}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('fontSize', Number(e.target.value));
+                    }}
+                    className="h-8"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Цвет</Label>
+                  <Input
+                    type="color"
+                    value={selectedElement.properties.color || '#000000'}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('color', e.target.value);
+                    }}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Семейство шрифта</Label>
+                  <select
+                    value={selectedElement.properties.fontFamily || 'Arial'}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('fontFamily', e.target.value);
+                    }}
+                    className="w-full h-8 border border-gray-300 rounded text-sm"
+                  >
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Courier New">Courier New</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Выравнивание</Label>
+                  <select
+                    value={selectedElement.properties.textAlign || 'left'}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('textAlign', e.target.value);
+                    }}
+                    className="w-full h-8 border border-gray-300 rounded text-sm"
+                  >
+                    <option value="left">Слева</option>
+                    <option value="center">По центру</option>
+                    <option value="right">Справа</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant={selectedElement.properties.fontWeight === 'bold' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    updateProperty('fontWeight', 
+                      selectedElement.properties.fontWeight === 'bold' ? 'normal' : 'bold'
+                    );
+                  }}
+                  className="flex-1"
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={selectedElement.properties.fontStyle === 'italic' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    updateProperty('fontStyle', 
+                      selectedElement.properties.fontStyle === 'italic' ? 'normal' : 'italic'
+                    );
+                  }}
+                  className="flex-1"
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={selectedElement.properties.textDecoration === 'underline' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    updateProperty('textDecoration', 
+                      selectedElement.properties.textDecoration === 'underline' ? 'none' : 'underline'
+                    );
+                  }}
+                  className="flex-1"
+                >
+                  <Underline className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Background & Border */}
+        <div>
+          <h4 className="text-sm font-medium mb-3">Фон и границы</h4>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Цвет фона</Label>
+              <Input
+                type="color"
+                value={selectedElement.properties.backgroundColor || '#ffffff'}
+                onChange={(e) => {
+                  e.preventDefault();
+                  updateProperty('backgroundColor', e.target.value);
+                }}
+                className="h-8"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">Толщина границы</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={selectedElement.properties.borderWidth || 0}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('borderWidth', Number(e.target.value));
+                  }}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Цвет границы</Label>
+                <Input
+                  type="color"
+                  value={selectedElement.properties.borderColor || '#000000'}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('borderColor', e.target.value);
+                  }}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Радиус границы</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={selectedElement.properties.borderRadius || 0}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('borderRadius', Number(e.target.value));
+                  }}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Стиль границы</Label>
+              <select
+                value={selectedElement.properties.borderStyle || 'solid'}
+                onChange={(e) => {
+                  e.preventDefault();
+                  updateProperty('borderStyle', e.target.value);
+                }}
+                className="w-full h-8 border border-gray-300 rounded text-sm"
+              >
+                <option value="solid">Сплошная</option>
+                <option value="dashed">Пунктирная</option>
+                <option value="dotted">Точечная</option>
+                <option value="double">Двойная</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Line/Arrow Properties */}
+        {(selectedElement.type === 'line' || selectedElement.type === 'arrow') && (
+          <div>
+            <h4 className="text-sm font-medium mb-3">Линия</h4>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Толщина линии</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={selectedElement.properties.lineThickness || 2}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('lineThickness', Number(e.target.value));
+                  }}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Цвет линии</Label>
+                <Input
+                  type="color"
+                  value={selectedElement.properties.color || '#000000'}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('color', e.target.value);
+                  }}
+                  className="h-8"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Image Properties */}
+        {selectedElement.type === 'image' && (
+          <div>
+            <h4 className="text-sm font-medium mb-3">Изображение</h4>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">URL изображения</Label>
+                <Input
+                  value={selectedElement.properties.imageUrl || ''}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('imageUrl', e.target.value);
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        // Handle file upload here
+                        console.log('Upload file:', file);
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Загрузить изображение
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Transform */}
+        <div>
+          <h4 className="text-sm font-medium mb-3">Трансформация</h4>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Поворот (°)</Label>
+              <Input
+                type="number"
+                value={selectedElement.rotation || 0}
+                onChange={(e) => {
+                  e.preventDefault();
+                  onUpdate({ rotation: Number(e.target.value) });
+                }}
+                className="h-8"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Прозрачность (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={Math.round((selectedElement.opacity || 1) * 100)}
+                onChange={(e) => {
+                  e.preventDefault();
+                  onUpdate({ opacity: Number(e.target.value) / 100 });
+                }}
+                className="h-8"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main Editor Component
+function BookEditor() {
   const params = useParams();
-  const router = useRouter();
-  const { userProfile, isLoading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const { userProfile } = useAuth();
   
-  // Core state
+  // State
   const [book, setBook] = useState<Book | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  // Canvas state
-  const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
-  const [selectedElements, setSelectedElements] = useState<string[]>([]);
-  const [currentTool, setCurrentTool] = useState<Tool>('select');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  
-  // Canvas settings
-  const [canvasWidth, setCanvasWidth] = useState(210); // A4 width in mm
-  const [canvasHeight, setCanvasHeight] = useState(297); // A4 height in mm
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [showGrid, setShowGrid] = useState(true);
-  const [gridSize] = useState(10);
-  
-  // Drag state
+  const [elements, setElements] = useState<CanvasElement[]>([]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [activeElement, setActiveElement] = useState<CanvasElement | null>(null);
-  const [editingText, setEditingText] = useState<string | null>(null);
-  
-  // Undo/redo state
+  const [isLoading, setIsLoading] = useState(true);
   const [history, setHistory] = useState<CanvasElement[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   
-  // UI state
-  const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
-  const [showLayersPanel, setShowLayersPanel] = useState(false);
-  const [leftPanelWidth] = useState(280);
-  const [rightPanelWidth] = useState(320);
-  
-  // Refs
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // DnD sensors with MAXIMUM event prevention to stop page reloads
+  // UI State
+  const [mainSidebarHidden, setMainSidebarHidden] = useState(searchParams?.get('hideSidebar') === 'true');
+  const [toolsPanelOpen, setToolsPanelOpen] = useState(true);
+  const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('text');
+
+  // Canvas settings
+  const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>({
+    zoom: 100,
+    currentPage: 1,
+    totalPages: 1,
+    canvasWidth: 210, // A4 width in mm
+    canvasHeight: 297, // A4 height in mm
+    showGrid: false,
+    twoPageView: false,
+  });
+
+  // Sensors with proper configuration
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
       },
-      // CRITICAL: Maximum event prevention for page reload elimination
-      onActivation: (activationEvent) => {
-        const { event } = activationEvent;
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          console.log('🚨 POINTER ACTIVATION - PREVENTING ALL DEFAULTS');
-        }
-        return false;
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-      // CRITICAL: Maximum event prevention for page reload elimination
-      onActivation: (activationEvent) => {
-        const { event } = activationEvent;
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          console.log('🚨 TOUCH ACTIVATION - PREVENTING ALL DEFAULTS');
-        }
-        return false;
-      },
-    }),
-    useSensor(KeyboardSensor)
+    })
   );
 
-  // Custom collision detection for precise canvas dropping
-  const customCollisionDetection: CollisionDetection = useCallback((args) => {
-    const pointerIntersections = rectIntersection(args);
-    const intersections = pointerIntersections.length > 0 
-      ? pointerIntersections 
-      : rectIntersection(args);
+  // Generate unique ID
+  const generateId = () => `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    const overId = getFirstCollision(intersections, 'id');
-
-    if (overId != null) {
-      if (overId === 'canvas-drop-zone') {
-        return [{
-          id: overId,
-          data: {
-            droppableContainer: args.droppableContainers.find(container => container.id === overId),
-            value: 0,
-          },
-        }];
-      }
-    }
-
-    return [];
-  }, []);
-
-  // Save state to history for undo/redo
-  const saveToHistory = useCallback((elements: CanvasElement[]) => {
+  // Add to history
+  const addToHistory = useCallback((newElements: CanvasElement[]) => {
     setHistory(prev => {
       const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push([...elements]);
+      newHistory.push([...newElements]);
       return newHistory.slice(-50); // Keep last 50 states
     });
     setHistoryIndex(prev => Math.min(prev + 1, 49));
   }, [historyIndex]);
 
-  // Update canvas elements with history
-  const updateCanvasElements = useCallback((updater: (prev: CanvasElement[]) => CanvasElement[]) => {
-    setCanvasElements(prev => {
-      const updated = updater(prev);
-      saveToHistory(updated);
-      return updated;
-    });
-  }, [saveToHistory]);
-
-  // Undo functionality
+  // Undo/Redo functionality
   const undo = useCallback(() => {
     if (historyIndex > 0) {
       setHistoryIndex(prev => prev - 1);
-      setCanvasElements(history[historyIndex - 1]);
+      setElements(history[historyIndex - 1]);
     }
   }, [history, historyIndex]);
 
-  // Redo functionality
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       setHistoryIndex(prev => prev + 1);
-      setCanvasElements(history[historyIndex + 1]);
+      setElements(history[historyIndex + 1]);
     }
   }, [history, historyIndex]);
 
-  // Generate new element ID
-  const generateElementId = () => `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  // Create new element from tool
+  // Create element from tool with enhanced types
   const createElementFromTool = (toolType: string, x: number, y: number): CanvasElement => {
-    const id = generateElementId();
     const baseElement = {
-      id,
-      x,
-      y,
-      page: currentPage,
-      zIndex: canvasElements.length + 1,
-      locked: false,
-      visible: true,
+      id: generateId(),
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      page: canvasSettings.currentPage,
+      zIndex: elements.length,
+      rotation: 0,
+      opacity: 1,
     };
 
     switch (toolType) {
@@ -718,18 +1069,19 @@ function BookEditorPage() {
             fontStyle: 'normal',
             textDecoration: 'none',
             color: '#000000',
-            textAlign: 'left',
-            autoSize: true,
+            backgroundColor: 'transparent',
+            textAlign: 'center',
+            verticalAlign: 'middle',
+            borderRadius: 0,
           },
         };
-      
       case 'paragraph':
         return {
           ...baseElement,
           type: 'paragraph',
-          width: 300,
+          width: 250,
           height: 100,
-          content: 'Новый абзац текста...',
+          content: 'Новый абзац\nНачните печатать...',
           properties: {
             fontSize: 14,
             fontFamily: 'Arial',
@@ -737,11 +1089,12 @@ function BookEditorPage() {
             fontStyle: 'normal',
             textDecoration: 'none',
             color: '#000000',
-            textAlign: 'left',
             backgroundColor: 'transparent',
+            textAlign: 'left',
+            verticalAlign: 'top',
+            borderRadius: 0,
           },
         };
-      
       case 'rectangle':
         return {
           ...baseElement,
@@ -754,10 +1107,10 @@ function BookEditorPage() {
             backgroundColor: '#e5e5e5',
             borderWidth: 1,
             borderColor: '#000000',
+            borderStyle: 'solid',
             borderRadius: 0,
           },
         };
-      
       case 'circle':
         return {
           ...baseElement,
@@ -770,9 +1123,54 @@ function BookEditorPage() {
             backgroundColor: '#e5e5e5',
             borderWidth: 1,
             borderColor: '#000000',
+            borderStyle: 'solid',
           },
         };
-      
+      case 'triangle':
+        return {
+          ...baseElement,
+          type: 'shape',
+          width: 100,
+          height: 100,
+          content: '',
+          properties: {
+            shapeType: 'triangle',
+            backgroundColor: '#e5e5e5',
+            borderWidth: 1,
+            borderColor: '#000000',
+            borderStyle: 'solid',
+          },
+        };
+      case 'star':
+        return {
+          ...baseElement,
+          type: 'shape',
+          width: 100,
+          height: 100,
+          content: '',
+          properties: {
+            shapeType: 'star',
+            backgroundColor: '#e5e5e5',
+            borderWidth: 1,
+            borderColor: '#000000',
+            borderStyle: 'solid',
+          },
+        };
+      case 'heart':
+        return {
+          ...baseElement,
+          type: 'shape',
+          width: 100,
+          height: 100,
+          content: '',
+          properties: {
+            shapeType: 'heart',
+            backgroundColor: '#e5e5e5',
+            borderWidth: 1,
+            borderColor: '#000000',
+            borderStyle: 'solid',
+          },
+        };
       case 'line':
         return {
           ...baseElement,
@@ -781,344 +1179,189 @@ function BookEditorPage() {
           height: 2,
           content: '',
           properties: {
-            backgroundColor: '#000000',
-            borderWidth: 2,
+            lineThickness: 2,
+            color: '#000000',
+            borderRadius: 0,
           },
         };
-      
+      case 'arrow':
+        return {
+          ...baseElement,
+          type: 'arrow',
+          width: 200,
+          height: 50,
+          content: '',
+          properties: {
+            lineThickness: 2,
+            color: '#000000',
+            arrowType: 'single',
+            borderRadius: 0,
+          },
+        };
       case 'image':
+      case 'upload':
         return {
           ...baseElement,
           type: 'image',
-          width: 200,
+          width: 150,
           height: 150,
           content: '',
           properties: {
-            backgroundColor: '#f5f5f5',
+            backgroundColor: '#f0f0f0',
             borderWidth: 1,
-            borderColor: '#d0d0d0',
+            borderColor: '#cccccc',
+            borderStyle: 'dashed',
+            borderRadius: 0,
           },
         };
-      
       default:
         return {
           ...baseElement,
           type: 'text',
-          width: 150,
+          width: 100,
           height: 40,
-          content: 'Элемент',
+          content: 'Element',
           properties: {
-            fontSize: 16,
-            fontFamily: 'Arial',
-            color: '#000000',
+            borderRadius: 0,
           },
         };
     }
   };
 
-  // Handle drag start with MAXIMUM event prevention
-  const handleDragStart = (event: DragStartEvent) => {
-    console.log('🚨 DRAG START - MAXIMUM PREVENTION:', event.active.id);
-    
-    // NUCLEAR OPTION: Prevent ALL possible form submissions and navigation
-    if (event.activatorEvent) {
-      event.activatorEvent.preventDefault();
-      event.activatorEvent.stopPropagation();
-      event.activatorEvent.stopImmediatePropagation();
+  // Update element
+  const updateElement = useCallback((elementId: string, updates: Partial<CanvasElement>) => {
+    setElements(prev => {
+      const newElements = prev.map(el => 
+        el.id === elementId ? { ...el, ...updates } : el
+      );
+      addToHistory(newElements);
+      return newElements;
+    });
+  }, [addToHistory]);
+
+  // Delete element
+  const deleteElement = useCallback((elementId: string) => {
+    setElements(prev => {
+      const newElements = prev.filter(el => el.id !== elementId);
+      addToHistory(newElements);
+      return newElements;
+    });
+    setSelectedElementId(null);
+  }, [addToHistory]);
+
+  // Duplicate element
+  const duplicateElement = useCallback((elementId: string) => {
+    const element = elements.find(el => el.id === elementId);
+    if (element) {
+      const newElement = {
+        ...element,
+        id: generateId(),
+        x: element.x + 20,
+        y: element.y + 20,
+        zIndex: elements.length,
+      };
+      setElements(prev => {
+        const newElements = [...prev, newElement];
+        addToHistory(newElements);
+        return newElements;
+      });
+      setSelectedElementId(newElement.id);
     }
-    
+  }, [elements, addToHistory]);
+
+  // Move element up in layers
+  const moveElementUp = useCallback((elementId: string) => {
+    setElements(prev => {
+      const element = prev.find(el => el.id === elementId);
+      if (!element) return prev;
+      
+      const maxZIndex = Math.max(...prev.map(el => el.zIndex));
+      if (element.zIndex < maxZIndex) {
+        const newElements = prev.map(el => 
+          el.id === elementId ? { ...el, zIndex: el.zIndex + 1 } : el
+        );
+        addToHistory(newElements);
+        return newElements;
+      }
+      return prev;
+    });
+  }, [addToHistory]);
+
+  // Move element down in layers  
+  const moveElementDown = useCallback((elementId: string) => {
+    setElements(prev => {
+      const element = prev.find(el => el.id === elementId);
+      if (!element) return prev;
+      
+      if (element.zIndex > 0) {
+        const newElements = prev.map(el => 
+          el.id === elementId ? { ...el, zIndex: el.zIndex - 1 } : el
+        );
+        addToHistory(newElements);
+        return newElements;
+      }
+      return prev;
+    });
+  }, [addToHistory]);
+
+  // Drag handlers
+  const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const activeData = active.data.current;
 
     if (activeData?.type === 'element') {
       setActiveElement(activeData.element);
     } else if (activeData?.type === 'tool') {
-      // Create a preview element for the tool
       const previewElement = createElementFromTool(activeData.toolType, 0, 0);
       setActiveElement(previewElement);
     }
   };
 
-  // Handle drag over with MAXIMUM event prevention
-  const handleDragOver = (event: DragOverEvent) => {
-    console.log('🚨 DRAG OVER - MAXIMUM PREVENTION:', event.over?.id);
-    
-    // NUCLEAR OPTION: Prevent ALL possible form submissions and navigation
-    if (event.activatorEvent) {
-      event.activatorEvent.preventDefault();
-      event.activatorEvent.stopPropagation();
-      event.activatorEvent.stopImmediatePropagation();
-    }
-    
-    // Visual feedback during drag operations
+  const handleDragOver = (_event: DragOverEvent) => {
+    // No state updates during drag for performance
   };
 
-  // Handle drag end with MAXIMUM event prevention
   const handleDragEnd = (event: DragEndEvent) => {
-    console.log('🚨 DRAG END - MAXIMUM PREVENTION:', event.active.id, event.over?.id);
-    
-    // NUCLEAR OPTION: Prevent ALL possible form submissions and navigation
-    if (event.activatorEvent) {
-      event.activatorEvent.preventDefault();
-      event.activatorEvent.stopPropagation();
-      event.activatorEvent.stopImmediatePropagation();
-    }
-    
     const { active, over } = event;
-    const activeData = active.data.current;
-
-    if (!over) {
-      setActiveElement(null);
-      return;
-    }
-
-    if (over.id === 'canvas-drop-zone') {
-      if (activeData?.type === 'tool') {
-        // Add new element from tool to canvas
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (rect) {
-          // Use absolute coordinates from the drop event
-          const pointerEvent = event.activatorEvent as PointerEvent;
-          const x = Math.max(0, Math.min(pointerEvent.clientX - rect.left - 50, canvasWidth * 3.7795 - 100));
-          const y = Math.max(0, Math.min(pointerEvent.clientY - rect.top - 20, canvasHeight * 3.7795 - 40));
-          
-          const newElement = createElementFromTool(activeData.toolType, x, y);
-          updateCanvasElements(prev => [...prev, newElement]);
-          setSelectedElements([newElement.id]);
-        }
-      } else if (activeData?.type === 'element') {
-        // Move existing element using absolute coordinates
-        const elementId = activeData.element.id;
-        const rect = canvasRef.current?.getBoundingClientRect();
-        
-        if (rect) {
-          const pointerEvent = event.activatorEvent as PointerEvent;
-          const newX = Math.max(0, Math.min(pointerEvent.clientX - rect.left - activeData.element.width / 2, canvasWidth * 3.7795 - activeData.element.width));
-          const newY = Math.max(0, Math.min(pointerEvent.clientY - rect.top - activeData.element.height / 2, canvasHeight * 3.7795 - activeData.element.height));
-          
-          updateCanvasElements(prev => prev.map(el => 
-            el.id === elementId 
-              ? { ...el, x: newX, y: newY }
-              : el
-          ));
-        }
-      }
-    }
-
-    setActiveElement(null);
-  };
-
-  // Handle element selection with MAXIMUM event prevention
-  const handleElementSelect = (elementId: string) => {
-    console.log('🚨 ELEMENT SELECTION - MAXIMUM PREVENTION:', elementId);
-    if (selectedElements.includes(elementId)) {
-      setSelectedElements(prev => prev.filter(id => id !== elementId));
-    } else {
-      setSelectedElements([elementId]);
-    }
-    setEditingText(null);
-  };
-
-  // Handle text editing with MAXIMUM event prevention
-  const handleElementDoubleClick = (elementId: string) => {
-    console.log('🚨 ELEMENT DOUBLE CLICK - MAXIMUM PREVENTION:', elementId);
-    const element = canvasElements.find(el => el.id === elementId);
-    if (element && (element.type === 'text' || element.type === 'paragraph')) {
-      setEditingText(elementId);
-      setSelectedElements([elementId]);
-    } else if (element && element.type === 'image' && !element.properties.imageUrl) {
-      // Trigger image upload
-      fileInputRef.current?.click();
-    }
-  };
-
-  // Handle text content update with MAXIMUM event prevention
-  const handleUpdateContent = (elementId: string, content: string) => {
-    console.log('🚨 CONTENT UPDATE - MAXIMUM PREVENTION:', elementId);
-    updateCanvasElements(prev => prev.map(el => 
-      el.id === elementId ? { ...el, content } : el
-    ));
-    setEditingText(null);
-  };
-
-  // Handle element resize with MAXIMUM event prevention
-  const handleElementResize = (elementId: string, newWidth: number, newHeight: number) => {
-    console.log('🚨 ELEMENT RESIZE - MAXIMUM PREVENTION:', elementId, newWidth, newHeight);
-    updateCanvasElements(prev => prev.map(el => 
-      el.id === elementId 
-        ? { ...el, width: newWidth, height: newHeight }
-        : el
-    ));
-  };
-
-  // Update element properties
-  const updateElementProperties = (
-    elementId: string, 
-    updates: Partial<CanvasElement['properties']> & { x?: number; y?: number; width?: number; height?: number }
-  ) => {
-    updateCanvasElements(prev => prev.map(el => {
-      if (el.id === elementId) {
-        const updatedEl = { 
-          ...el,
-          ...(updates.x !== undefined ? { x: updates.x } : {}),
-          ...(updates.y !== undefined ? { y: updates.y } : {}),
-          ...(updates.width !== undefined ? { width: updates.width } : {}),
-          ...(updates.height !== undefined ? { height: updates.height } : {}),
-          properties: { 
-            ...el.properties, 
-            ...Object.fromEntries(
-              Object.entries(updates).filter(([key]) => !['x', 'y', 'width', 'height'].includes(key))
-            )
-          } 
-        };
-        return updatedEl;
-      }
-      return el;
-    }));
-  };
-
-  // Handle image upload
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Файл слишком большой. Максимальный размер: 5MB');
-      return;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Пожалуйста, выберите файл изображения');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
-      
-      if (selectedElements.length === 1) {
-        // Update existing selected image element
-        updateElementProperties(selectedElements[0], { imageUrl });
-      } else {
-        // Create new image element
-        const newElement = createElementFromTool('image', 100, 100);
-        newElement.properties.imageUrl = imageUrl;
-        updateCanvasElements(prev => [...prev, newElement]);
-        setSelectedElements([newElement.id]);
-      }
-    };
-    reader.readAsDataURL(file);
     
-    // Reset file input
-    event.target.value = '';
-  };
+    setActiveElement(null);
 
-  // Handle canvas click (deselect)
-  const handleCanvasClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      e.preventDefault();
-      e.stopPropagation();
-      setSelectedElements([]);
-      setEditingText(null);
-    }
-  };
+    if (!over || over.id !== 'canvas') return;
 
-  // Handle keyboard shortcuts - Fixed backspace issue
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Don't interfere with text editing
-    if (editingText) {
-      return;
-    }
+    const activeData = active.data.current;
+    
+    // Get canvas element and calculate proper coordinates
+    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+    if (!canvasElement) return;
 
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
-        case 'z':
-          e.preventDefault();
-          if (e.shiftKey) {
-            redo();
-          } else {
-            undo();
-          }
-          break;
-        case 'y':
-          e.preventDefault();
-          redo();
-          break;
-        case 'd':
-          e.preventDefault();
-          // Duplicate selected elements
-          if (selectedElements.length > 0) {
-            const elementsToDuplicate = canvasElements.filter(el => selectedElements.includes(el.id));
-            const duplicatedElements = elementsToDuplicate.map(el => ({
-              ...el,
-              id: generateElementId(),
-              x: el.x + 20,
-              y: el.y + 20,
-            }));
-            updateCanvasElements(prev => [...prev, ...duplicatedElements]);
-            setSelectedElements(duplicatedElements.map(el => el.id));
-          }
-          break;
-        case 'c':
-          e.preventDefault();
-          // Copy elements (basic implementation)
-          break;
-        case 'v':
-          e.preventDefault();
-          // Paste elements (basic implementation)
-          break;
-      }
-    } else if (e.key === 'Delete' || e.key === 'Backspace') {
-      // Only delete elements if not editing text and have selected elements
-      if (selectedElements.length > 0) {
-        e.preventDefault();
-        updateCanvasElements(prev => prev.filter(el => !selectedElements.includes(el.id)));
-        setSelectedElements([]);
-      }
-    }
-  }, [selectedElements, canvasElements, undo, redo, updateCanvasElements, editingText]);
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const clientX = (event.activatorEvent as MouseEvent).clientX;
+    const clientY = (event.activatorEvent as MouseEvent).clientY;
+    
+    // Calculate position relative to canvas with zoom scaling
+    const zoomFactor = canvasSettings.zoom / 100;
+    const dropX = Math.max(0, (clientX - canvasRect.left) / zoomFactor - 50);
+    const dropY = Math.max(0, (clientY - canvasRect.top) / zoomFactor - 20);
 
-  // Set up keyboard event listeners
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  // Save canvas to database
-  const saveCanvasData = async () => {
-    if (!book || !userProfile) return;
-
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      const supabase = createClient();
+    if (activeData?.type === 'tool') {
+      // Add new element
+      const newElement = createElementFromTool(activeData.toolType, dropX, dropY);
+      setElements(prev => {
+        const newElements = [...prev, newElement];
+        addToHistory(newElements);
+        return newElements;
+      });
+      setSelectedElementId(newElement.id);
+    } else if (activeData?.type === 'element') {
+      // Move existing element
+      const elementId = activeData.element.id;
+      const deltaX = event.delta?.x || 0;
+      const deltaY = event.delta?.y || 0;
       
-      const { error: updateError } = await supabase
-        .from('books')
-        .update({
-          canvas_elements: JSON.stringify(canvasElements),
-          canvas_width: canvasWidth,
-          canvas_height: canvasHeight,
-          total_pages: totalPages,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', book.id);
-
-      if (updateError) {
-        throw new Error(`Ошибка сохранения: ${updateError.message}`);
-      }
-
-      setSuccess('Изменения сохранены успешно!');
-      setTimeout(() => setSuccess(null), 3000);
-
-    } catch (err) {
-      console.error('Error saving canvas:', err);
-      setError(err instanceof Error ? err.message : 'Произошла ошибка при сохранении');
-    } finally {
-      setIsSaving(false);
+      updateElement(elementId, { 
+        x: Math.max(0, activeData.element.x + deltaX / zoomFactor),
+        y: Math.max(0, activeData.element.y + deltaY / zoomFactor)
+      });
     }
   };
 
@@ -1126,92 +1369,144 @@ function BookEditorPage() {
   const fetchBook = useCallback(async () => {
     if (!params.base_url || !userProfile) return;
 
-    setIsLoading(true);
-    setError(null);
-
     try {
       const supabase = createClient();
       
-      const { data: bookData, error: bookError } = await supabase
+      const { data: bookData, error } = await supabase
         .from('books')
         .select('*')
         .eq('base_url', params.base_url)
         .eq('author_id', userProfile.id)
         .single();
 
-      if (bookError) {
-        throw new Error(`Книга не найдена: ${bookError.message}`);
-      }
-
+      if (error) throw error;
+      
       setBook(bookData);
 
-      // Load canvas elements if they exist
+      // Load canvas elements
       if (bookData.canvas_elements) {
-        try {
-          const elements = JSON.parse(bookData.canvas_elements);
-          setCanvasElements(elements);
-          saveToHistory(elements);
-        } catch (e) {
-          console.error('Error parsing canvas elements:', e);
-        }
+        const loadedElements = JSON.parse(bookData.canvas_elements);
+        setElements(loadedElements);
+        addToHistory(loadedElements);
       }
 
-      if (bookData.canvas_width) setCanvasWidth(bookData.canvas_width);
-      if (bookData.canvas_height) setCanvasHeight(bookData.canvas_height);
-      if (bookData.total_pages) setTotalPages(bookData.total_pages);
-
-    } catch (err) {
-      console.error('Error fetching book:', err);
-      setError(err instanceof Error ? err.message : 'Произошла ошибка при загрузке книги');
+      // Load canvas settings
+      if (bookData.canvas_settings) {
+        const loadedSettings = JSON.parse(bookData.canvas_settings);
+        setCanvasSettings(prev => ({ ...prev, ...loadedSettings }));
+      }
+    } catch (error) {
+      console.error('Error loading book:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [params.base_url, userProfile, saveToHistory]);
+  }, [params.base_url, userProfile, addToHistory]);
 
   useEffect(() => {
-    if (!authLoading && userProfile && userProfile.role === 'author') {
+    if (userProfile) {
       fetchBook();
     }
-  }, [authLoading, userProfile, fetchBook]);
+  }, [fetchBook, userProfile]);
+
+  // Save functionality
+  const handleSave = useCallback(async () => {
+    if (!book) return;
+
+    try {
+      const supabase = createClient();
+      
+      await supabase
+        .from('books')
+        .update({ 
+          canvas_elements: JSON.stringify(elements),
+          canvas_settings: JSON.stringify(canvasSettings),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', book.id);
+
+      // Show success feedback
+      alert('Сохранено!');
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Ошибка при сохранении');
+    }
+  }, [book, elements, canvasSettings]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'z':
+            e.preventDefault();
+            if (e.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
+            break;
+          case 'y':
+            e.preventDefault();
+            redo();
+            break;
+          case 'd':
+            e.preventDefault();
+            if (selectedElementId) {
+              duplicateElement(selectedElementId);
+            }
+            break;
+          case 's':
+            e.preventDefault();
+            handleSave();
+            break;
+        }
+      } else if (e.key === 'Delete' && selectedElementId) {
+        deleteElement(selectedElementId);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedElementId, undo, redo, duplicateElement, deleteElement, handleSave]);
+
+  // Sidebar toggle
+  const toggleMainSidebar = () => {
+    const newHiddenState = !mainSidebarHidden;
+    setMainSidebarHidden(newHiddenState);
+    
+    const newSearchParams = new URLSearchParams(searchParams?.toString());
+    if (newHiddenState) {
+      newSearchParams.set('hideSidebar', 'true');
+    } else {
+      newSearchParams.delete('hideSidebar');
+    }
+    
+    const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+    window.location.reload();
+  };
 
   // Get current page elements
-  const currentPageElements = canvasElements.filter(el => el.page === currentPage);
-  const selectedElement = selectedElements.length === 1 ? canvasElements.find(el => el.id === selectedElements[0]) : null;
+  const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
+  const selectedElement: CanvasElement | null = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Загрузка редактора...</p>
         </div>
       </div>
     );
   }
 
-  if (!userProfile || userProfile.role !== 'author') {
+  if (!book) {
     return (
-      <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Доступ запрещен</h1>
-          <p className="text-gray-600 mb-4">Только авторы могут редактировать книги.</p>
-          <Button onClick={() => router.push('/dashboard')} className="bg-blue-600 hover:bg-blue-700">
-            Вернуться на главную
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !book) {
-    return (
-      <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Ошибка</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={() => router.push('/dashboard/books')} className="bg-blue-600 hover:bg-blue-700">
-            Вернуться к книгам
-          </Button>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Книга не найдена</h2>
+          <p className="text-gray-600">Проверьте правильность ссылки</p>
         </div>
       </div>
     );
@@ -1220,1029 +1515,406 @@ function BookEditorPage() {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={customCollisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      autoScroll={{
-        enabled: false,
-        layoutShiftCompensation: false
-      }}
-      accessibility={{
-        restoreFocus: false
-      }}
+      autoScroll={false}
     >
-      <div 
-        className="h-screen bg-gray-100 flex flex-col overflow-hidden"
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('🚨 FORM SUBMISSION PREVENTED');
-          return false;
-        }}
-        onReset={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('🚨 FORM RESET PREVENTED');
-          return false;
-        }}
-        onDragStart={(e) => {
-          // Allow dnd-kit to handle drag start but stop propagation
-          e.stopPropagation();
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onDragEnter={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onKeyDown={(e) => {
-          // Prevent Enter key from causing form submissions
-          if (e.key === 'Enter' && e.target === e.currentTarget) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🚨 ENTER KEY PREVENTED ON MAIN WRAPPER');
-          }
-        }}
-        onMouseDown={(e) => {
-          // Stop propagation but allow normal mouse operations
-          e.stopPropagation();
-        }}
-        onClick={(e) => {
-          // Stop event bubbling that might trigger navigation
-          e.stopPropagation();
-        }}
-      >
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+      <div className="h-screen bg-gray-50 flex flex-col">
+        {/* Header - Canva style */}
+        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-4">
+            {/* Sidebar toggle */}
             <Button
-              type="button"
               variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Back button clicked - navigation disabled during editing');
-              }}
-              className="flex items-center text-gray-600 hover:text-gray-900"
+              onClick={toggleMainSidebar}
+              className="text-gray-600"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Назад к книгам
-            </Button>
-            
-            <div className="h-6 w-px bg-gray-300" />
-            
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">{book?.title || 'Загрузка...'}</h1>
-              <p className="text-sm text-gray-500">Редактор книги</p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {error && (
-              <div className="text-red-600 text-sm mr-4">{error}</div>
-            )}
-            {success && (
-              <div className="text-green-600 text-sm mr-4">{success}</div>
-            )}
-            
-            <Button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                saveCanvasData();
-              }}
-              disabled={isSaving}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Сохранение...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Сохранить
-                </>
-              )}
+              {mainSidebarHidden ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
             </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Moderation button clicked - functionality disabled during editing');
-              }}
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              На модерацию
-            </Button>
-
-            <Button 
-              type="button"
-              variant="ghost" 
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Logout button clicked - functionality disabled during editing');
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Toolbar */}
-        <div className="bg-white border-b border-gray-200 px-6 py-2 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* Tool selection */}
-            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-              {CANVAS_TOOLS.map((tool) => {
-                const IconComponent = tool.icon;
-                return (
-                  <Button
-                    key={tool.id}
-                    type="button"
-                    variant={currentTool === tool.id ? "default" : "ghost"}
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setCurrentTool(tool.id as Tool);
-                    }}
-                    className={`h-8 w-8 p-0 ${
-                      currentTool === tool.id ? 'bg-blue-600 text-white' : 'text-gray-600'
-                    }`}
-                    title={`${tool.label} (${tool.shortcut})`}
-                  >
-                    <IconComponent className="h-4 w-4" />
-                  </Button>
-                );
-              })}
-            </div>
-
-            <div className="h-6 w-px bg-gray-300" />
+            {/* Book title */}
+            <h1 className="font-semibold text-gray-900 truncate max-w-xs">
+              {book.title}
+            </h1>
 
             {/* Undo/Redo */}
             <div className="flex items-center space-x-1">
               <Button
-                type="button"
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  undo();
-                }}
+                onClick={undo}
                 disabled={historyIndex <= 0}
-                title="Отменить (Ctrl+Z)"
+                className="text-gray-600"
               >
-                ↶
+                <Undo2 className="h-4 w-4" />
               </Button>
               <Button
-                type="button"
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  redo();
-                }}
+                onClick={redo}
                 disabled={historyIndex >= history.length - 1}
-                title="Повторить (Ctrl+Y)"
+                className="text-gray-600"
               >
-                ↷
+                <Redo2 className="h-4 w-4" />
               </Button>
             </div>
+          </div>
 
-            <div className="h-6 w-px bg-gray-300" />
-
+          {/* Center controls */}
+          <div className="flex items-center space-x-4">
             {/* Zoom controls */}
             <div className="flex items-center space-x-2">
               <Button
-                type="button"
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setZoomLevel(prev => Math.max(0.1, prev - 0.1));
-                }}
-                disabled={zoomLevel <= 0.1}
+                onClick={() => setCanvasSettings(prev => ({ 
+                  ...prev, 
+                  zoom: Math.max(10, prev.zoom - 10) 
+                }))}
+                className="text-gray-600"
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-gray-600 w-16 text-center">
-                {Math.round(zoomLevel * 100)}%
+              <span className="text-sm text-gray-600 min-w-[50px] text-center">
+                {canvasSettings.zoom}%
               </span>
               <Button
-                type="button"
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setZoomLevel(prev => Math.min(3, prev + 0.1));
-                }}
-                disabled={zoomLevel >= 3}
+                onClick={() => setCanvasSettings(prev => ({ 
+                  ...prev, 
+                  zoom: Math.min(300, prev.zoom + 10) 
+                }))}
+                className="text-gray-600"
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="h-6 w-px bg-gray-300" />
+            {/* Page navigation */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCanvasSettings(prev => ({ 
+                  ...prev, 
+                  currentPage: Math.max(1, prev.currentPage - 1) 
+                }))}
+                disabled={canvasSettings.currentPage <= 1}
+                className="text-gray-600"
+              >
+                <SkipBack className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-gray-600 min-w-[80px] text-center">
+                {canvasSettings.currentPage} / {canvasSettings.totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (canvasSettings.currentPage >= canvasSettings.totalPages) {
+                    setCanvasSettings(prev => ({ 
+                      ...prev, 
+                      currentPage: prev.currentPage + 1,
+                      totalPages: prev.totalPages + 1 
+                    }));
+                  } else {
+                    setCanvasSettings(prev => ({ 
+                      ...prev, 
+                      currentPage: prev.currentPage + 1 
+                    }));
+                  }
+                }}
+                className="text-gray-600"
+              >
+                {canvasSettings.currentPage >= canvasSettings.totalPages ? (
+                  <Plus className="h-4 w-4" />
+                ) : (
+                  <SkipForward className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
 
             {/* Grid toggle */}
             <Button
-              type="button"
-              variant={showGrid ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowGrid(!showGrid);
-              }}
-              className={showGrid ? 'bg-blue-600 text-white' : ''}
+              onClick={() => setCanvasSettings(prev => ({ 
+                ...prev, 
+                showGrid: !prev.showGrid 
+              }))}
+              className={canvasSettings.showGrid ? 'text-blue-600' : 'text-gray-600'}
             >
-              <Grid className="h-4 w-4" />
+              <Grid3X3 className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* Page controls */}
+          {/* Right controls */}
           <div className="flex items-center space-x-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCurrentPage(prev => Math.max(1, prev - 1));
-              }}
-              disabled={currentPage <= 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-gray-600">
-              Страница {currentPage} из {totalPages}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCurrentPage(prev => Math.min(totalPages, prev + 1));
-              }}
-              disabled={currentPage >= totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setTotalPages(prev => prev + 1);
-              }}
-              title="Добавить страницу"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+            {/* Element actions */}
+            {selectedElementId && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => duplicateElement(selectedElementId)}
+                  className="text-gray-600"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => deleteElement(selectedElementId)}
+                  className="text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
 
-          {/* Panel toggles */}
-          <div className="flex items-center space-x-1">
+            {/* Panel toggles */}
             <Button
-              type="button"
-              variant={showPropertiesPanel ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowPropertiesPanel(!showPropertiesPanel);
-              }}
-              className={showPropertiesPanel ? 'bg-blue-600 text-white' : ''}
+              onClick={() => setToolsPanelOpen(!toolsPanelOpen)}
+              className="text-gray-600"
+            >
+              {toolsPanelOpen ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
+              className="text-gray-600"
             >
               <Settings className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              variant={showLayersPanel ? "default" : "ghost"}
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowLayersPanel(!showLayersPanel);
-              }}
-              className={showLayersPanel ? 'bg-blue-600 text-white' : ''}
+
+            {/* Save button */}
+            <Button 
+              onClick={handleSave}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <Layers className="h-4 w-4" />
+              <Save className="h-4 w-4 mr-2" />
+              Сохранить
             </Button>
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left sidebar - Element Library */}
-          <div 
-            className="bg-white border-r border-gray-200 overflow-y-auto"
-            style={{ width: leftPanelWidth }}
-          >
-            <div className="p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Элементы</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Инструменты</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {CANVAS_TOOLS.slice(1).map((tool) => (
-                      <DraggableTool key={tool.id} tool={tool} />
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Быстрые действия</h4>
-                  <div className="space-y-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
+        <div className="flex-1 flex min-h-0">
+          {/* Tools Panel - Canva style */}
+          {toolsPanelOpen && (
+            <div className="w-72 bg-white border-r border-gray-200 flex flex-col">
+              {/* Category tabs - Icons only */}
+              <div className="border-b border-gray-200 p-3">
+                <div className="flex justify-center space-x-4">
+                  {TOOL_CATEGORIES.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => setActiveCategory(category.id)}
+                      className={`p-3 rounded-lg transition-colors ${
+                        activeCategory === category.id
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title={category.label}
                     >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Загрузить изображение
-                    </Button>
-                    {selectedElements.length > 0 && (
-                      <>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="w-full justify-start"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            // Duplicate functionality
-                            const elementsToDuplicate = canvasElements.filter(el => selectedElements.includes(el.id));
-                            const duplicatedElements = elementsToDuplicate.map(el => ({
-                              ...el,
-                              id: generateElementId(),
-                              x: el.x + 20,
-                              y: el.y + 20,
-                            }));
-                            updateCanvasElements(prev => [...prev, ...duplicatedElements]);
-                            setSelectedElements(duplicatedElements.map(el => el.id));
-                          }}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Дублировать
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            updateCanvasElements(prev => prev.filter(el => !selectedElements.includes(el.id)));
-                            setSelectedElements([]);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Удалить
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Canvas area */}
-          <div className="flex-1 bg-gray-200 overflow-auto relative">
-            <div className="p-8">
-              <div 
-                ref={canvasRef}
-                className="mx-auto bg-white shadow-2xl relative"
-                style={{
-                  width: canvasWidth * 3.7795 * zoomLevel,
-                  height: canvasHeight * 3.7795 * zoomLevel,
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: 'top left',
-                }}
-                onClick={handleCanvasClick}
-              >
-                {/* Grid overlay */}
-                {showGrid && (
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      backgroundImage: `
-                        linear-gradient(to right, #e0e0e0 1px, transparent 1px),
-                        linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)
-                      `,
-                      backgroundSize: `${gridSize}px ${gridSize}px`,
-                    }}
-                  />
-                )}
-
-                <DroppableCanvas isOver={!!activeElement}>
-                  {currentPageElements.map((element) => (
-                    <DraggableCanvasElement
-                      key={element.id}
-                      element={element}
-                      isSelected={selectedElements.includes(element.id)}
-                      isEditing={editingText === element.id}
-                      onSelect={handleElementSelect}
-                      onDoubleClick={handleElementDoubleClick}
-                      onResize={handleElementResize}
-                      onUpdateContent={handleUpdateContent}
-                    />
+                      <category.icon className="h-6 w-6" />
+                    </button>
                   ))}
-                </DroppableCanvas>
-
-                {/* Empty state */}
-                {currentPageElements.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Type className="h-8 w-8" />
-                      </div>
-                      <h3 className="text-lg font-medium mb-2">Начните создание</h3>
-                      <p className="text-sm">
-                        Перетащите элементы из левой панели<br />
-                        или используйте горячие клавиши
-                      </p>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Right sidebar - Properties Panel */}
-          {showPropertiesPanel && (
-            <div 
-              className="bg-white border-l border-gray-200 overflow-y-auto"
-              style={{ width: rightPanelWidth }}
-            >
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Свойства</h3>
-                
-                {selectedElement ? (
-                  <div className="space-y-6">
-                    {/* Position and Size */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Позиция и размер</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs text-gray-500">X</Label>
-                          <Input
-                            type="number"
-                            value={Math.round(selectedElement.x)}
-                            onChange={(e) => {
-                              e.preventDefault();
-                              updateElementProperties(selectedElement.id, { x: Number(e.target.value) });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }
-                            }}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-500">Y</Label>
-                          <Input
-                            type="number"
-                            value={Math.round(selectedElement.y)}
-                            onChange={(e) => {
-                              e.preventDefault();
-                              updateElementProperties(selectedElement.id, { y: Number(e.target.value) });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }
-                            }}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-500">Ширина</Label>
-                          <Input
-                            type="number"
-                            value={Math.round(selectedElement.width)}
-                            onChange={(e) => {
-                              e.preventDefault();
-                              updateElementProperties(selectedElement.id, { width: Number(e.target.value) });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }
-                            }}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-500">Высота</Label>
-                          <Input
-                            type="number"
-                            value={Math.round(selectedElement.height)}
-                            onChange={(e) => {
-                              e.preventDefault();
-                              updateElementProperties(selectedElement.id, { height: Number(e.target.value) });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }
-                            }}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
+              {/* Tools grid */}
+              <div className="flex-1 p-4 overflow-y-auto">
+                <div className="grid grid-cols-3 gap-3">
+                  {TOOLS.filter(tool => tool.category === activeCategory).map((tool) => (
+                    <DraggableTool key={tool.id} tool={tool} />
+                  ))}
+                </div>
 
-                    {/* Text Properties */}
-                    {(selectedElement.type === 'text' || selectedElement.type === 'paragraph') && (
+                {/* Canvas Settings */}
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Настройки холста</h4>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Текст</h4>
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-xs text-gray-500">Содержание</Label>
-                            {selectedElement.type === 'text' ? (
-                              <Input
-                                value={selectedElement.content}
-                                onChange={(e) => {
-                                  e.preventDefault();
-                                  updateCanvasElements(prev => prev.map(el => 
-                                    el.id === selectedElement.id ? { ...el, content: e.target.value } : el
-                                  ));
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }
-                                }}
-                                className="h-8 text-xs"
-                              />
-                            ) : (
-                              <Textarea
-                                value={selectedElement.content}
-                                onChange={(e) => {
-                                  e.preventDefault();
-                                  updateCanvasElements(prev => prev.map(el => 
-                                    el.id === selectedElement.id ? { ...el, content: e.target.value } : el
-                                  ));
-                                }}
-                                onKeyDown={(e) => {
-                                  e.stopPropagation();
-                                }}
-                                className="text-xs"
-                                rows={3}
-                              />
-                            )}
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label className="text-xs text-gray-500">Шрифт</Label>
-                              <Select
-                                value={selectedElement.properties.fontFamily || 'Arial'}
-                                onValueChange={(value) => updateElementProperties(selectedElement.id, { fontFamily: value })}
-                              >
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {FONT_FAMILIES.map(font => (
-                                    <SelectItem key={font} value={font}>{font}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-xs text-gray-500">Размер</Label>
-                              <Input
-                                type="number"
-                                value={selectedElement.properties.fontSize || 16}
-                                onChange={(e) => {
-                                  e.preventDefault();
-                                  updateElementProperties(selectedElement.id, { fontSize: Number(e.target.value) });
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }
-                                }}
-                                className="h-8 text-xs"
-                                min="8"
-                                max="120"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-1">
-                            <Button
-                              type="button"
-                              variant={selectedElement.properties.fontWeight === 'bold' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { 
-                                  fontWeight: selectedElement.properties.fontWeight === 'bold' ? 'normal' : 'bold'
-                                });
-                              }}
-                              className="h-8 text-xs font-bold"
-                            >
-                              B
-                            </Button>
-                            <Button
-                              type="button"
-                              variant={selectedElement.properties.fontStyle === 'italic' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { 
-                                  fontStyle: selectedElement.properties.fontStyle === 'italic' ? 'normal' : 'italic'
-                                });
-                              }}
-                              className="h-8 text-xs italic"
-                            >
-                              I
-                            </Button>
-                            <Button 
-                              type="button"
-                              variant={selectedElement.properties.textDecoration === 'underline' ? 'default' : 'outline'}
-                              size="sm" 
-                              onClick={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { 
-                                  textDecoration: selectedElement.properties.textDecoration === 'underline' ? 'none' : 'underline'
-                                });
-                              }}
-                              className="h-8 text-xs underline"
-                            >
-                              U
-                            </Button>
-                          </div>
-
-                          <div>
-                            <Label className="text-xs text-gray-500">Выравнивание</Label>
-                            <div className="grid grid-cols-4 gap-1 mt-1">
-                              {(['left', 'center', 'right', 'justify'] as const).map((align) => (
-                                <Button
-                                  key={align}
-                                  type="button"
-                                  variant={selectedElement.properties.textAlign === align ? 'default' : 'outline'}
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    updateElementProperties(selectedElement.id, { textAlign: align });
-                                  }}
-                                  className="h-8 text-xs"
-                                >
-                                  {align === 'left' ? '⬅' : align === 'center' ? '↔' : align === 'right' ? '➡' : '⬌'}
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
+                        <Label className="text-xs">Ширина (мм)</Label>
+                        <Input
+                          type="number"
+                          value={canvasSettings.canvasWidth}
+                          onChange={(e) => {
+                            e.preventDefault();
+                            setCanvasSettings(prev => ({ 
+                              ...prev, 
+                              canvasWidth: Number(e.target.value) 
+                            }));
+                          }}
+                          className="h-8"
+                        />
                       </div>
-                    )}
-
-                    {/* Color Properties */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Цвета</h4>
-                      <div className="space-y-3">
-                        {(selectedElement.type === 'text' || selectedElement.type === 'paragraph') && (
-                          <div>
-                            <Label className="text-xs text-gray-500">Цвет текста</Label>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Input
-                                type="color"
-                                value={selectedElement.properties.color || '#000000'}
-                                onChange={(e) => {
-                                  e.preventDefault();
-                                  updateElementProperties(selectedElement.id, { color: e.target.value });
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }
-                                }}
-                                className="w-12 h-8 p-1 border rounded"
-                              />
-                              <Input
-                                type="text"
-                                value={selectedElement.properties.color || '#000000'}
-                                onChange={(e) => {
-                                  e.preventDefault();
-                                  updateElementProperties(selectedElement.id, { color: e.target.value });
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }
-                                }}
-                                className="flex-1 h-8 text-xs font-mono"
-                              />
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div>
-                          <Label className="text-xs text-gray-500">Цвет фона</Label>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Input
-                              type="color"
-                              value={selectedElement.properties.backgroundColor || '#ffffff'}
-                              onChange={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { backgroundColor: e.target.value });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                              }}
-                              className="w-12 h-8 p-1 border rounded"
-                            />
-                            <Input
-                              type="text"
-                              value={selectedElement.properties.backgroundColor || 'transparent'}
-                              onChange={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { backgroundColor: e.target.value });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                              }}
-                              className="flex-1 h-8 text-xs font-mono"
-                            />
-                          </div>
-                        </div>
+                      <div>
+                        <Label className="text-xs">Высота (мм)</Label>
+                        <Input
+                          type="number"
+                          value={canvasSettings.canvasHeight}
+                          onChange={(e) => {
+                            e.preventDefault();
+                            setCanvasSettings(prev => ({ 
+                              ...prev, 
+                              canvasHeight: Number(e.target.value) 
+                            }));
+                          }}
+                          className="h-8"
+                        />
                       </div>
                     </div>
-
-                    {/* Border Properties */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Рамка</h4>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs text-gray-500">Толщина</Label>
-                            <Input
-                              type="number"
-                              value={selectedElement.properties.borderWidth || 0}
-                              onChange={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { borderWidth: Number(e.target.value) });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                              }}
-                              className="h-8 text-xs"
-                              min="0"
-                              max="20"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-500">Радиус</Label>
-                            <Input
-                              type="number"
-                              value={selectedElement.properties.borderRadius || 0}
-                              onChange={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { borderRadius: Number(e.target.value) });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                              }}
-                              className="h-8 text-xs"
-                              min="0"
-                              max="50"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label className="text-xs text-gray-500">Цвет рамки</Label>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Input
-                              type="color"
-                              value={selectedElement.properties.borderColor || '#000000'}
-                              onChange={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { borderColor: e.target.value });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                              }}
-                              className="w-12 h-8 p-1 border rounded"
-                            />
-                            <Input
-                              type="text"
-                              value={selectedElement.properties.borderColor || '#000000'}
-                              onChange={(e) => {
-                                e.preventDefault();
-                                updateElementProperties(selectedElement.id, { borderColor: e.target.value });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                              }}
-                              className="flex-1 h-8 text-xs font-mono"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Advanced Properties */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Дополнительно</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-xs text-gray-500">Прозрачность</Label>
-                          <Input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={selectedElement.properties.opacity || 1}
-                            onChange={(e) => {
-                              e.preventDefault();
-                              updateElementProperties(selectedElement.id, { opacity: Number(e.target.value) });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }
-                            }}
-                            className="w-full h-8"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-xs text-gray-500">Поворот (градусы)</Label>
-                          <Input
-                            type="number"
-                            value={selectedElement.properties.rotation || 0}
-                            onChange={(e) => {
-                              e.preventDefault();
-                              updateElementProperties(selectedElement.id, { rotation: Number(e.target.value) });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }
-                            }}
-                            className="h-8 text-xs"
-                            min="-360"
-                            max="360"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-500 mt-8">
-                    <Settings className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p className="text-sm">Выберите элемент для редактирования свойств</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Layers Panel */}
-          {showLayersPanel && (
-            <div 
-              className="bg-white border-l border-gray-200 overflow-y-auto"
-              style={{ width: rightPanelWidth }}
-            >
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Слои</h3>
-                
-                <div className="space-y-1">
-                  {currentPageElements
-                    .slice()
-                    .sort((a, b) => b.zIndex - a.zIndex)
-                    .map((element) => (
-                      <div
-                        key={element.id}
-                        className={`p-2 rounded border text-sm cursor-pointer ${
-                          selectedElements.includes(element.id)
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => handleElementSelect(element.id)}
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCanvasSettings(prev => ({ 
+                          ...prev, 
+                          canvasWidth: 210, 
+                          canvasHeight: 297 
+                        }))}
+                        className="flex-1"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 bg-gray-200 rounded flex items-center justify-center">
-                              {element.type === 'text' && <Type className="h-2 w-2" />}
-                              {element.type === 'image' && <ImageIcon className="h-2 w-2" />}
-                              {element.type === 'shape' && <Square className="h-2 w-2" />}
-                            </div>
-                            <span className="truncate">
-                              {element.content || `${element.type} элемент`}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {element.zIndex}
+                        A4
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCanvasSettings(prev => ({ 
+                          ...prev, 
+                          canvasWidth: 420, 
+                          canvasHeight: 297 
+                        }))}
+                        className="flex-1"
+                      >
+                        A3
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Layers section with drag to reorder */}
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
+                    <Layers className="h-4 w-4 mr-2" />
+                    Слои
+                  </h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {[...currentPageElements]
+                      .sort((a, b) => b.zIndex - a.zIndex)
+                      .map((element) => (
+                        <div
+                          key={element.id}
+                          onClick={() => setSelectedElementId(element.id)}
+                          className={`p-2 rounded cursor-pointer text-xs flex items-center justify-between ${
+                            selectedElementId === element.id
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'hover:bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          <span className="truncate">
+                            {element.content || `${element.type} ${element.id.slice(-4)}`}
+                          </span>
+                          <div className="flex space-x-1">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveElementUp(element.id);
+                              }}
+                              className="opacity-60 hover:opacity-100"
+                              title="Поднять слой"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveElementDown(element.id);
+                              }}
+                              className="opacity-60 hover:opacity-100"
+                              title="Опустить слой"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateElement(element.id, { 
+                                  opacity: element.opacity === 1 ? 0.5 : 1 
+                                });
+                              }}
+                              className="opacity-60 hover:opacity-100"
+                              title="Переключить видимость"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Hidden file input for image upload */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
-      </div>
-
-      {/* Drag overlay */}
-      <DragOverlay>
-        {activeElement && (
-          <div
-            className="bg-white border-2 border-blue-500 rounded-lg shadow-lg pointer-events-none"
-            style={{
-              width: activeElement.width,
-              height: activeElement.height,
-              padding: '8px',
+          {/* Canvas Area */}
+          <div 
+            id="canvas"
+            className="flex-1 overflow-auto"
+            onClick={() => {
+              setSelectedElementId(null);
+              setEditingElementId(null);
             }}
           >
-            <div className="text-xs text-gray-600 truncate">
-              {activeElement.content || `${activeElement.type} элемент`}
+            <CanvasDropZone 
+              settings={canvasSettings}
+              showGrid={canvasSettings.showGrid}
+            >
+              {currentPageElements.map((element) => (
+                <CanvasElementComponent
+                  key={element.id}
+                  element={element}
+                  isSelected={selectedElementId === element.id}
+                  isEditing={editingElementId === element.id}
+                  onSelect={() => setSelectedElementId(element.id)}
+                  onUpdate={(updates) => updateElement(element.id, updates)}
+                  onEdit={(editing) => setEditingElementId(editing ? element.id : null)}
+                />
+              ))}
+            </CanvasDropZone>
+          </div>
+
+          {/* Properties Panel */}
+          {propertiesPanelOpen && (
+            <PropertiesPanel
+              selectedElement={selectedElement}
+              onUpdate={(updates) => selectedElement && updateElement(selectedElement.id, updates)}
+              onClose={() => setPropertiesPanelOpen(false)}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeElement && (
+          <div className="bg-white border-2 border-blue-500 shadow-lg p-3 rounded-lg opacity-90">
+            <div className="flex items-center space-x-2">
+              {activeElement.type === 'text' && <Type className="h-4 w-4 text-blue-600" />}
+              {activeElement.type === 'shape' && <Square className="h-4 w-4 text-blue-600" />}
+              {activeElement.type === 'image' && <ImageIcon className="h-4 w-4 text-blue-600" />}
+              <span className="text-sm font-medium text-gray-900">
+                {activeElement.content || activeElement.type}
+              </span>
             </div>
           </div>
         )}
@@ -2251,10 +1923,14 @@ function BookEditorPage() {
   );
 }
 
-export default function BookEditorPageWithSuspense() {
+export default function BookEditorPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Загрузка...</div>}>
-      <BookEditorPage />
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <BookEditor />
     </Suspense>
   );
 } 

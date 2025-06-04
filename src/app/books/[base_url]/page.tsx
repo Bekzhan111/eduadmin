@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, BookOpen, Clock, User, Calendar } from 'lucide-react';
 import Image from 'next/image';
 
-export default async function BookReadPage({ params }: { params: { base_url: string } }) {
-  const { base_url } = params;
+export default async function BookReadPage({ params }: { params: Promise<{ base_url: string }> }) {
+  const { base_url } = await params;
 
   const supabase = createClient();
   
