@@ -5,13 +5,19 @@ import { LucideMenu, LucideX } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 
-export default function AppBar({ 
-  onToggleSidebar, 
-  isSidebarOpen 
-}: { 
+interface AppBarProps {
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
-}) {
+  onToggleMainSidebar?: () => void;
+  isMainSidebarHidden?: boolean;
+}
+
+export default function AppBar({ 
+  onToggleSidebar, 
+  isSidebarOpen,
+  onToggleMainSidebar,
+  isMainSidebarHidden
+}: AppBarProps) {
   const { userProfile, isLoading } = useAuth();
 
   if (isLoading) {
@@ -23,6 +29,26 @@ export default function AppBar({
               <Button variant="ghost" size="sm" onClick={onToggleSidebar} className="lg:hidden">
                 {isSidebarOpen ? <LucideX className="h-6 w-6" /> : <LucideMenu className="h-6 w-6" />}
               </Button>
+              {onToggleMainSidebar && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={onToggleMainSidebar}
+                  className="ml-2"
+                >
+                  {isMainSidebarHidden ? (
+                    <>
+                      <LucideMenu className="h-4 w-4 mr-2" />
+                      Показать меню
+                    </>
+                  ) : (
+                    <>
+                      <LucideX className="h-4 w-4 mr-2" />
+                      Скрыть меню
+                    </>
+                  )}
+                </Button>
+              )}
               <h1 className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
                 Образовательная Платформа
               </h1>
@@ -46,6 +72,26 @@ export default function AppBar({
             <Button variant="ghost" size="sm" onClick={onToggleSidebar} className="lg:hidden">
               {isSidebarOpen ? <LucideX className="h-6 w-6" /> : <LucideMenu className="h-6 w-6" />}
             </Button>
+            {onToggleMainSidebar && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onToggleMainSidebar}
+                className="ml-2"
+              >
+                {isMainSidebarHidden ? (
+                  <>
+                    <LucideMenu className="h-4 w-4 mr-2" />
+                    Показать меню
+                  </>
+                ) : (
+                  <>
+                    <LucideX className="h-4 w-4 mr-2" />
+                    Скрыть меню
+                  </>
+                )}
+              </Button>
+            )}
             <h1 className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
               Образовательная Платформа
             </h1>

@@ -22,48 +22,53 @@ export const createClient = () => {
 };
 
 // Utility function to handle Supabase errors gracefully
-export const handleSupabaseError = (error: any, context = 'Database operation') => {
+export const handleSupabaseError = (error: Error | unknown, context = 'Database operation') => {
   if (!error) return null;
   
   console.error(`${context} error:`, error);
   
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorName = error instanceof Error ? error.name : undefined;
+  
   // Network errors
-  if (error.message?.includes('Load failed') || 
-      error.message?.includes('fetch') || 
-      error.message?.includes('NetworkError') ||
-      error.name === 'NetworkError') {
+  if (errorMessage?.includes('Load failed') || 
+      errorMessage?.includes('fetch') || 
+      errorMessage?.includes('NetworkError') ||
+      errorName === 'NetworkError') {
     return 'Network connection failed. Please check your internet connection and try again.';
   }
   
   // Auth errors
-  if (error.message?.includes('Invalid login credentials')) {
+  if (errorMessage?.includes('Invalid login credentials')) {
     return 'Invalid email or password. Please check your credentials.';
   }
   
   // Permission errors
-  if (error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+  if (errorMessage?.includes('permission denied') || errorMessage?.includes('RLS')) {
     return 'You do not have permission to perform this action.';
   }
   
   // Generic database errors
-  if (error.code) {
-    return `Database error (${error.code}): ${error.message}`;
+  if ('code' in (error as object)) {
+    return `Database error (${(error as { code: string }).code}): ${errorMessage}`;
   }
   
   // Default fallback
-  return error.message || 'An unexpected error occurred. Please try again.';
+  return errorMessage || 'An unexpected error occurred. Please try again.';
 };
 
 // Utility function to check if error is a network error
-export const isNetworkError = (error: any): boolean => {
+export const isNetworkError = (error: Error | unknown): boolean => {
   if (!error) return false;
   
-  const errorMessage = error.message || '';
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorName = error instanceof Error ? error.name : undefined;
+  
   return errorMessage.includes('Load failed') || 
          errorMessage.includes('fetch') || 
          errorMessage.includes('NetworkError') ||
          errorMessage.includes('network') ||
-         error.name === 'NetworkError';
+         errorName === 'NetworkError';
 };
 
 // Function to check database connectivity

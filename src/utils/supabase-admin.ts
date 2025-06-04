@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Получаем переменные окружения
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,7 +39,7 @@ export function shouldUseAdminClient(role?: string): boolean {
 export async function fetchBooksWithCorrectClient(
   role?: string,
   userId?: string,
-  fallbackClient?: any // Изменил тип для совместимости
+  fallbackClient?: SupabaseClient
 ) {
   const useAdmin = shouldUseAdminClient(role);
   const client = useAdmin ? createAdminClient() : fallbackClient;

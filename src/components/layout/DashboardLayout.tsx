@@ -1,18 +1,54 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useEffect, Suspense } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/layout/Sidebar';
 import AppBar from '@/components/layout/AppBar';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { session, isLoading, error, refreshAuth, clearError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mainSidebarHidden, setMainSidebarHidden] = useState(false);
+
+  // Check if we're in book editor page
+  const isBookEditorPage = pathname?.includes('/books/') && pathname?.includes('/edit');
+  
+  // Check for hideSidebar parameter in URL
+  const shouldHideSidebar = searchParams?.get('hideSidebar') === 'true';
+
+  useEffect(() => {
+    // Set main sidebar hidden state based on URL parameter
+    setMainSidebarHidden(shouldHideSidebar);
+    
+    // Auto-hide sidebar in book editor if requested
+    if (isBookEditorPage && shouldHideSidebar) {
+      setSidebarOpen(false);
+    }
+  }, [isBookEditorPage, shouldHideSidebar]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const toggleMainSidebar = () => {
+    const newHiddenState = !mainSidebarHidden;
+    setMainSidebarHidden(newHiddenState);
+    
+    // Update URL parameters
+    const newSearchParams = new URLSearchParams(searchParams?.toString());
+    if (newHiddenState) {
+      newSearchParams.set('hideSidebar', 'true');
+    } else {
+      newSearchParams.delete('hideSidebar');
+    }
+    
+    // Use router.replace to update URL without page reload
+    const newUrl = `${pathname}?${newSearchParams.toString()}`;
+    router.replace(newUrl);
   };
 
   const closeSidebar = useCallback(() => {
@@ -106,10 +142,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
-      <AppBar onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
+      <AppBar 
+        onToggleSidebar={toggleSidebar} 
+        isSidebarOpen={sidebarOpen}
+        onToggleMainSidebar={isBookEditorPage ? toggleMainSidebar : undefined}
+        isMainSidebarHidden={mainSidebarHidden}
+      />
       
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+        {!mainSidebarHidden && (
+          <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+        )}
         
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto p-4">
@@ -118,5 +161,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Загрузка панели...</p>
+        </div>
+      </div>
+    }>
+      <DashboardLayoutComponent>{children}</DashboardLayoutComponent>
+    </Suspense>
   );
 } 

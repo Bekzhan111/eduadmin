@@ -5,28 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BookOpen, Clock, User, Calendar } from 'lucide-react';
-
-interface Book {
-  id: string;
-  base_url: string;
-  title: string;
-  description: string;
-  grade_level: string;
-  course: string;
-  category: string;
-  status: string;
-  author_id: string;
-  language: string;
-  pages_count: number;
-  price: number;
-  cover_image: string;
-  created_at: string;
-  updated_at: string;
-  users: {
-    display_name: string;
-    email: string;
-  };
-}
+import Image from 'next/image';
 
 export default async function BookReadPage({ params }: { params: Promise<{ base_url: string }> }) {
   const { base_url } = await params;
@@ -90,9 +69,11 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
               <CardContent className="space-y-4">
                 {book.cover_image && (
                   <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
-                    <img
+                    <Image
                       src={book.cover_image}
                       alt={book.title}
+                      width={300}
+                      height={400}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -175,7 +156,7 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
                       📚 Содержимое книги
                     </h3>
                     <p className="text-blue-800 dark:text-blue-200">
-                      Здесь будет отображаться содержимое книги "{book.title}".
+                      Здесь будет отображаться содержимое книги &ldquo;{book.title}&rdquo;.
                       В реальной системе здесь может быть:
                     </p>
                     <ul className="mt-3 space-y-1 text-blue-800 dark:text-blue-200">
@@ -192,7 +173,7 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
                         Глава 1: Введение
                       </h2>
                       <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Это демонстрационный контент для книги "{book.title}". 
+                        Это демонстрационный контент для книги &ldquo;{book.title}&rdquo;. 
                         В реальной образовательной системе здесь бы отображался 
                         фактический контент учебника, включая текст, изображения, 
                         схемы и интерактивные элементы.
