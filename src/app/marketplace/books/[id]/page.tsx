@@ -67,8 +67,8 @@ function formatDate(dateString: string): string {
   });
 }
 
-export default async function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function BookDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const book = await getBook(id);
 
   if (!book) {
