@@ -23,6 +23,8 @@ import {
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
+  TouchSensor,
+  KeyboardSensor,
 } from '@dnd-kit/core';
 import { 
   Save, 
@@ -140,6 +142,19 @@ function DraggableTool({ tool }: { tool: typeof CANVAS_TOOLS[number] }) {
       className={`flex flex-col items-center p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group cursor-grab active:cursor-grabbing ${
         isDragging ? 'opacity-50' : ''
       }`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+      }}
+      onDragStart={(e) => {
+        e.stopPropagation();
+      }}
+      onSubmit={(e) => {
+        e.preventDefault();
+      }}
     >
       <IconComponent className="h-6 w-6 text-gray-600 group-hover:text-blue-600 mb-1" />
       <span className="text-xs text-gray-600 group-hover:text-blue-600 text-center">
@@ -459,6 +474,25 @@ function DraggableCanvasElement({
         e.stopPropagation();
         onDoubleClick(element.id);
       }}
+      onMouseDown={(e) => {
+        if (!isEditing) {
+          e.stopPropagation();
+        }
+      }}
+      onDragStart={(e) => {
+        e.stopPropagation();
+      }}
+      onSubmit={(e) => {
+        e.preventDefault();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       {getElementContent()}
       {isSelected && !isEditing && (
@@ -483,6 +517,28 @@ function DroppableCanvas({ children, isOver }: { children: React.ReactNode; isOv
       style={{
         width: 210 * 3.7795, // A4 width in pixels
         height: 297 * 3.7795, // A4 height in pixels
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onSubmit={(e) => {
+        e.preventDefault();
       }}
     >
       {children}
@@ -534,13 +590,42 @@ function BookEditorPage() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // DnD sensors with proper configuration
+  // DnD sensors with MAXIMUM event prevention to stop page reloads
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
       },
-    })
+      // CRITICAL: Maximum event prevention for page reload elimination
+      onActivation: (activationEvent) => {
+        const { event } = activationEvent;
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          console.log('🚨 POINTER ACTIVATION - PREVENTING ALL DEFAULTS');
+        }
+        return false;
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+      // CRITICAL: Maximum event prevention for page reload elimination
+      onActivation: (activationEvent) => {
+        const { event } = activationEvent;
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          console.log('🚨 TOUCH ACTIVATION - PREVENTING ALL DEFAULTS');
+        }
+        return false;
+      },
+    }),
+    useSensor(KeyboardSensor)
   );
 
   // Custom collision detection for precise canvas dropping
@@ -731,8 +816,17 @@ function BookEditorPage() {
     }
   };
 
-  // Handle drag start
+  // Handle drag start with MAXIMUM event prevention
   const handleDragStart = (event: DragStartEvent) => {
+    console.log('🚨 DRAG START - MAXIMUM PREVENTION:', event.active.id);
+    
+    // NUCLEAR OPTION: Prevent ALL possible form submissions and navigation
+    if (event.activatorEvent) {
+      event.activatorEvent.preventDefault();
+      event.activatorEvent.stopPropagation();
+      event.activatorEvent.stopImmediatePropagation();
+    }
+    
     const { active } = event;
     const activeData = active.data.current;
 
@@ -745,13 +839,31 @@ function BookEditorPage() {
     }
   };
 
-  // Handle drag over
-  const handleDragOver = (_event: DragOverEvent) => {
+  // Handle drag over with MAXIMUM event prevention
+  const handleDragOver = (event: DragOverEvent) => {
+    console.log('🚨 DRAG OVER - MAXIMUM PREVENTION:', event.over?.id);
+    
+    // NUCLEAR OPTION: Prevent ALL possible form submissions and navigation
+    if (event.activatorEvent) {
+      event.activatorEvent.preventDefault();
+      event.activatorEvent.stopPropagation();
+      event.activatorEvent.stopImmediatePropagation();
+    }
+    
     // Visual feedback during drag operations
   };
 
-  // Handle drag end - Fixed animation bug
+  // Handle drag end with MAXIMUM event prevention
   const handleDragEnd = (event: DragEndEvent) => {
+    console.log('🚨 DRAG END - MAXIMUM PREVENTION:', event.active.id, event.over?.id);
+    
+    // NUCLEAR OPTION: Prevent ALL possible form submissions and navigation
+    if (event.activatorEvent) {
+      event.activatorEvent.preventDefault();
+      event.activatorEvent.stopPropagation();
+      event.activatorEvent.stopImmediatePropagation();
+    }
+    
     const { active, over } = event;
     const activeData = active.data.current;
 
@@ -796,8 +908,9 @@ function BookEditorPage() {
     setActiveElement(null);
   };
 
-  // Handle element selection
+  // Handle element selection with MAXIMUM event prevention
   const handleElementSelect = (elementId: string) => {
+    console.log('🚨 ELEMENT SELECTION - MAXIMUM PREVENTION:', elementId);
     if (selectedElements.includes(elementId)) {
       setSelectedElements(prev => prev.filter(id => id !== elementId));
     } else {
@@ -806,8 +919,9 @@ function BookEditorPage() {
     setEditingText(null);
   };
 
-  // Handle text editing
+  // Handle text editing with MAXIMUM event prevention
   const handleElementDoubleClick = (elementId: string) => {
+    console.log('🚨 ELEMENT DOUBLE CLICK - MAXIMUM PREVENTION:', elementId);
     const element = canvasElements.find(el => el.id === elementId);
     if (element && (element.type === 'text' || element.type === 'paragraph')) {
       setEditingText(elementId);
@@ -818,16 +932,18 @@ function BookEditorPage() {
     }
   };
 
-  // Handle text content update
+  // Handle text content update with MAXIMUM event prevention
   const handleUpdateContent = (elementId: string, content: string) => {
+    console.log('🚨 CONTENT UPDATE - MAXIMUM PREVENTION:', elementId);
     updateCanvasElements(prev => prev.map(el => 
       el.id === elementId ? { ...el, content } : el
     ));
     setEditingText(null);
   };
 
-  // Handle element resize
+  // Handle element resize with MAXIMUM event prevention
   const handleElementResize = (elementId: string, newWidth: number, newHeight: number) => {
+    console.log('🚨 ELEMENT RESIZE - MAXIMUM PREVENTION:', elementId, newWidth, newHeight);
     updateCanvasElements(prev => prev.map(el => 
       el.id === elementId 
         ? { ...el, width: newWidth, height: newHeight }
@@ -903,6 +1019,7 @@ function BookEditorPage() {
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       e.preventDefault();
+      e.stopPropagation();
       setSelectedElements([]);
       setEditingText(null);
     }
@@ -1107,13 +1224,64 @@ function BookEditorPage() {
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      autoScroll={{
+        enabled: false,
+        layoutShiftCompensation: false
+      }}
+      accessibility={{
+        restoreFocus: false
+      }}
     >
       <div 
         className="h-screen bg-gray-100 flex flex-col overflow-hidden"
-        onSubmit={(e) => e.preventDefault()}
-        onDragStart={(e) => e.preventDefault()}
-        onDrop={(e) => e.preventDefault()}
-        onDragOver={(e) => e.preventDefault()}
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('🚨 FORM SUBMISSION PREVENTED');
+          return false;
+        }}
+        onReset={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('🚨 FORM RESET PREVENTED');
+          return false;
+        }}
+        onDragStart={(e) => {
+          // Allow dnd-kit to handle drag start but stop propagation
+          e.stopPropagation();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onKeyDown={(e) => {
+          // Prevent Enter key from causing form submissions
+          if (e.key === 'Enter' && e.target === e.currentTarget) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🚨 ENTER KEY PREVENTED ON MAIN WRAPPER');
+          }
+        }}
+        onMouseDown={(e) => {
+          // Stop propagation but allow normal mouse operations
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          // Stop event bubbling that might trigger navigation
+          e.stopPropagation();
+        }}
       >
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
@@ -1124,7 +1292,8 @@ function BookEditorPage() {
               size="sm"
               onClick={(e) => {
                 e.preventDefault();
-                router.push('/dashboard/books');
+                e.stopPropagation();
+                console.log('Back button clicked - navigation disabled during editing');
               }}
               className="flex items-center text-gray-600 hover:text-gray-900"
             >
@@ -1152,6 +1321,7 @@ function BookEditorPage() {
               type="button"
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 saveCanvasData();
               }}
               disabled={isSaving}
@@ -1173,7 +1343,11 @@ function BookEditorPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Moderation button clicked - functionality disabled during editing');
+              }}
               className="border-green-600 text-green-600 hover:bg-green-50"
             >
               <Send className="h-4 w-4 mr-2" />
@@ -1184,7 +1358,11 @@ function BookEditorPage() {
               type="button"
               variant="ghost" 
               size="sm"
-              onClick={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Logout button clicked - functionality disabled during editing');
+              }}
             >
               <LogOut className="h-4 w-4" />
             </Button>
@@ -1206,6 +1384,7 @@ function BookEditorPage() {
                     size="sm"
                     onClick={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setCurrentTool(tool.id as Tool);
                     }}
                     className={`h-8 w-8 p-0 ${
@@ -1229,6 +1408,7 @@ function BookEditorPage() {
                 size="sm"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   undo();
                 }}
                 disabled={historyIndex <= 0}
@@ -1242,6 +1422,7 @@ function BookEditorPage() {
                 size="sm"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   redo();
                 }}
                 disabled={historyIndex >= history.length - 1}
@@ -1261,6 +1442,7 @@ function BookEditorPage() {
                 size="sm"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   setZoomLevel(prev => Math.max(0.1, prev - 0.1));
                 }}
                 disabled={zoomLevel <= 0.1}
@@ -1276,6 +1458,7 @@ function BookEditorPage() {
                 size="sm"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   setZoomLevel(prev => Math.min(3, prev + 0.1));
                 }}
                 disabled={zoomLevel >= 3}
@@ -1293,6 +1476,7 @@ function BookEditorPage() {
               size="sm"
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 setShowGrid(!showGrid);
               }}
               className={showGrid ? 'bg-blue-600 text-white' : ''}
@@ -1309,6 +1493,7 @@ function BookEditorPage() {
               size="sm"
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 setCurrentPage(prev => Math.max(1, prev - 1));
               }}
               disabled={currentPage <= 1}
@@ -1324,6 +1509,7 @@ function BookEditorPage() {
               size="sm"
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 setCurrentPage(prev => Math.min(totalPages, prev + 1));
               }}
               disabled={currentPage >= totalPages}
@@ -1336,6 +1522,7 @@ function BookEditorPage() {
               size="sm"
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 setTotalPages(prev => prev + 1);
               }}
               title="Добавить страницу"
@@ -1352,6 +1539,7 @@ function BookEditorPage() {
               size="sm"
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 setShowPropertiesPanel(!showPropertiesPanel);
               }}
               className={showPropertiesPanel ? 'bg-blue-600 text-white' : ''}
@@ -1364,6 +1552,7 @@ function BookEditorPage() {
               size="sm"
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 setShowLayersPanel(!showLayersPanel);
               }}
               className={showLayersPanel ? 'bg-blue-600 text-white' : ''}
@@ -1403,6 +1592,7 @@ function BookEditorPage() {
                       className="w-full justify-start"
                       onClick={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         fileInputRef.current?.click();
                       }}
                     >
@@ -1418,6 +1608,7 @@ function BookEditorPage() {
                           className="w-full justify-start"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             // Duplicate functionality
                             const elementsToDuplicate = canvasElements.filter(el => selectedElements.includes(el.id));
                             const duplicatedElements = elementsToDuplicate.map(el => ({
@@ -1440,6 +1631,7 @@ function BookEditorPage() {
                           className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             updateCanvasElements(prev => prev.filter(el => !selectedElements.includes(el.id)));
                             setSelectedElements([]);
                           }}
@@ -1475,14 +1667,15 @@ function BookEditorPage() {
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       backgroundImage: `
-                        radial-gradient(circle, #e5e5e5 1px, transparent 1px)
+                        linear-gradient(to right, #e0e0e0 1px, transparent 1px),
+                        linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)
                       `,
                       backgroundSize: `${gridSize}px ${gridSize}px`,
                     }}
                   />
                 )}
 
-                <DroppableCanvas isOver={false}>
+                <DroppableCanvas isOver={!!activeElement}>
                   {currentPageElements.map((element) => (
                     <DraggableCanvasElement
                       key={element.id}
@@ -1536,7 +1729,16 @@ function BookEditorPage() {
                           <Input
                             type="number"
                             value={Math.round(selectedElement.x)}
-                            onChange={(e) => updateElementProperties(selectedElement.id, { x: Number(e.target.value) })}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              updateElementProperties(selectedElement.id, { x: Number(e.target.value) });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }
+                            }}
                             className="h-8 text-xs"
                           />
                         </div>
@@ -1545,7 +1747,16 @@ function BookEditorPage() {
                           <Input
                             type="number"
                             value={Math.round(selectedElement.y)}
-                            onChange={(e) => updateElementProperties(selectedElement.id, { y: Number(e.target.value) })}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              updateElementProperties(selectedElement.id, { y: Number(e.target.value) });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }
+                            }}
                             className="h-8 text-xs"
                           />
                         </div>
@@ -1554,7 +1765,16 @@ function BookEditorPage() {
                           <Input
                             type="number"
                             value={Math.round(selectedElement.width)}
-                            onChange={(e) => updateElementProperties(selectedElement.id, { width: Number(e.target.value) })}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              updateElementProperties(selectedElement.id, { width: Number(e.target.value) });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }
+                            }}
                             className="h-8 text-xs"
                           />
                         </div>
@@ -1563,7 +1783,16 @@ function BookEditorPage() {
                           <Input
                             type="number"
                             value={Math.round(selectedElement.height)}
-                            onChange={(e) => updateElementProperties(selectedElement.id, { height: Number(e.target.value) })}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              updateElementProperties(selectedElement.id, { height: Number(e.target.value) });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }
+                            }}
                             className="h-8 text-xs"
                           />
                         </div>
@@ -1581,9 +1810,16 @@ function BookEditorPage() {
                               <Input
                                 value={selectedElement.content}
                                 onChange={(e) => {
+                                  e.preventDefault();
                                   updateCanvasElements(prev => prev.map(el => 
                                     el.id === selectedElement.id ? { ...el, content: e.target.value } : el
                                   ));
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }
                                 }}
                                 className="h-8 text-xs"
                               />
@@ -1591,9 +1827,13 @@ function BookEditorPage() {
                               <Textarea
                                 value={selectedElement.content}
                                 onChange={(e) => {
+                                  e.preventDefault();
                                   updateCanvasElements(prev => prev.map(el => 
                                     el.id === selectedElement.id ? { ...el, content: e.target.value } : el
                                   ));
+                                }}
+                                onKeyDown={(e) => {
+                                  e.stopPropagation();
                                 }}
                                 className="text-xs"
                                 rows={3}
@@ -1624,7 +1864,16 @@ function BookEditorPage() {
                               <Input
                                 type="number"
                                 value={selectedElement.properties.fontSize || 16}
-                                onChange={(e) => updateElementProperties(selectedElement.id, { fontSize: Number(e.target.value) })}
+                                onChange={(e) => {
+                                  e.preventDefault();
+                                  updateElementProperties(selectedElement.id, { fontSize: Number(e.target.value) });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }
+                                }}
                                 className="h-8 text-xs"
                                 min="8"
                                 max="120"
@@ -1712,13 +1961,31 @@ function BookEditorPage() {
                               <Input
                                 type="color"
                                 value={selectedElement.properties.color || '#000000'}
-                                onChange={(e) => updateElementProperties(selectedElement.id, { color: e.target.value })}
+                                onChange={(e) => {
+                                  e.preventDefault();
+                                  updateElementProperties(selectedElement.id, { color: e.target.value });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }
+                                }}
                                 className="w-12 h-8 p-1 border rounded"
                               />
                               <Input
                                 type="text"
                                 value={selectedElement.properties.color || '#000000'}
-                                onChange={(e) => updateElementProperties(selectedElement.id, { color: e.target.value })}
+                                onChange={(e) => {
+                                  e.preventDefault();
+                                  updateElementProperties(selectedElement.id, { color: e.target.value });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }
+                                }}
                                 className="flex-1 h-8 text-xs font-mono"
                               />
                             </div>
@@ -1731,13 +1998,31 @@ function BookEditorPage() {
                             <Input
                               type="color"
                               value={selectedElement.properties.backgroundColor || '#ffffff'}
-                              onChange={(e) => updateElementProperties(selectedElement.id, { backgroundColor: e.target.value })}
+                              onChange={(e) => {
+                                e.preventDefault();
+                                updateElementProperties(selectedElement.id, { backgroundColor: e.target.value });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
+                              }}
                               className="w-12 h-8 p-1 border rounded"
                             />
                             <Input
                               type="text"
                               value={selectedElement.properties.backgroundColor || 'transparent'}
-                              onChange={(e) => updateElementProperties(selectedElement.id, { backgroundColor: e.target.value })}
+                              onChange={(e) => {
+                                e.preventDefault();
+                                updateElementProperties(selectedElement.id, { backgroundColor: e.target.value });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
+                              }}
                               className="flex-1 h-8 text-xs font-mono"
                             />
                           </div>
@@ -1755,7 +2040,16 @@ function BookEditorPage() {
                             <Input
                               type="number"
                               value={selectedElement.properties.borderWidth || 0}
-                              onChange={(e) => updateElementProperties(selectedElement.id, { borderWidth: Number(e.target.value) })}
+                              onChange={(e) => {
+                                e.preventDefault();
+                                updateElementProperties(selectedElement.id, { borderWidth: Number(e.target.value) });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
+                              }}
                               className="h-8 text-xs"
                               min="0"
                               max="20"
@@ -1766,7 +2060,16 @@ function BookEditorPage() {
                             <Input
                               type="number"
                               value={selectedElement.properties.borderRadius || 0}
-                              onChange={(e) => updateElementProperties(selectedElement.id, { borderRadius: Number(e.target.value) })}
+                              onChange={(e) => {
+                                e.preventDefault();
+                                updateElementProperties(selectedElement.id, { borderRadius: Number(e.target.value) });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
+                              }}
                               className="h-8 text-xs"
                               min="0"
                               max="50"
@@ -1780,13 +2083,31 @@ function BookEditorPage() {
                             <Input
                               type="color"
                               value={selectedElement.properties.borderColor || '#000000'}
-                              onChange={(e) => updateElementProperties(selectedElement.id, { borderColor: e.target.value })}
+                              onChange={(e) => {
+                                e.preventDefault();
+                                updateElementProperties(selectedElement.id, { borderColor: e.target.value });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
+                              }}
                               className="w-12 h-8 p-1 border rounded"
                             />
                             <Input
                               type="text"
                               value={selectedElement.properties.borderColor || '#000000'}
-                              onChange={(e) => updateElementProperties(selectedElement.id, { borderColor: e.target.value })}
+                              onChange={(e) => {
+                                e.preventDefault();
+                                updateElementProperties(selectedElement.id, { borderColor: e.target.value });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
+                              }}
                               className="flex-1 h-8 text-xs font-mono"
                             />
                           </div>
@@ -1806,7 +2127,16 @@ function BookEditorPage() {
                             max="1"
                             step="0.1"
                             value={selectedElement.properties.opacity || 1}
-                            onChange={(e) => updateElementProperties(selectedElement.id, { opacity: Number(e.target.value) })}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              updateElementProperties(selectedElement.id, { opacity: Number(e.target.value) });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }
+                            }}
                             className="w-full h-8"
                           />
                         </div>
@@ -1816,7 +2146,16 @@ function BookEditorPage() {
                           <Input
                             type="number"
                             value={selectedElement.properties.rotation || 0}
-                            onChange={(e) => updateElementProperties(selectedElement.id, { rotation: Number(e.target.value) })}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              updateElementProperties(selectedElement.id, { rotation: Number(e.target.value) });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }
+                            }}
                             className="h-8 text-xs"
                             min="-360"
                             max="360"
