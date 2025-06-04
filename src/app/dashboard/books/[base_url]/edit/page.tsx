@@ -25,8 +25,9 @@ import {
   Menu, X, PanelLeftClose, PanelLeftOpen, Plus, Trash2, Copy, Undo2, Redo2,
   ZoomIn, ZoomOut, Grid3X3, Eye, SkipForward, SkipBack, Settings, Layers,
   Triangle, Star, Heart, Upload, Move3D,
-  Bold, Italic, Underline, ArrowUp, ArrowDown,
+  Bold, Italic, Underline, ArrowUp, ArrowDown, Video, Link,
 } from 'lucide-react';
+import { uploadMedia, uploadMediaFromUrl, MediaType, UploadResult } from '@/utils/mediaUpload';
 
 // Enhanced Types
 type Book = {
@@ -43,7 +44,7 @@ type Book = {
 
 type CanvasElement = {
   id: string;
-  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon';
+  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video';
   x: number;
   y: number;
   width: number;
@@ -69,6 +70,7 @@ type CanvasElement = {
     verticalAlign?: 'top' | 'middle' | 'bottom';
     shapeType?: 'rectangle' | 'circle' | 'triangle' | 'star' | 'heart';
     imageUrl?: string;
+    videoUrl?: string;
     lineThickness?: number;
     arrowType?: 'single' | 'double' | 'none';
     iconType?: string;
@@ -77,6 +79,10 @@ type CanvasElement = {
     shadowBlur?: number;
     shadowOffsetX?: number;
     shadowOffsetY?: number;
+    autoplay?: boolean;
+    muted?: boolean;
+    controls?: boolean;
+    loop?: boolean;
   };
 };
 
@@ -104,6 +110,8 @@ const TOOLS = [
   { id: 'arrow', icon: Move3D, label: 'Стрелка', category: 'shapes' },
   { id: 'image', icon: ImageIcon, label: 'Изображение', category: 'media' },
   { id: 'upload', icon: Upload, label: 'Загрузить', category: 'media' },
+  { id: 'video', icon: Video, label: 'Видео', category: 'media' },
+  { id: 'video-url', icon: Link, label: 'Видео по URL', category: 'media' },
 ] as const;
 
 const TOOL_CATEGORIES = [
@@ -113,11 +121,16 @@ const TOOL_CATEGORIES = [
 ];
 
 // Draggable Tool Component with enhanced design
-function DraggableTool({ tool }: { tool: typeof TOOLS[number] }) {
+function DraggableTool({ tool, onMediaUploaded }: { tool: typeof TOOLS[number]; onMediaUploaded?: (url: string, type: string) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `tool-${tool.id}`,
     data: { type: 'tool', toolType: tool.id },
   });
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
 
   const IconComponent = tool.icon;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,38 +138,144 @@ function DraggableTool({ tool }: { tool: typeof TOOLS[number] }) {
   const handleToolClick = () => {
     if (tool.id === 'upload') {
       fileInputRef.current?.click();
+    } else if (tool.id === 'video') {
+      fileInputRef.current?.click();
+    } else if (tool.id === 'video-url') {
+      setShowUrlInput(true);
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Handle file upload logic here
-      console.log('File uploaded:', file);
-      // You would typically upload to your storage service and get a URL
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const mediaType: MediaType = tool.id === 'video' ? 'video' : 'image';
+      const result: UploadResult = await uploadMedia(file, mediaType);
+      
+      if (result.success && result.url) {
+        // Notify parent component about successful upload
+        if (onMediaUploaded) {
+          onMediaUploaded(result.url, mediaType);
+        }
+        alert(`${mediaType === 'video' ? 'Видео' : 'Изображение'} успешно загружено! Перетащите инструмент на холст.`);
+      } else {
+        setUploadError(result.error || 'Ошибка загрузки');
+      }
+    } catch (error) {
+      setUploadError('Ошибка загрузки файла');
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleUrlUpload = async () => {
+    if (!urlInput.trim()) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const result: UploadResult = await uploadMediaFromUrl(urlInput, 'video');
+      
+      if (result.success && result.url) {
+        // Notify parent component about successful upload
+        if (onMediaUploaded) {
+          onMediaUploaded(result.url, 'video');
+        }
+        alert('Видео по URL успешно загружено! Перетащите инструмент на холст.');
+        setUrlInput('');
+        setShowUrlInput(false);
+      } else {
+        setUploadError(result.error || 'Ошибка загрузки видео по URL');
+      }
+    } catch (error) {
+      setUploadError('Ошибка загрузки видео');
+      console.error('URL upload error:', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      onClick={handleToolClick}
-      className={`flex flex-col items-center p-3 rounded-lg cursor-grab hover:bg-gray-100 transition-all duration-200 ${
-        isDragging ? 'opacity-50 scale-95' : 'hover:scale-105'
-      } bg-white border border-gray-200 shadow-sm`}
-    >
-      <IconComponent className="h-5 w-5 mb-1 text-gray-700" />
-      <span className="text-xs text-gray-600 text-center">{tool.label}</span>
-      {tool.id === 'upload' && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
+    <div className="relative">
+      <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        onClick={handleToolClick}
+        className={`flex flex-col items-center p-3 rounded-lg cursor-grab hover:bg-gray-100 transition-all duration-200 ${
+          isDragging ? 'opacity-50 scale-95' : 'hover:scale-105'
+        } bg-white border border-gray-200 shadow-sm`}
+      >
+        <IconComponent className="h-5 w-5 mb-1 text-gray-700" />
+        <span className="text-xs text-gray-600 text-center">{tool.label}</span>
+        
+        {isUploading && (
+          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+        
+        {(tool.id === 'upload' || tool.id === 'video') && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={tool.id === 'video' ? 'video/*' : 'image/*'}
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        )}
+      </div>
+      
+      {uploadError && (
+        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-red-100 text-red-700 text-xs rounded border">
+          {uploadError}
+          <button 
+            onClick={() => setUploadError(null)}
+            className="ml-2 text-red-900 hover:text-red-700"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      
+      {showUrlInput && tool.id === 'video-url' && (
+        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white border rounded shadow-lg z-10">
+          <input
+            type="url"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            placeholder="https://example.com/video.mp4"
+            className="w-full p-1 border rounded text-xs mb-2"
+          />
+          <div className="flex space-x-1">
+            <button
+              onClick={handleUrlUpload}
+              disabled={isUploading || !urlInput.trim()}
+              className="flex-1 bg-blue-600 text-white text-xs p-1 rounded disabled:opacity-50"
+            >
+              {isUploading ? 'Загрузка...' : 'Загрузить'}
+            </button>
+            <button
+              onClick={() => {
+                setShowUrlInput(false);
+                setUrlInput('');
+                setUploadError(null);
+              }}
+              className="bg-gray-300 text-gray-700 text-xs p-1 rounded"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -455,6 +574,34 @@ function CanvasElementComponent({
             )}
           </div>
         );
+      case 'video':
+        return (
+          <div 
+            className="w-full h-full bg-gray-100 flex items-center justify-center overflow-hidden"
+            style={{
+              borderRadius: element.properties.borderRadius || 0,
+              ...borderStyle,
+            }}
+          >
+            {element.properties.videoUrl ? (
+              <video 
+                src={element.properties.videoUrl}
+                controls={element.properties.controls !== false}
+                autoPlay={element.properties.autoplay || false}
+                muted={element.properties.muted !== false}
+                loop={element.properties.loop || false}
+                className="w-full h-full object-cover"
+                style={{ borderRadius: element.properties.borderRadius || 0 }}
+                preload="metadata"
+              />
+            ) : (
+              <div className="text-center text-gray-500">
+                <Video className="h-8 w-8 mx-auto mb-2" />
+                <span className="text-sm">Видео</span>
+              </div>
+            )}
+          </div>
+        );
       default:
         return <div>Element</div>;
     }
@@ -578,7 +725,7 @@ function PropertiesPanel({
     );
   }
 
-  const updateProperty = (key: string, value: string | number) => {
+  const updateProperty = (key: string, value: string | number | boolean) => {
     onUpdate({
       properties: {
         ...selectedElement.properties,
@@ -913,15 +1060,25 @@ function PropertiesPanel({
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => {
+                  onClick={async () => {
                     const input = document.createElement('input');
                     input.type = 'file';
                     input.accept = 'image/*';
-                    input.onchange = (e) => {
+                    input.onchange = async (e) => {
                       const file = (e.target as HTMLInputElement).files?.[0];
                       if (file) {
-                        // Handle file upload here
-                        console.log('Upload file:', file);
+                        try {
+                          const result = await uploadMedia(file, 'image');
+                          if (result.success && result.url) {
+                            updateProperty('imageUrl', result.url);
+                            alert('Изображение успешно загружено!');
+                          } else {
+                            alert('Ошибка загрузки изображения: ' + result.error);
+                          }
+                        } catch (error) {
+                          alert('Ошибка загрузки изображения');
+                          console.error('Image upload error:', error);
+                        }
                       }
                     };
                     input.click();
@@ -930,6 +1087,110 @@ function PropertiesPanel({
                   <Upload className="h-4 w-4 mr-2" />
                   Загрузить изображение
                 </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Video Properties */}
+        {selectedElement.type === 'video' && (
+          <div>
+            <h4 className="text-sm font-medium mb-3">Видео</h4>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">URL видео</Label>
+                <Input
+                  value={selectedElement.properties.videoUrl || ''}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('videoUrl', e.target.value);
+                  }}
+                  placeholder="https://example.com/video.mp4"
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'video/*';
+                    input.onchange = async (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        try {
+                          const result = await uploadMedia(file, 'video');
+                          if (result.success && result.url) {
+                            updateProperty('videoUrl', result.url);
+                            alert('Видео успешно загружено!');
+                          } else {
+                            alert('Ошибка загрузки видео: ' + result.error);
+                          }
+                        } catch (error) {
+                          alert('Ошибка загрузки видео');
+                          console.error('Video upload error:', error);
+                        }
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Загрузить видео
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedElement.properties.controls !== false}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('controls', e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-xs">Элементы управления</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedElement.properties.autoplay || false}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('autoplay', e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-xs">Автовоспроизведение</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedElement.properties.muted !== false}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('muted', e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-xs">Без звука</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedElement.properties.loop || false}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('loop', e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-xs">Повтор</span>
+                </label>
               </div>
             </div>
           </div>
@@ -987,6 +1248,7 @@ function BookEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [history, setHistory] = useState<CanvasElement[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
   
   // UI State
   const [mainSidebarHidden, setMainSidebarHidden] = useState(searchParams?.get('hideSidebar') === 'true');
@@ -1043,7 +1305,7 @@ function BookEditor() {
   }, [history, historyIndex]);
 
   // Create element from tool with enhanced types
-  const createElementFromTool = (toolType: string, x: number, y: number): CanvasElement => {
+  const createElementFromTool = (toolType: string, x: number, y: number, mediaUrl?: string): CanvasElement => {
     const baseElement = {
       id: generateId(),
       x: Math.max(0, x),
@@ -1212,6 +1474,28 @@ function BookEditor() {
             borderColor: '#cccccc',
             borderStyle: 'dashed',
             borderRadius: 0,
+            imageUrl: mediaUrl || '',
+          },
+        };
+      case 'video':
+      case 'video-url':
+        return {
+          ...baseElement,
+          type: 'video',
+          width: 300,
+          height: 200,
+          content: '',
+          properties: {
+            backgroundColor: '#f0f0f0',
+            borderWidth: 1,
+            borderColor: '#cccccc',
+            borderStyle: 'dashed',
+            borderRadius: 0,
+            videoUrl: mediaUrl || '',
+            autoplay: false,
+            muted: true,
+            controls: true,
+            loop: false,
           },
         };
       default:
@@ -1345,13 +1629,36 @@ function BookEditor() {
 
     if (activeData?.type === 'tool') {
       // Add new element
-      const newElement = createElementFromTool(activeData.toolType, dropX, dropY);
+      const toolType = activeData.toolType;
+      
+      // Check if there's an uploaded media URL for this tool type
+      let mediaUrl = '';
+      if (toolType === 'image' || toolType === 'upload') {
+        mediaUrl = uploadedMediaUrls.image || '';
+      } else if (toolType === 'video' || toolType === 'video-url') {
+        mediaUrl = uploadedMediaUrls.video || '';
+      }
+      
+      const newElement = createElementFromTool(toolType, dropX, dropY, mediaUrl);
       setElements(prev => {
         const newElements = [...prev, newElement];
         addToHistory(newElements);
         return newElements;
       });
       setSelectedElementId(newElement.id);
+      
+      // Clear the uploaded URL after using it
+      if (mediaUrl) {
+        setUploadedMediaUrls(prev => {
+          const updated = { ...prev };
+          if (toolType === 'image' || toolType === 'upload') {
+            delete updated.image;
+          } else if (toolType === 'video' || toolType === 'video-url') {
+            delete updated.video;
+          }
+          return updated;
+        });
+      }
     } else if (activeData?.type === 'element') {
       // Move existing element
       const elementId = activeData.element.id;
@@ -1410,27 +1717,96 @@ function BookEditor() {
 
   // Save functionality
   const handleSave = useCallback(async () => {
-    if (!book) return;
+    if (!book) {
+      console.log('No book available for saving');
+      alert('Ошибка: Книга не найдена');
+      return;
+    }
 
     try {
+      console.log('Starting save process...');
+      console.log('Book ID:', book.id);
+      console.log('User Profile:', userProfile?.id);
+      
       const supabase = createClient();
       
-      await supabase
+      // Test Supabase connection first
+      console.log('Testing Supabase connection...');
+      const { data: testData, error: testError } = await supabase
         .from('books')
-        .update({ 
-          canvas_elements: JSON.stringify(elements),
-          canvas_settings: JSON.stringify(canvasSettings),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', book.id);
+        .select('id')
+        .eq('id', book.id)
+        .single();
+      
+      if (testError) {
+        console.error('Supabase connection test failed:', testError);
+        alert('Ошибка подключения к базе данных: ' + testError.message);
+        return;
+      }
+      
+      console.log('Supabase connection test successful:', testData);
+      
+      // Prepare data for saving
+      const canvasElementsJson = JSON.stringify(elements);
+      const canvasSettingsJson = JSON.stringify(canvasSettings);
+      
+      console.log('Saving book data:');
+      console.log('- Book ID:', book.id);
+      console.log('- Elements count:', elements.length);
+      console.log('- Canvas settings:', canvasSettings);
+      console.log('- Elements JSON length:', canvasElementsJson.length);
+      console.log('- Settings JSON length:', canvasSettingsJson.length);
+      
+      const updateData = {
+        canvas_elements: canvasElementsJson,
+        canvas_settings: canvasSettingsJson,
+        updated_at: new Date().toISOString(),
+      };
+      
+      console.log('Update data prepared:', Object.keys(updateData));
+      
+      const { data, error } = await supabase
+        .from('books')
+        .update(updateData)
+        .eq('id', book.id)
+        .select();
 
-      // Show success feedback
-      alert('Сохранено!');
+      console.log('Update response:');
+      console.log('- Data:', data);
+      console.log('- Error:', error);
+
+      if (error) {
+        console.error('Save error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        alert('Ошибка при сохранении: ' + (error.message || 'Неизвестная ошибка'));
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error('No data returned from update');
+        alert('Ошибка: Не удалось обновить книгу. Проверьте права доступа.');
+        return;
+      }
+
+      console.log('Book saved successfully:', data);
+      alert('Книга успешно сохранена!');
+      
+      // Update the history after successful save
+      addToHistory(elements);
+      
     } catch (error) {
-      console.error('Save error:', error);
-      alert('Ошибка при сохранении');
+      console.error('Save error (catch block):', {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      alert('Ошибка при сохранении: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
     }
-  }, [book, elements, canvasSettings]);
+  }, [book, elements, canvasSettings, addToHistory, userProfile]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1489,6 +1865,16 @@ function BookEditor() {
   // Get current page elements
   const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
   const selectedElement: CanvasElement | null = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
+
+  // Handle media upload success
+  const handleMediaUploaded = useCallback((url: string, type: string) => {
+    console.log('Media uploaded:', url, type);
+    // Store the uploaded URL to use when the tool is dragged to canvas
+    setUploadedMediaUrls(prev => ({
+      ...prev,
+      [type]: url
+    }));
+  }, []);
 
   if (isLoading) {
     return (
@@ -1733,7 +2119,7 @@ function BookEditor() {
               <div className="flex-1 p-4 overflow-y-auto">
                 <div className="grid grid-cols-3 gap-3">
                   {TOOLS.filter(tool => tool.category === activeCategory).map((tool) => (
-                    <DraggableTool key={tool.id} tool={tool} />
+                    <DraggableTool key={tool.id} tool={tool} onMediaUploaded={handleMediaUploaded} />
                   ))}
                 </div>
 
