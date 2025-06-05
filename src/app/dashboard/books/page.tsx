@@ -407,7 +407,10 @@ export default function BooksPage() {
       
       const { error } = await supabase
         .from('books')
-        .update({ status: 'Approved' })
+        .update({ 
+          status: 'Approved',
+          moderator_id: userProfile?.id // Записываем ID модератора, который одобрил книгу
+        })
         .eq('id', book.id);
 
       if (error) {
@@ -416,7 +419,7 @@ export default function BooksPage() {
 
       // Refresh books list
       await fetchBooks();
-      setSuccess('Книга одобрена');
+      setSuccess('Книга одобрена и отправлена к супер-админу');
     } catch (error) {
       console.error('Error approving book:', error);
       setError(error instanceof Error ? error.message : 'Не удалось одобрить книгу');

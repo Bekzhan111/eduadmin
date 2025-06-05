@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PageNavigator } from '@/components/ui/page-navigator';
 import { 
   DndContext,
   DragOverlay,
@@ -24,8 +25,10 @@ import {
   Save, Type, Square, Circle, MousePointer, Image as ImageIcon, Minus, AlignLeft,
   Menu, X, PanelLeftClose, PanelLeftOpen, Plus, Trash2, Copy, Undo2, Redo2,
   ZoomIn, ZoomOut, Grid3X3, Eye, SkipForward, SkipBack, Settings, Layers,
-  Triangle, Star, Heart, Upload, Move3D,
-  Bold, Italic, Underline, ArrowUp, ArrowDown, Video, Link,
+  Triangle, Star, Heart, Upload, Move3D, Lock,
+  Bold, Italic, Underline, ArrowUp, ArrowDown, Video, Link, BookOpen,
+  RotateCw, Palette, FlipHorizontal,
+  Scissors, Clipboard, Wand2, Sparkles, Target, FileText
 } from 'lucide-react';
 import { uploadMedia, uploadMediaFromUrl, MediaType, UploadResult } from '@/utils/mediaUpload';
 
@@ -54,6 +57,8 @@ type CanvasElement = {
   zIndex: number;
   rotation: number;
   opacity: number;
+  locked?: boolean;
+  visible?: boolean;
   properties: {
     fontSize?: number;
     fontFamily?: string;
@@ -83,6 +88,12 @@ type CanvasElement = {
     muted?: boolean;
     controls?: boolean;
     loop?: boolean;
+    animation?: string;
+    gradient?: {
+      type: 'linear' | 'radial';
+      colors: string[];
+      direction?: number;
+    };
   };
 };
 
@@ -94,34 +105,154 @@ type CanvasSettings = {
   canvasHeight: number;
   showGrid: boolean;
   twoPageView: boolean;
+  snapToGrid: boolean;
+  gridSize: number;
+  showRulers: boolean;
+  showGuides: boolean;
 };
 
-// Enhanced Tool definitions with more elements
+type Template = {
+  id: string;
+  name: string;
+  preview: string;
+  elements: CanvasElement[];
+  category: 'basic' | 'business' | 'creative' | 'education';
+};
+
+// Enhanced Tool definitions with more elements and categories
 const TOOLS = [
-  { id: 'select', icon: MousePointer, label: 'Выбрать', category: 'basic' },
-  { id: 'text', icon: Type, label: 'Текст', category: 'text' },
-  { id: 'paragraph', icon: AlignLeft, label: 'Абзац', category: 'text' },
-  { id: 'rectangle', icon: Square, label: 'Прямоугольник', category: 'shapes' },
-  { id: 'circle', icon: Circle, label: 'Круг', category: 'shapes' },
-  { id: 'triangle', icon: Triangle, label: 'Треугольник', category: 'shapes' },
-  { id: 'star', icon: Star, label: 'Звезда', category: 'shapes' },
-  { id: 'heart', icon: Heart, label: 'Сердце', category: 'shapes' },
-  { id: 'line', icon: Minus, label: 'Линия', category: 'shapes' },
-  { id: 'arrow', icon: Move3D, label: 'Стрелка', category: 'shapes' },
-  { id: 'image', icon: ImageIcon, label: 'Изображение', category: 'media' },
-  { id: 'upload', icon: Upload, label: 'Загрузить', category: 'media' },
-  { id: 'video', icon: Video, label: 'Видео', category: 'media' },
-  { id: 'video-url', icon: Link, label: 'Видео по URL', category: 'media' },
+  { id: 'select', icon: MousePointer, label: 'Выбрать', category: 'basic', hotkey: 'V' },
+  
+  // Text tools
+  { id: 'text', icon: Type, label: 'Текст', category: 'text', hotkey: 'T' },
+  { id: 'paragraph', icon: AlignLeft, label: 'Абзац', category: 'text', hotkey: 'P' },
+  { id: 'heading', icon: FileText, label: 'Заголовок', category: 'text', hotkey: 'H' },
+  
+  // Shape tools
+  { id: 'rectangle', icon: Square, label: 'Прямоугольник', category: 'shapes', hotkey: 'R' },
+  { id: 'circle', icon: Circle, label: 'Круг', category: 'shapes', hotkey: 'C' },
+  { id: 'triangle', icon: Triangle, label: 'Треугольник', category: 'shapes', hotkey: '' },
+  { id: 'star', icon: Star, label: 'Звезда', category: 'shapes', hotkey: '' },
+  { id: 'heart', icon: Heart, label: 'Сердце', category: 'shapes', hotkey: '' },
+  { id: 'line', icon: Minus, label: 'Линия', category: 'shapes', hotkey: 'L' },
+  { id: 'arrow', icon: Move3D, label: 'Стрелка', category: 'shapes', hotkey: 'A' },
+  
+  // Media tools
+  { id: 'image', icon: ImageIcon, label: 'Изображение', category: 'media', hotkey: 'I' },
+  { id: 'upload', icon: Upload, label: 'Загрузить', category: 'media', hotkey: '' },
+  { id: 'video', icon: Video, label: 'Видео', category: 'media', hotkey: '' },
+  { id: 'video-url', icon: Link, label: 'Видео по URL', category: 'media', hotkey: '' },
+  
+  // Advanced tools
+  { id: 'gradient-bg', icon: Palette, label: 'Градиент', category: 'advanced', hotkey: '' },
+  { id: 'smart-crop', icon: Scissors, label: 'Умная обрезка', category: 'advanced', hotkey: '' },
+  { id: 'magic-resize', icon: Wand2, label: 'Умный ресайз', category: 'advanced', hotkey: '' },
 ] as const;
 
 const TOOL_CATEGORIES = [
   { id: 'text', label: 'Текст', icon: Type },
   { id: 'shapes', label: 'Фигуры', icon: Square },
   { id: 'media', label: 'Медиа', icon: ImageIcon },
+  { id: 'advanced', label: 'Продвинутые', icon: Sparkles },
 ];
 
-// Draggable Tool Component with enhanced design
-function DraggableTool({ tool, onMediaUploaded }: { tool: typeof TOOLS[number]; onMediaUploaded?: (url: string, type: string) => void }) {
+// Predefined templates
+const _TEMPLATES: Template[] = [
+  {
+    id: 'title-page',
+    name: 'Титульная страница',
+    preview: '/templates/title-page.svg',
+    category: 'basic',
+    elements: [
+      {
+        id: 'template-title',
+        type: 'text',
+        x: 50,
+        y: 100,
+        width: 400,
+        height: 80,
+        content: 'НАЗВАНИЕ КНИГИ',
+        page: 1,
+        zIndex: 1,
+        rotation: 0,
+        opacity: 1,
+        properties: {
+          fontSize: 48,
+          fontFamily: 'Arial',
+          fontWeight: 'bold',
+          color: '#2c3e50',
+          textAlign: 'center',
+        },
+      },
+      {
+        id: 'template-subtitle',
+        type: 'text',
+        x: 50,
+        y: 200,
+        width: 400,
+        height: 40,
+        content: 'Подзаголовок или описание',
+        page: 1,
+        zIndex: 2,
+        rotation: 0,
+        opacity: 1,
+        properties: {
+          fontSize: 18,
+          fontFamily: 'Arial',
+          color: '#7f8c8d',
+          textAlign: 'center',
+        },
+      },
+      {
+        id: 'template-author',
+        type: 'text',
+        x: 50,
+        y: 350,
+        width: 400,
+        height: 30,
+        content: 'Автор: Ваше имя',
+        page: 1,
+        zIndex: 3,
+        rotation: 0,
+        opacity: 1,
+        properties: {
+          fontSize: 16,
+          fontFamily: 'Arial',
+          color: '#34495e',
+          textAlign: 'center',
+        },
+      },
+    ],
+  },
+  // Add more templates...
+];
+
+// Quick actions for selected elements
+const _QUICK_ACTIONS = [
+  { id: 'duplicate', label: 'Дублировать', icon: Copy, hotkey: 'Ctrl+D' },
+  { id: 'delete', label: 'Удалить', icon: Trash2, hotkey: 'Del' },
+  { id: 'copy', label: 'Копировать', icon: Clipboard, hotkey: 'Ctrl+C' },
+  { id: 'lock', label: 'Заблокировать', icon: Lock, hotkey: '' },
+  { id: 'bring-front', label: 'На передний план', icon: ArrowUp, hotkey: '' },
+  { id: 'rotate', label: 'Повернуть', icon: RotateCw, hotkey: 'R' },
+  { id: 'align-center', label: 'Центрировать', icon: Target, hotkey: '' },
+  { id: 'flip-h', label: 'Отразить по горизонтали', icon: FlipHorizontal, hotkey: '' },
+];
+
+// Enhanced Draggable Tool Component
+function DraggableTool({ 
+  tool, 
+  onMediaUploaded,
+  isSelected,
+  onSelect,
+  canvasSettings
+}: { 
+  tool: typeof TOOLS[number]; 
+  onMediaUploaded?: (url: string, type: string) => void;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  canvasSettings: CanvasSettings;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `tool-${tool.id}`,
     data: { type: 'tool', toolType: tool.id },
@@ -131,11 +262,15 @@ function DraggableTool({ tool, onMediaUploaded }: { tool: typeof TOOLS[number]; 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const IconComponent = tool.icon;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleToolClick = () => {
+  const handleToolClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect?.();
+    
     if (tool.id === 'upload') {
       fileInputRef.current?.click();
     } else if (tool.id === 'video') {
@@ -157,11 +292,26 @@ function DraggableTool({ tool, onMediaUploaded }: { tool: typeof TOOLS[number]; 
       const result: UploadResult = await uploadMedia(file, mediaType);
       
       if (result.success && result.url) {
-        // Notify parent component about successful upload
         if (onMediaUploaded) {
           onMediaUploaded(result.url, mediaType);
         }
-        alert(`${mediaType === 'video' ? 'Видео' : 'Изображение'} успешно загружено! Перетащите инструмент на холст.`);
+        
+        // Create a notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50 transition-all duration-300';
+        notification.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>${mediaType === 'video' ? 'Видео' : 'Изображение'} загружено! Перетащите на холст.</span>
+          </div>
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+          notification.style.transform = 'translateX(100%)';
+          setTimeout(() => document.body.removeChild(notification), 300);
+        }, 3000);
       } else {
         setUploadError(result.error || 'Ошибка загрузки');
       }
@@ -186,11 +336,17 @@ function DraggableTool({ tool, onMediaUploaded }: { tool: typeof TOOLS[number]; 
       const result: UploadResult = await uploadMediaFromUrl(urlInput, 'video');
       
       if (result.success && result.url) {
-        // Notify parent component about successful upload
         if (onMediaUploaded) {
           onMediaUploaded(result.url, 'video');
         }
-        alert('Видео по URL успешно загружено! Перетащите инструмент на холст.');
+        
+        // Success notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+        notification.textContent = 'Видео по URL загружено! Перетащите на холст.';
+        document.body.appendChild(notification);
+        setTimeout(() => document.body.removeChild(notification), 3000);
+        
         setUrlInput('');
         setShowUrlInput(false);
       } else {
@@ -204,26 +360,227 @@ function DraggableTool({ tool, onMediaUploaded }: { tool: typeof TOOLS[number]; 
     }
   };
 
+  // Smart element positioning
+  const getSmartPosition = () => {
+    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+    if (!canvasElement) return { x: 100, y: 100 };
+
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const zoomFactor = canvasSettings.zoom / 100;
+    
+    // Calculate center position
+    let centerX = (canvasRect.width / 2) / zoomFactor;
+    let centerY = (canvasRect.height / 2) / zoomFactor;
+    
+    // Add some random offset to avoid overlapping
+    centerX += (Math.random() - 0.5) * 100;
+    centerY += (Math.random() - 0.5) * 100;
+    
+    // Snap to grid if enabled
+    if (canvasSettings.snapToGrid) {
+      centerX = Math.round(centerX / canvasSettings.gridSize) * canvasSettings.gridSize;
+      centerY = Math.round(centerY / canvasSettings.gridSize) * canvasSettings.gridSize;
+    }
+    
+    return { x: Math.max(0, centerX - 50), y: Math.max(0, centerY - 25) };
+  };
+
+  // Determine if this tool needs click functionality
+  const needsClickFunctionality = ['upload', 'video', 'video-url'].includes(tool.id);
+
+  const handleGeneralToolClick = (e: React.MouseEvent) => {
+    if (!needsClickFunctionality) {
+      e.stopPropagation();
+      const position = getSmartPosition();
+      
+      // Enhanced element creation with better defaults
+      const newElement = {
+        id: `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: tool.id as CanvasElement['type'],
+        ...position,
+        width: getDefaultWidth(tool.id),
+        height: getDefaultHeight(tool.id),
+        content: getDefaultContent(tool.id),
+        page: canvasSettings.currentPage,
+        zIndex: 0,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        properties: getEnhancedPropertiesForTool(tool.id)
+      };
+      
+      // Dispatch custom event to add element
+      window.dispatchEvent(new CustomEvent('addToolToCanvas', { 
+        detail: { tool: tool.id, element: newElement } 
+      }));
+    }
+  };
+
+  const getDefaultWidth = (toolId: string) => {
+    switch (toolId) {
+      case 'text': return 150;
+      case 'heading': return 300;
+      case 'paragraph': return 250;
+      case 'line': return 200;
+      case 'arrow': return 200;
+      case 'image': return 150;
+      case 'video': return 300;
+      default: return 100;
+    }
+  };
+
+  const getDefaultHeight = (toolId: string) => {
+    switch (toolId) {
+      case 'text': return 40;
+      case 'heading': return 60;
+      case 'paragraph': return 120;
+      case 'line': return 2;
+      case 'arrow': return 50;
+      case 'image': return 150;
+      case 'video': return 200;
+      default: return 100;
+    }
+  };
+
+  const getDefaultContent = (toolId: string) => {
+    switch (toolId) {
+      case 'text': return 'Новый текст';
+      case 'heading': return 'ЗАГОЛОВОК';
+      case 'paragraph': return 'Новый абзац.\nНачните печатать здесь...';
+      default: return '';
+    }
+  };
+
+  const getEnhancedPropertiesForTool = (toolId: string) => {
+    const baseProps = {
+      borderRadius: 0,
+      shadow: false,
+      animation: 'none',
+    };
+
+    switch (toolId) {
+      case 'text':
+        return {
+          ...baseProps,
+          fontSize: 16,
+          fontFamily: 'Arial',
+          fontWeight: 'normal',
+          color: '#000000',
+          backgroundColor: 'transparent',
+          textAlign: 'center' as const,
+        };
+      case 'heading':
+        return {
+          ...baseProps,
+          fontSize: 32,
+          fontFamily: 'Arial',
+          fontWeight: 'bold',
+          color: '#2c3e50',
+          backgroundColor: 'transparent',
+          textAlign: 'center' as const,
+        };
+      case 'paragraph':
+        return {
+          ...baseProps,
+          fontSize: 14,
+          fontFamily: 'Arial',
+          fontWeight: 'normal',
+          color: '#2c3e50',
+          backgroundColor: 'transparent',
+          textAlign: 'left' as const,
+        };
+      case 'rectangle':
+        return {
+          ...baseProps,
+          shapeType: 'rectangle' as const,
+          backgroundColor: '#3498db',
+          borderWidth: 0,
+          borderColor: '#2980b9',
+          borderRadius: 8,
+        };
+      case 'circle':
+        return {
+          ...baseProps,
+          shapeType: 'circle' as const,
+          backgroundColor: '#e74c3c',
+          borderWidth: 0,
+          borderColor: '#c0392b',
+        };
+      case 'line':
+        return {
+          ...baseProps,
+          lineThickness: 3,
+          color: '#34495e',
+        };
+      case 'gradient-bg':
+        return {
+          ...baseProps,
+          shapeType: 'rectangle' as const,
+          backgroundColor: '#3498db',
+          gradient: {
+            type: 'linear' as const,
+            colors: ['#3498db', '#9b59b6'],
+            direction: 45,
+          },
+        };
+      default:
+        return baseProps;
+    }
+  };
+
   return (
-    <div className="relative">
+    <div className="relative group">
       <div
         ref={setNodeRef}
-        {...listeners}
-        {...attributes}
-        onClick={handleToolClick}
-        className={`flex flex-col items-center p-3 rounded-lg cursor-grab hover:bg-gray-100 transition-all duration-200 ${
-          isDragging ? 'opacity-50 scale-95' : 'hover:scale-105'
-        } bg-white border border-gray-200 shadow-sm`}
+        {...(needsClickFunctionality ? {} : listeners)}
+        {...(needsClickFunctionality ? {} : attributes)}
+        onClick={needsClickFunctionality ? handleToolClick : handleGeneralToolClick}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        className={`
+          flex flex-col items-center p-3 rounded-xl transition-all duration-200 
+          ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-110'} 
+          ${isSelected ? 'bg-blue-50 border-2 border-blue-400 shadow-lg' : 'bg-white border-2 border-gray-200'} 
+          ${needsClickFunctionality ? 'cursor-pointer' : 'cursor-pointer hover:cursor-grab'} 
+          hover:bg-gradient-to-br hover:from-white hover:to-gray-50 hover:shadow-lg
+          hover:border-blue-300 group-hover:z-10
+        `}
+        title={needsClickFunctionality ? 'Нажмите для настройки' : 'Нажмите для добавления или перетащите на холст'}
       >
-        <IconComponent className="h-5 w-5 mb-1 text-gray-700" />
-        <span className="text-xs text-gray-600 text-center">{tool.label}</span>
-        
-        {isUploading && (
-          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        {/* Enhanced drag handle for clickable tools */}
+        {needsClickFunctionality && (
+          <div
+            {...listeners}
+            {...attributes}
+            className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-grab bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110"
+            title="Перетащите для добавления на холст"
+          >
+            <div className="w-3 h-3 bg-white rounded-full opacity-80"></div>
           </div>
         )}
         
+        {/* Hotkey indicator */}
+        {tool.hotkey && tool.hotkey.trim() && (
+          <div className="absolute -top-1 -right-1 bg-gray-800 text-white text-xs px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+            {tool.hotkey}
+          </div>
+        )}
+        
+        <IconComponent className={`h-6 w-6 mb-2 transition-colors ${isSelected ? 'text-blue-600' : 'text-gray-700 group-hover:text-blue-600'}`} />
+        <span className={`text-xs text-center font-medium transition-colors ${isSelected ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-800'}`}>
+          {tool.label}
+        </span>
+        
+        {/* Enhanced loading state */}
+        {isUploading && (
+          <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mb-2"></div>
+            <span className="text-xs text-blue-600 font-medium">Загрузка...</span>
+          </div>
+        )}
+        
+        {/* Hidden file input */}
         {(tool.id === 'upload' || tool.id === 'video') && (
           <input
             ref={fileInputRef}
@@ -235,45 +592,78 @@ function DraggableTool({ tool, onMediaUploaded }: { tool: typeof TOOLS[number]; 
         )}
       </div>
       
-      {uploadError && (
-        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-red-100 text-red-700 text-xs rounded border">
-          {uploadError}
-          <button 
-            onClick={() => setUploadError(null)}
-            className="ml-2 text-red-900 hover:text-red-700"
-          >
-            ✕
-          </button>
+      {/* Enhanced tooltip */}
+      {showTooltip && !isDragging && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg z-50 whitespace-nowrap">
+          <div className="font-medium">{tool.label}</div>
+          {tool.hotkey && tool.hotkey.trim() && <div className="text-gray-300">Горячая клавиша: {tool.hotkey}</div>}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
         </div>
       )}
       
-      {showUrlInput && tool.id === 'video-url' && (
-        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-white border rounded shadow-lg z-10">
-          <input
-            type="url"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="https://example.com/video.mp4"
-            className="w-full p-1 border rounded text-xs mb-2"
-          />
-          <div className="flex space-x-1">
-            <button
-              onClick={handleUrlUpload}
-              disabled={isUploading || !urlInput.trim()}
-              className="flex-1 bg-blue-600 text-white text-xs p-1 rounded disabled:opacity-50"
-            >
-              {isUploading ? 'Загрузка...' : 'Загрузить'}
-            </button>
-            <button
-              onClick={() => {
-                setShowUrlInput(false);
-                setUrlInput('');
+      {/* Enhanced error display */}
+      {uploadError && (
+        <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg shadow-lg z-20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                <X className="w-2 h-2 text-white" />
+              </div>
+              <span className="font-medium">Ошибка:</span>
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
                 setUploadError(null);
               }}
-              className="bg-gray-300 text-gray-700 text-xs p-1 rounded"
+              className="text-red-600 hover:text-red-800 transition-colors"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
+          </div>
+          <div className="mt-1 text-red-600">{uploadError}</div>
+        </div>
+      )}
+      
+      {/* Enhanced URL input */}
+      {showUrlInput && tool.id === 'video-url' && (
+        <div className="absolute top-full left-0 right-0 mt-2 p-4 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-64">
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-1 block">URL видео</Label>
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://example.com/video.mp4"
+                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onClick={(e) => e.stopPropagation()}
+                autoFocus
+              />
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUrlUpload();
+                }}
+                disabled={isUploading || !urlInput.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploading ? 'Загрузка...' : 'Загрузить'}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowUrlInput(false);
+                  setUrlInput('');
+                  setUploadError(null);
+                }}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm py-2 px-3 rounded-lg font-medium transition-colors"
+              >
+                Отмена
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -323,11 +713,13 @@ function CanvasElementComponent({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('Element clicked:', element.id);
     onSelect();
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('Element double clicked:', element.id);
     if (element.type === 'text' || element.type === 'paragraph') {
       onEdit(true);
     }
@@ -1254,6 +1646,7 @@ function BookEditor() {
   const [mainSidebarHidden, setMainSidebarHidden] = useState(searchParams?.get('hideSidebar') === 'true');
   const [toolsPanelOpen, setToolsPanelOpen] = useState(true);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true);
+  const [pagesPanelOpen, setPagesPanelOpen] = useState(true);
   const [activeCategory, setActiveCategory] = useState('text');
 
   // Canvas settings
@@ -1265,6 +1658,10 @@ function BookEditor() {
     canvasHeight: 297, // A4 height in mm
     showGrid: false,
     twoPageView: false,
+    snapToGrid: false,
+    gridSize: 10,
+    showRulers: false,
+    showGuides: false,
   });
 
   // Sensors with proper configuration
@@ -1277,7 +1674,7 @@ function BookEditor() {
   );
 
   // Generate unique ID
-  const generateId = () => `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const generateId = useCallback(() => `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, []);
 
   // Add to history
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -1551,7 +1948,7 @@ function BookEditor() {
       });
       setSelectedElementId(newElement.id);
     }
-  }, [elements, addToHistory]);
+  }, [elements, addToHistory, generateId]);
 
   // Move element up in layers
   const moveElementUp = useCallback((elementId: string) => {
@@ -1808,7 +2205,43 @@ function BookEditor() {
     }
   }, [book, elements, canvasSettings, addToHistory, userProfile]);
 
-  // Keyboard shortcuts
+  // Handle media upload success
+  const handleMediaUploaded = useCallback((url: string, type: string) => {
+    console.log('Media uploaded:', url, type);
+    // Store the uploaded URL to use when the tool is dragged to canvas
+    setUploadedMediaUrls(prev => ({
+      ...prev,
+      [type]: url
+    }));
+  }, []);
+
+  // Handle adding tools to canvas via click
+  const handleAddElementFromTool = useCallback((elementData: Partial<CanvasElement>) => {
+    const newElement: CanvasElement = {
+      id: elementData.id || generateId(),
+      type: elementData.type || 'text',
+      x: elementData.x || 0,
+      y: elementData.y || 0,
+      width: elementData.width || 100,
+      height: elementData.height || 40,
+      content: elementData.content || '',
+      rotation: 0,
+      opacity: 1,
+      properties: elementData.properties || {},
+      ...elementData,
+      page: canvasSettings.currentPage,
+      zIndex: elements.length,
+    };
+    
+    setElements(prev => {
+      const newElements = [...prev, newElement];
+      addToHistory(newElements);
+      return newElements;
+    });
+    setSelectedElementId(newElement.id);
+  }, [canvasSettings.currentPage, elements.length, addToHistory, generateId]);
+
+  // Keyboard shortcuts and tool click events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -1841,9 +2274,20 @@ function BookEditor() {
       }
     };
 
+    // Handle tool click events
+    const handleAddToolToCanvas = (e: CustomEvent) => {
+      const { element } = e.detail;
+      handleAddElementFromTool(element);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElementId, undo, redo, duplicateElement, deleteElement, handleSave]);
+    window.addEventListener('addToolToCanvas', handleAddToolToCanvas as EventListener);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('addToolToCanvas', handleAddToolToCanvas as EventListener);
+    };
+  }, [selectedElementId, undo, redo, duplicateElement, deleteElement, handleSave, handleAddElementFromTool]);
 
   // Sidebar toggle
   const toggleMainSidebar = () => {
@@ -1866,15 +2310,115 @@ function BookEditor() {
   const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
   const selectedElement: CanvasElement | null = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
 
-  // Handle media upload success
-  const handleMediaUploaded = useCallback((url: string, type: string) => {
-    console.log('Media uploaded:', url, type);
-    // Store the uploaded URL to use when the tool is dragged to canvas
-    setUploadedMediaUrls(prev => ({
+  // Page management functions
+  const handlePageChange = useCallback((page: number) => {
+    // Ensure page is valid
+    if (page < 1 || page > canvasSettings.totalPages) {
+      console.warn('Invalid page number:', page);
+      return;
+    }
+    
+    console.log('Switching to page:', page);
+    
+    // Only update if different page
+    if (page !== canvasSettings.currentPage) {
+      setCanvasSettings(prev => ({ ...prev, currentPage: page }));
+      setSelectedElementId(null);
+      setEditingElementId(null);
+    }
+  }, [canvasSettings.currentPage, canvasSettings.totalPages]);
+
+  const handlePageAdd = useCallback((afterPage?: number) => {
+    const insertAfter = afterPage || canvasSettings.totalPages;
+    
+    setCanvasSettings(prev => ({
       ...prev,
-      [type]: url
+      totalPages: prev.totalPages + 1,
+      currentPage: insertAfter + 1
     }));
-  }, []);
+    
+    // Update page numbers for elements after the insertion point
+    setElements(prev => {
+      const newElements = prev.map(el => 
+        el.page > insertAfter ? { ...el, page: el.page + 1 } : el
+      );
+      addToHistory(newElements);
+      return newElements;
+    });
+  }, [canvasSettings.totalPages, addToHistory]);
+
+  const handlePageDelete = useCallback((page: number) => {
+    if (canvasSettings.totalPages <= 1) return; // Don't delete the last page
+    
+    // Remove all elements from the deleted page
+    setElements(prev => {
+      const newElements = prev
+        .filter(el => el.page !== page)
+        .map(el => el.page > page ? { ...el, page: el.page - 1 } : el);
+      addToHistory(newElements);
+      return newElements;
+    });
+    
+    setCanvasSettings(prev => {
+      const newTotalPages = prev.totalPages - 1;
+      const newCurrentPage = prev.currentPage > page 
+        ? prev.currentPage - 1 
+        : prev.currentPage > newTotalPages 
+        ? newTotalPages 
+        : prev.currentPage;
+      
+      return {
+        ...prev,
+        totalPages: newTotalPages,
+        currentPage: newCurrentPage
+      };
+    });
+  }, [canvasSettings.totalPages, addToHistory]);
+
+  const handlePageDuplicate = useCallback((page: number) => {
+    // Get all elements from the source page
+    const pageElements = elements.filter(el => el.page === page);
+    
+    // Create duplicated elements for the new page
+    const duplicatedElements = pageElements.map(el => ({
+      ...el,
+      id: generateId(),
+      page: canvasSettings.totalPages + 1
+    }));
+    
+    setElements(prev => {
+      const newElements = [...prev, ...duplicatedElements];
+      addToHistory(newElements);
+      return newElements;
+    });
+    
+    setCanvasSettings(prev => ({
+      ...prev,
+      totalPages: prev.totalPages + 1,
+      currentPage: prev.totalPages + 1
+    }));
+  }, [elements, canvasSettings.totalPages, addToHistory, generateId]);
+
+  const handlePageMove = useCallback((fromPage: number, toPage: number) => {
+    if (fromPage === toPage) return;
+    
+    setElements(prev => {
+      const newElements = prev.map(el => {
+        if (el.page === fromPage) {
+          return { ...el, page: toPage };
+        } else if (fromPage < toPage && el.page > fromPage && el.page <= toPage) {
+          return { ...el, page: el.page - 1 };
+        } else if (fromPage > toPage && el.page >= toPage && el.page < fromPage) {
+          return { ...el, page: el.page + 1 };
+        }
+        return el;
+      });
+      addToHistory(newElements);
+      return newElements;
+    });
+    
+    setCanvasSettings(prev => ({ ...prev, currentPage: toPage }));
+  }, [addToHistory]);
 
   if (isLoading) {
     return (
@@ -1915,24 +2459,34 @@ function BookEditor() {
               variant="ghost"
               size="sm"
               onClick={toggleMainSidebar}
-              className="text-gray-600"
+              className="text-gray-600 hover:bg-gray-100 transition-colors"
+              title={mainSidebarHidden ? "Показать главную панель" : "Скрыть главную панель"}
             >
               {mainSidebarHidden ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
             </Button>
 
             {/* Book title */}
-            <h1 className="font-semibold text-gray-900 truncate max-w-xs">
-              {book.title}
-            </h1>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                {book.title.charAt(0).toUpperCase()}
+              </div>
+              <h1 className="font-semibold text-gray-900 truncate max-w-xs">
+                {book.title}
+              </h1>
+              <div className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
+                Редактирование
+              </div>
+            </div>
 
             {/* Undo/Redo */}
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={undo}
                 disabled={historyIndex <= 0}
-                className="text-gray-600"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+                title="Отменить (Ctrl+Z)"
               >
                 <Undo2 className="h-4 w-4" />
               </Button>
@@ -1941,7 +2495,8 @@ function BookEditor() {
                 size="sm"
                 onClick={redo}
                 disabled={historyIndex >= history.length - 1}
-                className="text-gray-600"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+                title="Повторить (Ctrl+Y)"
               >
                 <Redo2 className="h-4 w-4" />
               </Button>
@@ -1949,9 +2504,9 @@ function BookEditor() {
           </div>
 
           {/* Center controls */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {/* Zoom controls */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -1959,13 +2514,25 @@ function BookEditor() {
                   ...prev, 
                   zoom: Math.max(10, prev.zoom - 10) 
                 }))}
-                className="text-gray-600"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                title="Уменьшить масштаб"
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-gray-600 min-w-[50px] text-center">
-                {canvasSettings.zoom}%
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 min-w-[50px] text-center font-medium">
+                  {canvasSettings.zoom}%
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCanvasSettings(prev => ({ ...prev, zoom: 100 }))}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+                  title="Сбросить масштаб"
+                >
+                  100%
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -1973,14 +2540,15 @@ function BookEditor() {
                   ...prev, 
                   zoom: Math.min(300, prev.zoom + 10) 
                 }))}
-                className="text-gray-600"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                title="Увеличить масштаб"
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Page navigation */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -1989,13 +2557,20 @@ function BookEditor() {
                   currentPage: Math.max(1, prev.currentPage - 1) 
                 }))}
                 disabled={canvasSettings.currentPage <= 1}
-                className="text-gray-600"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+                title="Предыдущая страница"
               >
                 <SkipBack className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-gray-600 min-w-[80px] text-center">
-                {canvasSettings.currentPage} / {canvasSettings.totalPages}
-              </span>
+              <div className="flex items-center space-x-1">
+                <span className="text-sm text-gray-600 font-medium">
+                  {canvasSettings.currentPage}
+                </span>
+                <span className="text-sm text-gray-400">/</span>
+                <span className="text-sm text-gray-400">
+                  {canvasSettings.totalPages}
+                </span>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -2013,7 +2588,8 @@ function BookEditor() {
                     }));
                   }
                 }}
-                className="text-gray-600"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                title={canvasSettings.currentPage >= canvasSettings.totalPages ? "Добавить новую страницу" : "Следующая страница"}
               >
                 {canvasSettings.currentPage >= canvasSettings.totalPages ? (
                   <Plus className="h-4 w-4" />
@@ -2031,22 +2607,27 @@ function BookEditor() {
                 ...prev, 
                 showGrid: !prev.showGrid 
               }))}
-              className={canvasSettings.showGrid ? 'text-blue-600' : 'text-gray-600'}
+              className={`transition-all ${canvasSettings.showGrid 
+                ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Переключить сетку"
             >
               <Grid3X3 className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Right controls */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             {/* Element actions */}
             {selectedElementId && (
-              <>
+              <div className="flex items-center space-x-1 bg-red-50 rounded-lg p-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => duplicateElement(selectedElementId)}
-                  className="text-gray-600"
+                  className="text-gray-600 hover:bg-white hover:text-green-700 hover:shadow-sm transition-all"
+                  title="Дублировать элемент (Ctrl+D)"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -2054,36 +2635,61 @@ function BookEditor() {
                   variant="ghost"
                   size="sm"
                   onClick={() => deleteElement(selectedElementId)}
-                  className="text-red-600"
+                  className="text-red-600 hover:bg-white hover:text-red-700 hover:shadow-sm transition-all"
+                  title="Удалить элемент (Delete)"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-              </>
+              </div>
             )}
 
             {/* Panel toggles */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setToolsPanelOpen(!toolsPanelOpen)}
-              className="text-gray-600"
-            >
-              {toolsPanelOpen ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            </Button>
+            <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPagesPanelOpen(!pagesPanelOpen)}
+                className={`transition-all ${pagesPanelOpen 
+                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                  : 'text-gray-600 hover:bg-white hover:shadow-sm'
+                }`}
+                title="Переключить панель страниц"
+              >
+                <BookOpen className="h-4 w-4" />
+              </Button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
-              className="text-gray-600"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setToolsPanelOpen(!toolsPanelOpen)}
+                className={`transition-all ${toolsPanelOpen 
+                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                  : 'text-gray-600 hover:bg-white hover:shadow-sm'
+                }`}
+                title="Переключить панель инструментов"
+              >
+                {toolsPanelOpen ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
+                className={`transition-all ${propertiesPanelOpen 
+                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                  : 'text-gray-600 hover:bg-white hover:shadow-sm'
+                }`}
+                title="Переключить панель свойств"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
 
             {/* Save button */}
             <Button 
               onClick={handleSave}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              title="Сохранить изменения (Ctrl+S)"
             >
               <Save className="h-4 w-4 mr-2" />
               Сохранить
@@ -2119,7 +2725,7 @@ function BookEditor() {
               <div className="flex-1 p-4 overflow-y-auto">
                 <div className="grid grid-cols-3 gap-3">
                   {TOOLS.filter(tool => tool.category === activeCategory).map((tool) => (
-                    <DraggableTool key={tool.id} tool={tool} onMediaUploaded={handleMediaUploaded} />
+                    <DraggableTool key={tool.id} tool={tool} onMediaUploaded={handleMediaUploaded} isSelected={selectedElementId === tool.id} onSelect={() => setSelectedElementId(tool.id)} canvasSettings={canvasSettings} />
                   ))}
                 </div>
 
@@ -2250,6 +2856,22 @@ function BookEditor() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Page Navigator Panel */}
+          {pagesPanelOpen && (
+            <PageNavigator
+              currentPage={canvasSettings.currentPage}
+              totalPages={canvasSettings.totalPages}
+              elements={elements}
+              canvasSettings={canvasSettings}
+              onPageChange={handlePageChange}
+              onPageAdd={handlePageAdd}
+              onPageDelete={handlePageDelete}
+              onPageDuplicate={handlePageDuplicate}
+              onPageMove={handlePageMove}
+              className="w-64"
+            />
           )}
 
           {/* Canvas Area */}
