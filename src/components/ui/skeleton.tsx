@@ -16,14 +16,14 @@ const BaseSkeleton: React.FC<{ className?: string; style?: React.CSSProperties }
   style 
 }) => (
   <div 
-    className={`animate-shimmer bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] rounded ${className}`}
+    className={`animate-shimmer bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] rounded ${className}`}
     style={style}
   />
 );
 
 // Card skeleton - имитирует карточку с изображением, заголовком и текстом
 const CardSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
     {/* Image placeholder */}
     <BaseSkeleton className="w-full h-32 mb-4" />
     
@@ -73,9 +73,9 @@ const AvatarSkeleton: React.FC = () => (
 
 // Table skeleton - строки таблицы
 const TableSkeleton: React.FC<{ rows: number }> = ({ rows }) => (
-  <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+  <div className="overflow-hidden border border-gray-200 rounded-lg">
     {/* Table header */}
-    <div className="bg-gray-50 dark:bg-gray-800 px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
       <div className="flex space-x-6">
         <BaseSkeleton className="h-4 w-24" />
         <BaseSkeleton className="h-4 w-32" />
@@ -85,7 +85,7 @@ const TableSkeleton: React.FC<{ rows: number }> = ({ rows }) => (
     </div>
     
     {/* Table rows */}
-    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+    <div className="divide-y divide-gray-200">
       {Array.from({ length: rows }).map((_, index) => (
         <div key={index} className="px-6 py-4">
           <div className="flex items-center space-x-6">

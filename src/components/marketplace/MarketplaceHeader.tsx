@@ -4,13 +4,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Menu, X, User, LogIn } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function MarketplaceHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+    <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -18,7 +17,7 @@ export default function MarketplaceHeader() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900 dark:text-white">
+            <span className="text-xl font-bold text-gray-900">
               EduBooks
             </span>
           </Link>
@@ -27,19 +26,19 @@ export default function MarketplaceHeader() {
           <nav className="hidden md:flex items-center space-x-8">
             <Link 
               href="/marketplace" 
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               Книги
             </Link>
             <Link 
               href="/school-registration" 
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               Школы
             </Link>
             <Link 
               href="/bulk-purchase" 
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               Оптовые Заказы
             </Link>
@@ -47,7 +46,6 @@ export default function MarketplaceHeader() {
 
           {/* Right Side Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost" size="sm">
                 <LogIn className="h-4 w-4 mr-2" />
@@ -63,8 +61,7 @@ export default function MarketplaceHeader() {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center space-x-2">
-            <ThemeToggle />
+          <div className="md:hidden flex items-center">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -81,30 +78,30 @@ export default function MarketplaceHeader() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4">
               <Link 
                 href="/marketplace" 
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Книги
               </Link>
               <Link 
                 href="/school-registration" 
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Школы
               </Link>
               <Link 
                 href="/bulk-purchase" 
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Оптовые Заказы
               </Link>
-              <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
                 <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     <LogIn className="h-4 w-4 mr-2" />

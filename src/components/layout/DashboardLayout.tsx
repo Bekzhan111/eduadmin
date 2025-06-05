@@ -73,10 +73,10 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Загрузка...</p>
+          <p className="text-gray-600">Загрузка...</p>
         </div>
       </div>
     );
@@ -85,10 +85,10 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
   // Show error state if there's an auth error
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-red-600 mb-4 text-lg font-semibold">Ошибка Аутентификации</div>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+          <p className="text-gray-600 mb-6">{error}</p>
           <div className="space-y-3">
             <button 
               onClick={handleRetry}
@@ -115,7 +115,7 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
               Перейти к Входу
             </button>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+          <p className="text-xs text-gray-500 mt-4">
             Если проблема повторяется, попробуйте очистить кэш браузера или обратитесь к администратору
           </p>
         </div>
@@ -126,9 +126,9 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
   // If no session after loading is complete, show login prompt instead of redirect
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-700 dark:text-gray-300 mb-4">Пожалуйста, войдите в систему для продолжения</div>
+          <div className="text-gray-700 mb-4">Пожалуйста, войдите в систему для продолжения</div>
           <button 
             onClick={() => router.push('/login')}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -141,7 +141,7 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <AppBar 
         onToggleSidebar={toggleSidebar} 
         isSidebarOpen={sidebarOpen}
@@ -167,10 +167,10 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Загрузка панели...</p>
+          <p className="text-gray-600">Загрузка панели...</p>
         </div>
       </div>
     }>
