@@ -1196,13 +1196,57 @@ export default function BooksPage() {
 
                         {/* Пользователи школы */}
                         {(userProfile?.role === 'teacher' || userProfile?.role === 'student') && book.status === 'Active' && (
-                          <div className="text-xs text-blue-600">
-                            📚 Доступно для изучения
+                          <div className="flex flex-col gap-2">
+                            {/* Основная кнопка чтения */}
+                            <Link href={`/read/${book.base_url}`} target="_blank">
+                              <Button
+                                size="sm"
+                                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                              >
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                📖 Читать книгу
+                              </Button>
+                            </Link>
+                            
+                            {/* Дополнительная информация */}
+                            <div className="flex items-center justify-center">
+                              <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                                Доступно для изучения
+                              </div>
+                            </div>
+                            
+                            {/* Быстрые действия */}
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 text-xs h-7 border-purple-200 text-purple-600 hover:bg-purple-50"
+                                onClick={() => {
+                                  // Добавим в избранное (можно реализовать позже)
+                                  console.log('Add to favorites:', book.id);
+                                }}
+                              >
+                                ⭐ В избранное
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 text-xs h-7 border-orange-200 text-orange-600 hover:bg-orange-50"
+                                onClick={() => {
+                                  // Поделиться (можно реализовать позже)
+                                  navigator.clipboard.writeText(`${window.location.origin}/read/${book.base_url}`);
+                                  alert('Ссылка скопирована!');
+                                }}
+                              >
+                                📤 Поделиться
+                              </Button>
+                            </div>
                           </div>
                         )}
 
-                        {/* Публичная ссылка для активных книг (для всех ролей) */}
-                        {book.status === 'Active' && (
+                        {/* Публичная ссылка для активных книг (для остальных ролей) */}
+                        {book.status === 'Active' && userProfile?.role !== 'teacher' && userProfile?.role !== 'student' && (
                           <Link href={`/read/${book.base_url}`} target="_blank">
                             <Button
                               variant="ghost"

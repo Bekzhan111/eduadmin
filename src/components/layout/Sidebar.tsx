@@ -15,7 +15,8 @@ import {
   LogOut,
   AlertCircle,
   Shield,
-  X
+  X,
+  Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton';
@@ -42,6 +43,9 @@ const navigationItems: NavItem[] = [
   
   // Role-specific Books access
   { name: 'Книги', path: '/dashboard/books', icon: BookOpen, roles: ['super_admin', 'school', 'teacher', 'student', 'author', 'moderator'] },
+  
+  // My Books for students and teachers
+  { name: 'Мои Книги', path: '/dashboard/my-books', icon: Star, roles: ['teacher', 'student'] },
   
   // Key Management - specific roles only
   { name: 'Управление ключами', path: '/dashboard/keys', icon: Key, roles: ['super_admin', 'school', 'teacher'] },
