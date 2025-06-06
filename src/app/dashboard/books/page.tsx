@@ -22,12 +22,15 @@ import {
   PlayCircle,
   RefreshCw,
   Search,
-  X
+  X,
+  ExternalLink,
+  Globe
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { fetchBooksWithCorrectClient } from '@/utils/supabase-admin';
 import { useRouter } from 'next/navigation';
+import BookViewStatsComponent from '@/components/ui/book-view-stats';
 
 type Book = {
   id: string;
@@ -959,7 +962,12 @@ export default function BooksPage() {
                   <TableRow key={book.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{book.title}</div>
+                        <Link href={`/book/${book.base_url}`} className="hover:text-blue-600 transition-colors">
+                          <div className="font-medium flex items-center gap-2">
+                            {book.title}
+                            <ExternalLink className="h-3 w-3 opacity-50" />
+                          </div>
+                        </Link>
                         <div className="text-sm text-gray-500">{book.description}</div>
                       </div>
                     </TableCell>
@@ -1000,6 +1008,9 @@ export default function BooksPage() {
                       </div>
                     </TableCell>
                     <TableCell>{book.author_name}</TableCell>
+                    <TableCell>
+                      <BookViewStatsComponent bookId={book.id} showDetailedStats={false} className="justify-center" />
+                    </TableCell>
                     <TableCell>
                       <div className="text-center">
                         <div className="text-sm font-medium">{book.schools_purchased} куплено</div>
@@ -1188,6 +1199,21 @@ export default function BooksPage() {
                           <div className="text-xs text-blue-600">
                             📚 Доступно для изучения
                           </div>
+                        )}
+
+                        {/* Публичная ссылка для активных книг (для всех ролей) */}
+                        {book.status === 'Active' && (
+                          <Link href={`/read/${book.base_url}`} target="_blank">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Посмотреть как выглядит книга для публичного доступа"
+                              className="h-8 text-green-600 hover:text-green-700"
+                            >
+                              <Globe className="h-4 w-4 mr-1" />
+                              Публично
+                            </Button>
+                          </Link>
                         )}
                       </div>
                     </TableCell>

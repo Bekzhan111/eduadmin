@@ -758,7 +758,7 @@ function CanvasElementComponent({
               fontWeight: element.properties.fontWeight || 'normal',
               fontStyle: element.properties.fontStyle || 'normal',
               textDecoration: element.properties.textDecoration || 'none',
-              color: element.properties.color || '#000',
+              color: element.properties.color || '#000000',
               textAlign: element.properties.textAlign || 'left',
             }}
             autoFocus
@@ -778,7 +778,7 @@ function CanvasElementComponent({
               fontWeight: element.properties.fontWeight || 'normal',
               fontStyle: element.properties.fontStyle || 'normal',
               textDecoration: element.properties.textDecoration || 'none',
-              color: element.properties.color || '#000',
+              color: element.properties.color || '#000000',
               textAlign: element.properties.textAlign || 'center',
             }}
             autoFocus
@@ -802,7 +802,7 @@ function CanvasElementComponent({
               fontWeight: element.properties.fontWeight || 'normal',
               fontStyle: element.properties.fontStyle || 'normal',
               textDecoration: element.properties.textDecoration || 'none',
-              color: element.properties.color || '#000',
+              color: element.properties.color || '#000000',
               backgroundColor: element.properties.backgroundColor || 'transparent',
               textAlign: element.properties.textAlign || 'center',
               borderRadius: element.properties.borderRadius || 0,
@@ -822,7 +822,7 @@ function CanvasElementComponent({
               fontWeight: element.properties.fontWeight || 'normal',
               fontStyle: element.properties.fontStyle || 'normal',
               textDecoration: element.properties.textDecoration || 'none',
-              color: element.properties.color || '#000',
+              color: element.properties.color || '#000000',
               backgroundColor: element.properties.backgroundColor || 'transparent',
               textAlign: element.properties.textAlign || 'left',
               borderRadius: element.properties.borderRadius || 0,
@@ -912,7 +912,7 @@ function CanvasElementComponent({
             className="w-full"
             style={{
               height: element.properties.lineThickness || 2,
-              backgroundColor: element.properties.color || '#000',
+              backgroundColor: element.properties.color || '#000000',
               top: '50%',
               position: 'relative',
               transform: 'translateY(-50%)',
@@ -927,14 +927,14 @@ function CanvasElementComponent({
               className="flex-1"
               style={{
                 height: element.properties.lineThickness || 2,
-                backgroundColor: element.properties.color || '#000',
+                backgroundColor: element.properties.color || '#000000',
               }}
             />
             <div
               style={{
                 width: 0,
                 height: 0,
-                borderLeft: `${(element.properties.lineThickness || 2) * 3}px solid ${element.properties.color || '#000'}`,
+                borderLeft: `${(element.properties.lineThickness || 2) * 3}px solid ${element.properties.color || '#000000'}`,
                 borderTop: `${(element.properties.lineThickness || 2) * 2}px solid transparent`,
                 borderBottom: `${(element.properties.lineThickness || 2) * 2}px solid transparent`,
               }}
@@ -1232,16 +1232,82 @@ function PropertiesPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Цвет</Label>
+                  <Label className="text-xs">Цвет текста</Label>
+                  <div className="flex space-x-1">
+                    <Input
+                      type="color"
+                      value={selectedElement.properties.color || '#000000'}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        updateProperty('color', e.target.value);
+                      }}
+                      className="h-8 w-12 p-1 border rounded"
+                    />
+                    <Input
+                      type="text"
+                      value={selectedElement.properties.color || '#000000'}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        updateProperty('color', e.target.value);
+                      }}
+                      placeholder="#000000"
+                      className="h-8 flex-1 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Color Presets */}
+              <div>
+                <Label className="text-xs mb-2 block">Быстрые цвета</Label>
+                <div className="grid grid-cols-8 gap-1">
+                  {[
+                    '#000000', '#ffffff', '#ff0000', '#00ff00', 
+                    '#0000ff', '#ffff00', '#ff00ff', '#00ffff',
+                    '#800000', '#008000', '#000080', '#808000',
+                    '#800080', '#008080', '#c0c0c0', '#808080'
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => updateProperty('color', color)}
+                      className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs">Цвет фона</Label>
+                <div className="flex space-x-1">
                   <Input
                     type="color"
-                    value={selectedElement.properties.color || '#000000'}
+                    value={selectedElement.properties.backgroundColor || '#ffffff'}
                     onChange={(e) => {
                       e.preventDefault();
-                      updateProperty('color', e.target.value);
+                      updateProperty('backgroundColor', e.target.value);
                     }}
-                    className="h-8"
+                    className="h-8 w-12 p-1 border rounded"
                   />
+                  <Input
+                    type="text"
+                    value={selectedElement.properties.backgroundColor || '#ffffff'}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('backgroundColor', e.target.value);
+                    }}
+                    placeholder="#ffffff"
+                    className="h-8 flex-1 text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateProperty('backgroundColor', 'transparent')}
+                    className="h-8 px-2 text-xs"
+                  >
+                    Прозрачный
+                  </Button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">

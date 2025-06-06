@@ -6,13 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BookOpen, Clock, User, Calendar } from 'lucide-react';
 import Image from 'next/image';
+import BookViewTracker from '@/components/ui/book-view-tracker';
+import BookViewStatsComponent from '@/components/ui/book-view-stats';
+import BookReader from '@/components/ui/book-reader';
 
 export default async function BookReadPage({ params }: { params: Promise<{ base_url: string }> }) {
   const { base_url } = await params;
 
   const supabase = createClient();
   
-  // Fetch book data
+  // Fetch book data with chapters if available
   const { data: book, error } = await supabase
     .from('books')
     .select(`
@@ -27,8 +30,132 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
     notFound();
   }
 
+  // Fetch chapters if they exist (предполагаем, что у нас есть таблица chapters)
+  const { data: chapters } = await supabase
+    .from('chapters')
+    .select('*')
+    .eq('book_id', book.id)
+    .order('order_index', { ascending: true });
+
+  // Создаем демонстрационный контент если нет реальных глав
+  const demoChapters = [
+    {
+      id: 'intro',
+      title: 'Введение',
+      content: `
+        <h1>Введение в ${book.title}</h1>
+        <p>Добро пожаловать в изучение курса <strong>"${book.title}"</strong> для ${book.grade_level} класса.</p>
+        <p>Этот учебник охватывает основные темы курса и предоставляет систематический подход к изучению материала.</p>
+        
+        <h2>Цели обучения</h2>
+        <p>По завершении изучения данного курса студенты должны:</p>
+        <ul>
+          <li>Понимать основные концепции и принципы</li>
+          <li>Применять полученные знания на практике</li>
+          <li>Развить критическое мышление в данной области</li>
+          <li>Подготовиться к дальнейшему изучению предмета</li>
+        </ul>
+        
+        <blockquote>
+          "Образование - это самое мощное оружие, которым можно изменить мир." - Нельсон Мандела
+        </blockquote>
+      `,
+      order: 1
+    },
+    {
+      id: 'chapter1',
+      title: 'Глава 1: Основы',
+      content: `
+        <h1>Глава 1: Основные понятия</h1>
+        
+        <p>В этой главе мы рассмотрим фундаментальные концепции, которые станут основой для дальнейшего изучения материала.</p>
+        
+        <h2>1.1 Определения</h2>
+        <p>Прежде чем погрузиться в детали, важно понимать основные термины и определения:</p>
+        
+        <div class="definition-box" style="border: 1px solid #ddd; padding: 1em; margin: 1em 0; background: #f9f9f9;">
+          <strong>Определение 1.1:</strong> Основная концепция - это...
+        </div>
+        
+        <h2>1.2 Примеры</h2>
+        <p>Рассмотрим несколько примеров для лучшего понимания:</p>
+        
+        <div style="margin: 1em 0; padding: 1em; background: #f0f8ff; border-left: 4px solid #0066cc;">
+          <strong>Пример 1:</strong> Практическое применение основной концепции в реальной жизни...
+        </div>
+        
+        <h2>1.3 Упражнения</h2>
+        <p>Для закрепления материала выполните следующие упражнения:</p>
+        <ol>
+          <li>Объясните основную концепцию своими словами</li>
+          <li>Приведите три собственных примера</li>
+          <li>Решите задачи в конце главы</li>
+        </ol>
+      `,
+      order: 2
+    },
+    {
+      id: 'chapter2',
+      title: 'Глава 2: Практическое применение',
+      content: `
+        <h1>Глава 2: Практическое применение</h1>
+        
+        <p>Теперь, когда мы изучили основы, перейдем к практическому применению полученных знаний.</p>
+        
+        <h2>2.1 Методология</h2>
+        <p>Для эффективного применения теоретических знаний рекомендуется использовать следующую методологию:</p>
+        
+        <ol>
+          <li><strong>Анализ задачи</strong> - внимательно изучите условия</li>
+          <li><strong>Планирование решения</strong> - составьте план действий</li>
+          <li><strong>Реализация</strong> - выполните запланированные шаги</li>
+          <li><strong>Проверка результатов</strong> - убедитесь в правильности решения</li>
+        </ol>
+        
+        <h2>2.2 Практические задания</h2>
+        
+        <div style="margin: 1em 0; padding: 1em; background: #fff3cd; border: 1px solid #ffeaa7;">
+          <strong>Задание 2.1:</strong> Используя изученные в первой главе концепции, решите следующую практическую задачу...
+        </div>
+        
+        <h2>2.3 Самостоятельная работа</h2>
+        <p>Выберите одну из предложенных тем для самостоятельного исследования:</p>
+        <ul>
+          <li>История развития данной области знаний</li>
+          <li>Современные тенденции и направления</li>
+          <li>Влияние технологий на развитие предмета</li>
+        </ul>
+        
+        <hr>
+        <p class="poetry">
+          Знание - сила,<br>
+          Практика - мастерство,<br>
+          Вместе они творят чудеса.
+        </p>
+      `,
+      order: 3
+    }
+  ];
+
+  // Подготавливаем данные для BookReader
+  const bookReaderData = {
+    id: book.id,
+    title: book.title,
+    chapters: chapters && chapters.length > 0 
+      ? chapters.map(chapter => ({
+          id: chapter.id,
+          title: chapter.title,
+          content: chapter.content || '<p>Содержимое главы не найдено.</p>',
+          order: chapter.order_index || 0
+        }))
+      : demoChapters
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Add view tracking */}
+      <BookViewTracker bookId={book.id} />
+      
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,28 +169,33 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
               </Link>
               <div className="h-6 w-px bg-gray-300"></div>
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Чтение книги
+                {book.title}
               </h1>
             </div>
             <div className="flex items-center space-x-2">
               <Badge variant="outline">
                 <BookOpen className="h-3 w-3 mr-1" />
-                Активная книга
+                {book.category || 'Учебник'}
               </Badge>
+              {book.grade_level && (
+                <Badge variant="secondary">
+                  {book.grade_level} класс
+                </Badge>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Book Info Sidebar */}
           <div className="lg:col-span-1">
             <Card className="sticky top-8">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <BookOpen className="h-5 w-5 mr-2" />
-                  Информация о книге
+                  О книге
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -83,9 +215,11 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
                     {book.title}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    {book.description}
-                  </p>
+                  {book.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      {book.description}
+                    </p>
+                  )}
                   
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center">
@@ -95,12 +229,14 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
                       </span>
                     </div>
                     
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {book.pages_count} страниц
-                      </span>
-                    </div>
+                    {book.pages_count && (
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {book.pages_count} страниц
+                        </span>
+                      </div>
+                    )}
                     
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-2 text-gray-400" />
@@ -108,6 +244,11 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
                         {new Date(book.created_at).toLocaleDateString('ru-RU')}
                       </span>
                     </div>
+                  </div>
+                  
+                  {/* Add simple view stats */}
+                  <div className="mt-4">
+                    <BookViewStatsComponent bookId={book.id} showDetailedStats={false} />
                   </div>
                   
                   <div className="flex flex-wrap gap-2 mt-4">
@@ -137,103 +278,12 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
             </Card>
           </div>
 
-          {/* Book Content */}
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl text-gray-900 dark:text-white">
-                  {book.title}
-                </CardTitle>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {book.course} • {book.grade_level} класс
-                </p>
-              </CardHeader>
-              <CardContent>
-                {/* This is where the actual book content would be rendered */}
-                <div className="prose max-w-none dark:prose-invert">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                      📚 Содержимое книги
-                    </h3>
-                    <p className="text-blue-800 dark:text-blue-200">
-                      Здесь будет отображаться содержимое книги &ldquo;{book.title}&rdquo;.
-                      В реальной системе здесь может быть:
-                    </p>
-                    <ul className="mt-3 space-y-1 text-blue-800 dark:text-blue-200">
-                      <li>• PDF-вьювер для просмотра учебника</li>
-                      <li>• Интерактивные упражнения и задания</li>
-                      <li>• Видео и аудио материалы</li>
-                      <li>• Тесты и проверочные работы</li>
-                    </ul>
-                  </div>
-
-                  <div className="space-y-6">
-                    <section>
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                        Глава 1: Введение
-                      </h2>
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Это демонстрационный контент для книги &ldquo;{book.title}&rdquo;. 
-                        В реальной образовательной системе здесь бы отображался 
-                        фактический контент учебника, включая текст, изображения, 
-                        схемы и интерактивные элементы.
-                      </p>
-                    </section>
-
-                    <section>
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                        Основные темы
-                      </h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                          <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                            Тема 1
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Основные понятия и определения
-                          </p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                          <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                            Тема 2
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Практические примеры и упражнения
-                          </p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                          <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                            Тема 3
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Контрольные вопросы и задания
-                          </p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                          <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                            Тема 4
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Дополнительные материалы
-                          </p>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section>
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                        Заключение
-                      </h2>
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Данная страница демонстрирует, как пользователи смогут 
-                        читать активированные книги после прохождения полного 
-                        цикла модерации: Автор → Модератор → Суперадмин → Публикация.
-                      </p>
-                    </section>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Book Reader */}
+          <div className="lg:col-span-4">
+            <BookReader 
+              bookData={bookReaderData}
+              className="w-full"
+            />
           </div>
         </div>
       </div>

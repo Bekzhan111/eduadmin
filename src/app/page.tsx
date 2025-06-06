@@ -26,9 +26,9 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/marketplace">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-4">
-                <BookOpen className="mr-2 h-5 w-5" />
-                Просмотреть Книги
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4 bg-white/10 border-white/20 hover:bg-white/20">
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Купить Книги
               </Button>
             </Link>
             <Link href="/school-registration">
