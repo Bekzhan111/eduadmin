@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   MessageCircle, Star, ThumbsUp, ThumbsDown, Reply, Flag, 
-  MoreHorizontal, Edit, Trash2, Send, Heart, BookOpen,
-  User, Calendar, Filter, SortAsc, SortDesc
+  Edit, Trash2, Send,
+  User, Calendar, Filter
 } from 'lucide-react';
 
 // Types
@@ -400,7 +399,7 @@ export function BookComments({
                   <div 
                     className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      width: `${stats.totalComments > 0 ? (stats.ratingDistribution[rating] / stats.totalComments) * 100 : 0}%` 
+                      width: `${stats.totalComments > 0 ? (stats.ratingDistribution[rating as keyof typeof stats.ratingDistribution] / stats.totalComments) * 100 : 0}%` 
                     }}
                   />
                 </div>
