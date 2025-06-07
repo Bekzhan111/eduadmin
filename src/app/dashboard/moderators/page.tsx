@@ -313,8 +313,12 @@ export default function ModeratorsPage() {
             <div className="text-center text-red-600">
               <p className="text-lg font-semibold">Ошибка</p>
               <p>{error}</p>
-              <Button onClick={() => window.location.reload()} className="mt-4">
-                Перезагрузить Страницу
+              <Button onClick={() => {
+                setError('');
+                // Retry loading data instead of reloading page
+                fetchModerators();
+              }} className="mt-4">
+                Повторить Загрузку
               </Button>
             </div>
           </CardContent>
