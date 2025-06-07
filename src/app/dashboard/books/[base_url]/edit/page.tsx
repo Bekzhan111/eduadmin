@@ -28,7 +28,8 @@ import {
   Triangle, Star, Heart, Upload, Move3D, Lock,
   Bold, Italic, Underline, ArrowUp, ArrowDown, Video, Link, BookOpen,
   RotateCw, Palette, FlipHorizontal,
-  Scissors, Clipboard, Wand2, Sparkles, Target, FileText
+  Scissors, Clipboard, Wand2, Sparkles, Target, FileText,
+  Volume2
 } from 'lucide-react';
 import { uploadMedia, uploadMediaFromUrl, MediaType, UploadResult } from '@/utils/mediaUpload';
 
@@ -47,7 +48,7 @@ type Book = {
 
 type CanvasElement = {
   id: string;
-  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video';
+  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video' | 'audio';
   x: number;
   y: number;
   width: number;
@@ -76,6 +77,7 @@ type CanvasElement = {
     shapeType?: 'rectangle' | 'circle' | 'triangle' | 'star' | 'heart';
     imageUrl?: string;
     videoUrl?: string;
+    audioUrl?: string;
     lineThickness?: number;
     arrowType?: 'single' | 'double' | 'none';
     iconType?: string;
@@ -142,6 +144,7 @@ const TOOLS = [
   { id: 'upload', icon: Upload, label: 'Загрузить', category: 'media', hotkey: '' },
   { id: 'video', icon: Video, label: 'Видео', category: 'media', hotkey: '' },
   { id: 'video-url', icon: Link, label: 'Видео по URL', category: 'media', hotkey: '' },
+  { id: 'audio', icon: Volume2, label: 'Аудио', category: 'media', hotkey: '' },
   
   // Advanced tools
   { id: 'gradient-bg', icon: Palette, label: 'Градиент', category: 'advanced', hotkey: '' },
@@ -277,6 +280,8 @@ function DraggableTool({
       fileInputRef.current?.click();
     } else if (tool.id === 'video-url') {
       setShowUrlInput(true);
+    } else if (tool.id === 'audio') {
+      fileInputRef.current?.click();
     }
   };
 
@@ -288,7 +293,7 @@ function DraggableTool({
     setUploadError(null);
 
     try {
-      const mediaType: MediaType = tool.id === 'video' ? 'video' : 'image';
+      const mediaType: MediaType = tool.id === 'video' ? 'video' : tool.id === 'audio' ? 'audio' : 'image';
       const result: UploadResult = await uploadMedia(file, mediaType);
       
       if (result.success && result.url) {
@@ -304,7 +309,7 @@ function DraggableTool({
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
-            <span>${mediaType === 'video' ? 'Видео' : 'Изображение'} загружено! Перетащите на холст.</span>
+            <span>${mediaType === 'video' ? 'Видео' : mediaType === 'audio' ? 'Аудио' : 'Изображение'} загружено! Перетащите на холст.</span>
           </div>
         `;
         document.body.appendChild(notification);
@@ -386,7 +391,7 @@ function DraggableTool({
   };
 
   // Determine if this tool needs click functionality
-  const needsClickFunctionality = ['upload', 'video', 'video-url'].includes(tool.id);
+  const needsClickFunctionality = ['upload', 'video', 'video-url', 'audio'].includes(tool.id);
 
   const handleGeneralToolClick = (e: React.MouseEvent) => {
     if (!needsClickFunctionality) {
@@ -581,11 +586,11 @@ function DraggableTool({
         )}
         
         {/* Hidden file input */}
-        {(tool.id === 'upload' || tool.id === 'video') && (
+        {(tool.id === 'upload' || tool.id === 'video' || tool.id === 'audio') && (
           <input
             ref={fileInputRef}
             type="file"
-            accept={tool.id === 'video' ? 'video/*' : 'image/*'}
+            accept={tool.id === 'video' ? 'video/*' : tool.id === 'audio' ? 'audio/*' : 'image/*'}
             onChange={handleFileUpload}
             className="hidden"
           />
@@ -980,6 +985,34 @@ function CanvasElementComponent({
               <div className="text-center text-gray-500">
                 <Video className="h-8 w-8 mx-auto mb-2" />
                 <span className="text-sm">Видео</span>
+              </div>
+            )}
+          </div>
+        );
+      case 'audio':
+        return (
+          <div 
+            className="w-full h-full bg-gray-100 flex items-center justify-center overflow-hidden"
+            style={{
+              borderRadius: element.properties.borderRadius || 0,
+              ...borderStyle,
+            }}
+          >
+            {element.properties.audioUrl ? (
+              <audio 
+                src={element.properties.audioUrl}
+                controls={element.properties.controls !== false}
+                autoPlay={element.properties.autoplay || false}
+                muted={element.properties.muted !== false}
+                loop={element.properties.loop || false}
+                className="w-full h-full object-cover"
+                style={{ borderRadius: element.properties.borderRadius || 0 }}
+                preload="metadata"
+              />
+            ) : (
+              <div className="text-center text-gray-500">
+                <Volume2 className="h-8 w-8 mx-auto mb-2" />
+                <span className="text-sm">Аудио</span>
               </div>
             )}
           </div>
@@ -1648,6 +1681,98 @@ function PropertiesPanel({
           </div>
         )}
 
+        {/* Audio Properties */}
+        {selectedElement.type === 'audio' && (
+          <div>
+            <h4 className="text-sm font-medium mb-3">Аудио</h4>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">URL аудио</Label>
+                <Input
+                  value={selectedElement.properties.audioUrl || ''}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateProperty('audioUrl', e.target.value);
+                  }}
+                  placeholder="https://example.com/audio.mp3"
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'audio/*';
+                    input.onchange = async (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        try {
+                          const result = await uploadMedia(file, 'audio');
+                          if (result.success && result.url) {
+                            updateProperty('audioUrl', result.url);
+                            alert('Аудио успешно загружено!');
+                          } else {
+                            alert('Ошибка загрузки аудио: ' + result.error);
+                          }
+                        } catch (error) {
+                          alert('Ошибка загрузки аудио');
+                          console.error('Audio upload error:', error);
+                        }
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Загрузить аудио
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedElement.properties.autoplay || false}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('autoplay', e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-xs">Автовоспроизведение</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedElement.properties.muted !== false}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('muted', e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-xs">Без звука</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedElement.properties.loop || false}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateProperty('loop', e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-xs">Повтор</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Transform */}
         <div>
           <h4 className="text-sm font-medium mb-3">Трансформация</h4>
@@ -1955,479 +2080,32 @@ function BookEditor() {
             loop: false,
           },
         };
+      case 'audio':
+        return {
+          ...baseElement,
+          type: 'audio',
+          width: 300,
+          height: 60,
+          content: '',
+          properties: {
+            backgroundColor: '#f0f0f0',
+            borderWidth: 1,
+            borderColor: '#cccccc',
+            borderStyle: 'dashed',
+            borderRadius: 8,
+            audioUrl: mediaUrl || '',
+            autoplay: false,
+            muted: false,
+            controls: true,
+            loop: false,
+          },
+        };
       default:
         return {
           ...baseElement,
           type: 'text',
           width: 100,
           height: 40,
-          content: 'Element',
-          properties: {
-            borderRadius: 0,
-          },
-        };
-    }
-  };
-
-  // Update element
-  const updateElement = useCallback((elementId: string, updates: Partial<CanvasElement>) => {
-    setElements(prev => {
-      const newElements = prev.map(el => 
-        el.id === elementId ? { ...el, ...updates } : el
-      );
-      addToHistory(newElements);
-      return newElements;
-    });
-  }, [addToHistory]);
-
-  // Delete element
-  const deleteElement = useCallback((elementId: string) => {
-    setElements(prev => {
-      const newElements = prev.filter(el => el.id !== elementId);
-      addToHistory(newElements);
-      return newElements;
-    });
-    setSelectedElementId(null);
-  }, [addToHistory]);
-
-  // Duplicate element
-  const duplicateElement = useCallback((elementId: string) => {
-    const element = elements.find(el => el.id === elementId);
-    if (element) {
-      const newElement = {
-        ...element,
-        id: generateId(),
-        x: element.x + 20,
-        y: element.y + 20,
-        zIndex: elements.length,
-      };
-      setElements(prev => {
-        const newElements = [...prev, newElement];
-        addToHistory(newElements);
-        return newElements;
-      });
-      setSelectedElementId(newElement.id);
-    }
-  }, [elements, addToHistory, generateId]);
-
-  // Move element up in layers
-  const moveElementUp = useCallback((elementId: string) => {
-    setElements(prev => {
-      const element = prev.find(el => el.id === elementId);
-      if (!element) return prev;
-      
-      const maxZIndex = Math.max(...prev.map(el => el.zIndex));
-      if (element.zIndex < maxZIndex) {
-        const newElements = prev.map(el => 
-          el.id === elementId ? { ...el, zIndex: el.zIndex + 1 } : el
-        );
-        addToHistory(newElements);
-        return newElements;
-      }
-      return prev;
-    });
-  }, [addToHistory]);
-
-  // Move element down in layers  
-  const moveElementDown = useCallback((elementId: string) => {
-    setElements(prev => {
-      const element = prev.find(el => el.id === elementId);
-      if (!element) return prev;
-      
-      if (element.zIndex > 0) {
-        const newElements = prev.map(el => 
-          el.id === elementId ? { ...el, zIndex: el.zIndex - 1 } : el
-        );
-        addToHistory(newElements);
-        return newElements;
-      }
-      return prev;
-    });
-  }, [addToHistory]);
-
-  // Drag handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const activeData = active.data.current;
-
-    if (activeData?.type === 'element') {
-      setActiveElement(activeData.element);
-    } else if (activeData?.type === 'tool') {
-      const previewElement = createElementFromTool(activeData.toolType, 0, 0);
-      setActiveElement(previewElement);
-    }
-  };
-
-  const handleDragOver = (_event: DragOverEvent) => {
-    // No state updates during drag for performance
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    setActiveElement(null);
-
-    if (!over || over.id !== 'canvas') return;
-
-    const activeData = active.data.current;
-    
-    // Get canvas element and calculate proper coordinates
-    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
-    if (!canvasElement) return;
-
-    const canvasRect = canvasElement.getBoundingClientRect();
-    const clientX = (event.activatorEvent as MouseEvent).clientX;
-    const clientY = (event.activatorEvent as MouseEvent).clientY;
-    
-    // Calculate position relative to canvas with zoom scaling
-    const zoomFactor = canvasSettings.zoom / 100;
-    const dropX = Math.max(0, (clientX - canvasRect.left) / zoomFactor - 50);
-    const dropY = Math.max(0, (clientY - canvasRect.top) / zoomFactor - 20);
-
-    if (activeData?.type === 'tool') {
-      // Add new element
-      const toolType = activeData.toolType;
-      
-      // Check if there's an uploaded media URL for this tool type
-      let mediaUrl = '';
-      if (toolType === 'image' || toolType === 'upload') {
-        mediaUrl = uploadedMediaUrls.image || '';
-      } else if (toolType === 'video' || toolType === 'video-url') {
-        mediaUrl = uploadedMediaUrls.video || '';
-      }
-      
-      const newElement = createElementFromTool(toolType, dropX, dropY, mediaUrl);
-      setElements(prev => {
-        const newElements = [...prev, newElement];
-        addToHistory(newElements);
-        return newElements;
-      });
-      setSelectedElementId(newElement.id);
-      
-      // Clear the uploaded URL after using it
-      if (mediaUrl) {
-        setUploadedMediaUrls(prev => {
-          const updated = { ...prev };
-          if (toolType === 'image' || toolType === 'upload') {
-            delete updated.image;
-          } else if (toolType === 'video' || toolType === 'video-url') {
-            delete updated.video;
-          }
-          return updated;
-        });
-      }
-    } else if (activeData?.type === 'element') {
-      // Move existing element
-      const elementId = activeData.element.id;
-      const deltaX = event.delta?.x || 0;
-      const deltaY = event.delta?.y || 0;
-      
-      updateElement(elementId, { 
-        x: Math.max(0, activeData.element.x + deltaX / zoomFactor),
-        y: Math.max(0, activeData.element.y + deltaY / zoomFactor)
-      });
-    }
-  };
-
-  // Load book data
-  const fetchBook = useCallback(async () => {
-    if (!params.base_url || !userProfile) return;
-
-    try {
-      const supabase = createClient();
-      
-      const { data: bookData, error } = await supabase
-        .from('books')
-        .select('*')
-        .eq('base_url', params.base_url)
-        .eq('author_id', userProfile.id)
-        .single();
-
-      if (error) throw error;
-      
-      setBook(bookData);
-
-      // Load canvas elements
-      if (bookData.canvas_elements) {
-        const loadedElements = JSON.parse(bookData.canvas_elements);
-        setElements(loadedElements);
-        addToHistory(loadedElements);
-      }
-
-      // Load canvas settings
-      if (bookData.canvas_settings) {
-        const loadedSettings = JSON.parse(bookData.canvas_settings);
-        setCanvasSettings(prev => ({ ...prev, ...loadedSettings }));
-      }
-    } catch (error) {
-      console.error('Error loading book:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.base_url, userProfile, addToHistory]);
-
-  useEffect(() => {
-    if (userProfile) {
-      fetchBook();
-    }
-  }, [fetchBook, userProfile]);
-
-  // Save functionality
-  const handleSave = useCallback(async () => {
-    if (!book) {
-      console.log('No book available for saving');
-      alert('Ошибка: Книга не найдена');
-      return;
-    }
-
-    try {
-      console.log('Starting save process...');
-      console.log('Book ID:', book.id);
-      console.log('User Profile:', userProfile?.id);
-      
-      const supabase = createClient();
-      
-      // Test Supabase connection first
-      console.log('Testing Supabase connection...');
-      const { data: testData, error: testError } = await supabase
-        .from('books')
-        .select('id')
-        .eq('id', book.id)
-        .single();
-      
-      if (testError) {
-        console.error('Supabase connection test failed:', testError);
-        alert('Ошибка подключения к базе данных: ' + testError.message);
-        return;
-      }
-      
-      console.log('Supabase connection test successful:', testData);
-      
-      // Prepare data for saving
-      const canvasElementsJson = JSON.stringify(elements);
-      const canvasSettingsJson = JSON.stringify(canvasSettings);
-      
-      console.log('Saving book data:');
-      console.log('- Book ID:', book.id);
-      console.log('- Elements count:', elements.length);
-      console.log('- Canvas settings:', canvasSettings);
-      console.log('- Elements JSON length:', canvasElementsJson.length);
-      console.log('- Settings JSON length:', canvasSettingsJson.length);
-      
-      const updateData = {
-        canvas_elements: canvasElementsJson,
-        canvas_settings: canvasSettingsJson,
-        updated_at: new Date().toISOString(),
-      };
-      
-      console.log('Update data prepared:', Object.keys(updateData));
-      
-      const { data, error } = await supabase
-        .from('books')
-        .update(updateData)
-        .eq('id', book.id)
-        .select();
-
-      console.log('Update response:');
-      console.log('- Data:', data);
-      console.log('- Error:', error);
-
-      if (error) {
-        console.error('Save error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        alert('Ошибка при сохранении: ' + (error.message || 'Неизвестная ошибка'));
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        console.error('No data returned from update');
-        alert('Ошибка: Не удалось обновить книгу. Проверьте права доступа.');
-        return;
-      }
-
-      console.log('Book saved successfully:', data);
-      alert('Книга успешно сохранена!');
-      
-      // Update the history after successful save
-      addToHistory(elements);
-      
-    } catch (error) {
-      console.error('Save error (catch block):', {
-        error: error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      alert('Ошибка при сохранении: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
-    }
-  }, [book, elements, canvasSettings, addToHistory, userProfile]);
-
-  // Handle media upload success
-  const handleMediaUploaded = useCallback((url: string, type: string) => {
-    console.log('Media uploaded:', url, type);
-    // Store the uploaded URL to use when the tool is dragged to canvas
-    setUploadedMediaUrls(prev => ({
-      ...prev,
-      [type]: url
-    }));
-  }, []);
-
-  // Handle adding tools to canvas via click
-  const handleAddElementFromTool = useCallback((elementData: Partial<CanvasElement>) => {
-    const newElement: CanvasElement = {
-      id: elementData.id || generateId(),
-      type: elementData.type || 'text',
-      x: elementData.x || 0,
-      y: elementData.y || 0,
-      width: elementData.width || 100,
-      height: elementData.height || 40,
-      content: elementData.content || '',
-      rotation: 0,
-      opacity: 1,
-      properties: elementData.properties || {},
-      ...elementData,
-      page: canvasSettings.currentPage,
-      zIndex: elements.length,
-    };
-    
-    setElements(prev => {
-      const newElements = [...prev, newElement];
-      addToHistory(newElements);
-      return newElements;
-    });
-    setSelectedElementId(newElement.id);
-  }, [canvasSettings.currentPage, elements.length, addToHistory, generateId]);
-
-  // Keyboard shortcuts and tool click events
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case 'z':
-            e.preventDefault();
-            if (e.shiftKey) {
-              redo();
-            } else {
-              undo();
-            }
-            break;
-          case 'y':
-            e.preventDefault();
-            redo();
-            break;
-          case 'd':
-            e.preventDefault();
-            if (selectedElementId) {
-              duplicateElement(selectedElementId);
-            }
-            break;
-          case 's':
-            e.preventDefault();
-            handleSave();
-            break;
-        }
-      } else if (e.key === 'Delete' && selectedElementId) {
-        deleteElement(selectedElementId);
-      }
-    };
-
-    // Handle tool click events
-    const handleAddToolToCanvas = (e: CustomEvent) => {
-      const { element } = e.detail;
-      handleAddElementFromTool(element);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('addToolToCanvas', handleAddToolToCanvas as EventListener);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('addToolToCanvas', handleAddToolToCanvas as EventListener);
-    };
-  }, [selectedElementId, undo, redo, duplicateElement, deleteElement, handleSave, handleAddElementFromTool]);
-
-  // Sidebar toggle
-  const toggleMainSidebar = () => {
-    const newHiddenState = !mainSidebarHidden;
-    setMainSidebarHidden(newHiddenState);
-    
-    const newSearchParams = new URLSearchParams(searchParams?.toString());
-    if (newHiddenState) {
-      newSearchParams.set('hideSidebar', 'true');
-    } else {
-      newSearchParams.delete('hideSidebar');
-    }
-    
-    const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
-    window.history.replaceState({}, '', newUrl);
-    window.location.reload();
-  };
-
-  // Get current page elements
-  const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
-  const selectedElement: CanvasElement | null = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
-
-  // Page management functions
-  const handlePageChange = useCallback((page: number) => {
-    // Ensure page is valid
-    if (page < 1 || page > canvasSettings.totalPages) {
-      console.warn('Invalid page number:', page);
-      return;
-    }
-    
-    console.log('Switching to page:', page);
-    
-    // Only update if different page
-    if (page !== canvasSettings.currentPage) {
-      setCanvasSettings(prev => ({ ...prev, currentPage: page }));
-      setSelectedElementId(null);
-      setEditingElementId(null);
-    }
-  }, [canvasSettings.currentPage, canvasSettings.totalPages]);
-
-  const handlePageAdd = useCallback((afterPage?: number) => {
-    const insertAfter = afterPage || canvasSettings.totalPages;
-    
-    setCanvasSettings(prev => ({
-      ...prev,
-      totalPages: prev.totalPages + 1,
-      currentPage: insertAfter + 1
-    }));
-    
-    // Update page numbers for elements after the insertion point
-    setElements(prev => {
-      const newElements = prev.map(el => 
-        el.page > insertAfter ? { ...el, page: el.page + 1 } : el
-      );
-      addToHistory(newElements);
-      return newElements;
-    });
-  }, [canvasSettings.totalPages, addToHistory]);
-
-  const handlePageDelete = useCallback((page: number) => {
-    if (canvasSettings.totalPages <= 1) return; // Don't delete the last page
-    
-    // Remove all elements from the deleted page
-    setElements(prev => {
-      const newElements = prev
-        .filter(el => el.page !== page)
-        .map(el => el.page > page ? { ...el, page: el.page - 1 } : el);
-      addToHistory(newElements);
-      return newElements;
-    });
-    
-    setCanvasSettings(prev => {
-      const newTotalPages = prev.totalPages - 1;
-      const newCurrentPage = prev.currentPage > page 
-        ? prev.currentPage - 1 
-        : prev.currentPage > newTotalPages 
-        ? newTotalPages 
-        : prev.currentPage;
-      
-      return {
         ...prev,
         totalPages: newTotalPages,
         currentPage: newCurrentPage

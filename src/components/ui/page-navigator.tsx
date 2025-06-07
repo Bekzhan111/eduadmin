@@ -11,7 +11,7 @@ import {
 
 export type CanvasElement = {
   id: string;
-  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video';
+  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video' | 'audio';
   x: number;
   y: number;
   width: number;
@@ -38,6 +38,7 @@ export type CanvasElement = {
     shapeType?: 'rectangle' | 'circle' | 'triangle' | 'star' | 'heart';
     imageUrl?: string;
     videoUrl?: string;
+    audioUrl?: string;
     lineThickness?: number;
     arrowType?: 'single' | 'double' | 'none';
     iconType?: string;
