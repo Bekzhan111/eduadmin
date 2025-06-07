@@ -787,8 +787,8 @@ function CanvasElementComponent({
       }
     }
 
-    const borderStyle = element.properties.borderWidth ? {
-      border: `${element.properties.borderWidth}px ${element.properties.borderStyle || 'solid'} ${element.properties.borderColor || '#000'}`
+    const borderStyle = element.properties.borderWidth && element.properties.borderWidth > 0 ? {
+      border: `${element.properties.borderWidth}px ${element.properties.borderStyle || 'solid'} ${element.properties.borderColor || '#000000'}`
     } : {};
 
     switch (element.type) {
@@ -867,31 +867,21 @@ function CanvasElementComponent({
               );
             case 'star':
               return (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={shapeStyle}
-                >
-                  <Star 
-                    className="w-3/4 h-3/4" 
-                    fill={element.properties.backgroundColor || '#e5e5e5'}
-                    stroke={element.properties.borderColor || '#000'}
-                    strokeWidth={element.properties.borderWidth || 1}
-                  />
-                </div>
+                <Star 
+                  className="w-full h-full" 
+                  fill={element.properties.backgroundColor || '#e5e5e5'}
+                  stroke={element.properties.borderColor || '#000000'}
+                  strokeWidth={element.properties.borderWidth || 1}
+                />
               );
             case 'heart':
               return (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={shapeStyle}
-                >
-                  <Heart 
-                    className="w-3/4 h-3/4" 
-                    fill={element.properties.backgroundColor || '#e5e5e5'}
-                    stroke={element.properties.borderColor || '#000'}
-                    strokeWidth={element.properties.borderWidth || 1}
-                  />
-                </div>
+                <Heart 
+                  className="w-full h-full" 
+                  fill={element.properties.backgroundColor || '#e5e5e5'}
+                  stroke={element.properties.borderColor || '#000000'}
+                  strokeWidth={element.properties.borderWidth || 1}
+                />
               );
             default: // rectangle
               return (
@@ -995,7 +985,11 @@ function CanvasElementComponent({
           </div>
         );
       default:
-        return <div>Element</div>;
+        return (
+          <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-100 border border-gray-300 rounded" style={borderStyle}>
+            <span className="text-sm capitalize">{element.type}</span>
+          </div>
+        );
     }
   };
 
@@ -1676,10 +1670,10 @@ function PropertiesPanel({
                 type="number"
                 min="0"
                 max="100"
-                value={Math.round((selectedElement.opacity || 1) * 100)}
+                value={Math.round((1 - (selectedElement.opacity || 1)) * 100)}
                 onChange={(e) => {
                   e.preventDefault();
-                  onUpdate({ opacity: Number(e.target.value) / 100 });
+                  onUpdate({ opacity: 1 - (Number(e.target.value) / 100) });
                 }}
                 className="h-8"
               />
