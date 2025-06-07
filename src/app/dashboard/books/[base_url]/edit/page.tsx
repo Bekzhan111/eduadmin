@@ -1814,7 +1814,7 @@ function PropertiesPanel({
 function BookEditor() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const { userProfile } = useAuth();
+  const { userProfile: _userProfile } = useAuth();
   
   // State
   const [book, setBook] = useState<Book | null>(null);
@@ -1825,7 +1825,7 @@ function BookEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [history, setHistory] = useState<CanvasElement[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
+  const [_uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
   
   // UI State
   const [mainSidebarHidden, setMainSidebarHidden] = useState(searchParams?.get('hideSidebar') === 'true');
@@ -1886,8 +1886,183 @@ function BookEditor() {
     }
   }, [history, historyIndex]);
 
+  // Computed values
+  const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
+  const selectedElement = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
+
+  // Load book data
+  useEffect(() => {
+    const loadBook = async () => {
+      if (!params?.base_url) return;
+      
+      try {
+        const supabase = createClient();
+        const { data: bookData, error } = await supabase
+          .from('books')
+          .select('*')
+          .eq('base_url', params.base_url)
+          .single();
+        
+        if (error) throw error;
+        
+        setBook(bookData);
+        
+        // Load canvas data
+        if (bookData.canvas_elements) {
+          try {
+            const parsedElements = JSON.parse(bookData.canvas_elements);
+            setElements(parsedElements);
+            addToHistory(parsedElements);
+          } catch (e) {
+            console.error('Error parsing canvas elements:', e);
+          }
+        }
+        
+        if (bookData.canvas_settings) {
+          try {
+            const parsedSettings = JSON.parse(bookData.canvas_settings);
+            setCanvasSettings(prev => ({ ...prev, ...parsedSettings }));
+          } catch (e) {
+            console.error('Error parsing canvas settings:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading book:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadBook();
+  }, [params?.base_url, addToHistory]);
+
+  // Save functionality
+  const handleSave = useCallback(async () => {
+    if (!book) return;
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({
+          canvas_elements: JSON.stringify(elements),
+          canvas_settings: JSON.stringify(canvasSettings),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', book.id);
+      
+      if (error) throw error;
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Сохранено!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 2000);
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Ошибка сохранения');
+    }
+  }, [book, elements, canvasSettings]);
+
+  // Element management
+  const updateElement = useCallback((id: string, updates: Partial<CanvasElement>) => {
+    setElements(prev => {
+      const newElements = prev.map(el => el.id === id ? { ...el, ...updates } : el);
+      addToHistory(newElements);
+      return newElements;
+    });
+  }, [addToHistory]);
+
+  const deleteElement = useCallback((id: string) => {
+    setElements(prev => {
+      const newElements = prev.filter(el => el.id !== id);
+      addToHistory(newElements);
+      return newElements;
+    });
+    setSelectedElementId(null);
+  }, [addToHistory]);
+
+  const duplicateElement = useCallback((id: string) => {
+    const element = elements.find(el => el.id === id);
+    if (!element) return;
+    
+    const duplicate = {
+      ...element,
+      id: generateId(),
+      x: element.x + 20,
+      y: element.y + 20,
+    };
+    
+    setElements(prev => {
+      const newElements = [...prev, duplicate];
+      addToHistory(newElements);
+      return newElements;
+    });
+  }, [elements, generateId, addToHistory]);
+
+  // Layer management
+  const moveElementUp = useCallback((id: string) => {
+    setElements(prev => {
+      const newElements = prev.map(el => 
+        el.id === id ? { ...el, zIndex: el.zIndex + 1 } : el
+      );
+      addToHistory(newElements);
+      return newElements;
+    });
+  }, [addToHistory]);
+
+  const moveElementDown = useCallback((id: string) => {
+    setElements(prev => {
+      const newElements = prev.map(el => 
+        el.id === id ? { ...el, zIndex: Math.max(0, el.zIndex - 1) } : el
+      );
+      addToHistory(newElements);
+      return newElements;
+    });
+  }, [addToHistory]);
+
+  // Media upload handler
+  const handleMediaUploaded = useCallback((url: string, type: string) => {
+    setUploadedMediaUrls(prev => ({ ...prev, [type]: url }));
+  }, []);
+
+  // Sidebar toggle
+  const toggleMainSidebar = useCallback(() => {
+    setMainSidebarHidden(prev => !prev);
+  }, []);
+
+  // Page management
+  const handlePageChange = useCallback((page: number) => {
+    setCanvasSettings(prev => ({ ...prev, currentPage: page }));
+  }, []);
+
+  const handlePageAdd = useCallback(() => {
+    setCanvasSettings(prev => ({
+      ...prev,
+      totalPages: prev.totalPages + 1,
+      currentPage: prev.totalPages + 1
+    }));
+  }, []);
+
+  const handlePageDelete = useCallback((page: number) => {
+    if (canvasSettings.totalPages <= 1) return;
+    
+    setElements(prev => {
+      const newElements = prev.filter(el => el.page !== page);
+      addToHistory(newElements);
+      return newElements;
+    });
+    
+    setCanvasSettings(prev => ({
+      ...prev,
+      totalPages: prev.totalPages - 1,
+      currentPage: Math.min(prev.currentPage, prev.totalPages - 1)
+    }));
+  }, [canvasSettings.totalPages, addToHistory]);
+
   // Create element from tool with enhanced types
-  const createElementFromTool = (toolType: string, x: number, y: number, mediaUrl?: string): CanvasElement => {
+  const createElementFromTool = useCallback((toolType: string, x: number, y: number, _mediaUrl?: string): CanvasElement => {
     const baseElement = {
       id: generateId(),
       x: Math.max(0, x),
@@ -1919,199 +2094,84 @@ function BookEditor() {
             borderRadius: 0,
           },
         };
-      case 'paragraph':
-        return {
-          ...baseElement,
-          type: 'paragraph',
-          width: 250,
-          height: 100,
-          content: 'Новый абзац\nНачните печатать...',
-          properties: {
-            fontSize: 14,
-            fontFamily: 'Arial',
-            fontWeight: 'normal',
-            fontStyle: 'normal',
-            textDecoration: 'none',
-            color: '#000000',
-            backgroundColor: 'transparent',
-            textAlign: 'left',
-            verticalAlign: 'top',
-            borderRadius: 0,
-          },
-        };
-      case 'rectangle':
-        return {
-          ...baseElement,
-          type: 'shape',
-          width: 100,
-          height: 100,
-          content: '',
-          properties: {
-            shapeType: 'rectangle',
-            backgroundColor: '#e5e5e5',
-            borderWidth: 1,
-            borderColor: '#000000',
-            borderStyle: 'solid',
-            borderRadius: 0,
-          },
-        };
-      case 'circle':
-        return {
-          ...baseElement,
-          type: 'shape',
-          width: 100,
-          height: 100,
-          content: '',
-          properties: {
-            shapeType: 'circle',
-            backgroundColor: '#e5e5e5',
-            borderWidth: 1,
-            borderColor: '#000000',
-            borderStyle: 'solid',
-          },
-        };
-      case 'triangle':
-        return {
-          ...baseElement,
-          type: 'shape',
-          width: 100,
-          height: 100,
-          content: '',
-          properties: {
-            shapeType: 'triangle',
-            backgroundColor: '#e5e5e5',
-            borderWidth: 1,
-            borderColor: '#000000',
-            borderStyle: 'solid',
-          },
-        };
-      case 'star':
-        return {
-          ...baseElement,
-          type: 'shape',
-          width: 100,
-          height: 100,
-          content: '',
-          properties: {
-            shapeType: 'star',
-            backgroundColor: '#e5e5e5',
-            borderWidth: 1,
-            borderColor: '#000000',
-            borderStyle: 'solid',
-          },
-        };
-      case 'heart':
-        return {
-          ...baseElement,
-          type: 'shape',
-          width: 100,
-          height: 100,
-          content: '',
-          properties: {
-            shapeType: 'heart',
-            backgroundColor: '#e5e5e5',
-            borderWidth: 1,
-            borderColor: '#000000',
-            borderStyle: 'solid',
-          },
-        };
-      case 'line':
-        return {
-          ...baseElement,
-          type: 'line',
-          width: 200,
-          height: 2,
-          content: '',
-          properties: {
-            lineThickness: 2,
-            color: '#000000',
-            borderRadius: 0,
-          },
-        };
-      case 'arrow':
-        return {
-          ...baseElement,
-          type: 'arrow',
-          width: 200,
-          height: 50,
-          content: '',
-          properties: {
-            lineThickness: 2,
-            color: '#000000',
-            arrowType: 'single',
-            borderRadius: 0,
-          },
-        };
-      case 'image':
-      case 'upload':
-        return {
-          ...baseElement,
-          type: 'image',
-          width: 150,
-          height: 150,
-          content: '',
-          properties: {
-            backgroundColor: '#f0f0f0',
-            borderWidth: 1,
-            borderColor: '#cccccc',
-            borderStyle: 'dashed',
-            borderRadius: 0,
-            imageUrl: mediaUrl || '',
-          },
-        };
-      case 'video':
-      case 'video-url':
-        return {
-          ...baseElement,
-          type: 'video',
-          width: 300,
-          height: 200,
-          content: '',
-          properties: {
-            backgroundColor: '#f0f0f0',
-            borderWidth: 1,
-            borderColor: '#cccccc',
-            borderStyle: 'dashed',
-            borderRadius: 0,
-            videoUrl: mediaUrl || '',
-            autoplay: false,
-            muted: true,
-            controls: true,
-            loop: false,
-          },
-        };
-      case 'audio':
-        return {
-          ...baseElement,
-          type: 'audio',
-          width: 300,
-          height: 60,
-          content: '',
-          properties: {
-            backgroundColor: '#f0f0f0',
-            borderWidth: 1,
-            borderColor: '#cccccc',
-            borderStyle: 'dashed',
-            borderRadius: 8,
-            audioUrl: mediaUrl || '',
-            autoplay: false,
-            muted: false,
-            controls: true,
-            loop: false,
-          },
-        };
       default:
         return {
           ...baseElement,
           type: 'text',
           width: 100,
           height: 40,
-        ...prev,
-        totalPages: newTotalPages,
-        currentPage: newCurrentPage
-      };
-    });
-  }, [canvasSettings.totalPages, addToHistory]);
+          content: '',
+          properties: {},
+        };
+    }
+  }, [generateId, canvasSettings.currentPage, elements.length]);
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const element = elements.find(el => el.id === active.id);
+    if (element) {
+      setActiveElement(element);
+    }
+  }, [elements]);
+
+  const handleDragOver = useCallback((_event: DragOverEvent) => {
+    // Handle drag over logic
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over, delta } = event;
+    setActiveElement(null);
+    
+    if (!over || !delta) return;
+    
+    // Handle drop on canvas
+    if (over.id === 'canvas') {
+      if (active.data.current?.type === 'tool') {
+        const toolType = active.data.current.toolType;
+        const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+        if (canvasElement) {
+          const rect = canvasElement.getBoundingClientRect();
+          const activatorEvent = event.activatorEvent as MouseEvent;
+          const x = activatorEvent.clientX - rect.left;
+          const y = activatorEvent.clientY - rect.top;
+          
+          const newElement = createElementFromTool(toolType, x, y);
+          setElements(prev => {
+            const newElements = [...prev, newElement];
+            addToHistory(newElements);
+            return newElements;
+          });
+        }
+      } else if (active.data.current?.type === 'element') {
+        // Move existing element
+        const element = elements.find(el => el.id === active.id);
+        if (element) {
+          updateElement(element.id, {
+            x: element.x + delta.x,
+            y: element.y + delta.y,
+          });
+        }
+      }
+    }
+  }, [elements, createElementFromTool, updateElement, addToHistory]);
+
+  // Listen for tool addition events
+  useEffect(() => {
+    const handleAddToolToCanvas = (event: CustomEvent) => {
+      const { element } = event.detail;
+      setElements(prev => {
+        const newElements = [...prev, element];
+        addToHistory(newElements);
+        return newElements;
+      });
+    };
+
+    window.addEventListener('addToolToCanvas', handleAddToolToCanvas as EventListener);
+    return () => {
+      window.removeEventListener('addToolToCanvas', handleAddToolToCanvas as EventListener);
+    };
+  }, [addToHistory]);
 
   const handlePageDuplicate = useCallback((page: number) => {
     // Get all elements from the source page
