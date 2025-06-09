@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, BookOpen, Clock, User, Calendar, Globe, Star } from 'lucide-react';
 import Image from 'next/image';
 import BookReader from '@/components/ui/book-reader';
+import { PageFooter } from '@/components/ui/page-footer';
+import { BookExportButtons } from '@/components/ui/book-export-buttons';
 
 // Публичная страница для чтения книг (без авторизации)
 export default async function PublicBookReadPage({ params }: { params: Promise<{ base_url: string }> }) {
@@ -231,6 +233,9 @@ export default async function PublicBookReadPage({ params }: { params: Promise<{
                   {book.grade_level} класс
                 </Badge>
               )}
+              
+              {/* Export buttons for public reading */}
+              <BookExportButtons book={book} bookData={bookReaderData} authorInfo={authorInfo} />
             </div>
           </div>
         </div>
@@ -357,23 +362,7 @@ export default async function PublicBookReadPage({ params }: { params: Promise<{
       </div>
       
       {/* Footer for public page */}
-      <footer className="bg-white dark:bg-gray-800 border-t mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              © 2024 Образовательная платформа. Книга "{book.title}" доступна для свободного чтения.
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/register" className="text-sm text-blue-600 hover:text-blue-700">
-                Регистрация
-              </Link>
-              <Link href="/login" className="text-sm text-blue-600 hover:text-blue-700">
-                Войти
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PageFooter bookTitle={book.title} />
     </div>
   );
 } 

@@ -157,7 +157,7 @@ export function showCopyNotification(text: string, success: boolean) {
             element.textContent = '✅ Скопировано!';
             element.style.color = '#10b981';
           }
-        } catch (e) {
+        } catch (_e) {
           // Show input field for manual copy
           const input = document.createElement('input');
           input.value = text;

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Menu, X, User, LogIn } from 'lucide-react';
+import { BookOpen, Menu, X } from 'lucide-react';
+import { UserInfo } from '@/components/ui/user-info';
 
 export default function MarketplaceHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -44,20 +45,9 @@ export default function MarketplaceHeader() {
             </Link>
           </nav>
 
-          {/* Right Side Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                <LogIn className="h-4 w-4 mr-2" />
-                Войти
-              </Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="default" size="sm">
-                <User className="h-4 w-4 mr-2" />
-                Панель
-              </Button>
-            </Link>
+          {/* Right Side Actions - Desktop */}
+          <div className="hidden md:flex">
+            <UserInfo variant="header" />
           </div>
 
           {/* Mobile Menu Button */}
@@ -101,19 +91,8 @@ export default function MarketplaceHeader() {
               >
                 Оптовые Заказы
               </Link>
-              <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
-                <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Войти
-                  </Button>
-                </Link>
-                <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="default" size="sm" className="w-full justify-start">
-                    <User className="h-4 w-4 mr-2" />
-                    Панель
-                  </Button>
-                </Link>
+              <div className="pt-4 border-t border-gray-200">
+                <UserInfo variant="compact" />
               </div>
             </div>
           </div>

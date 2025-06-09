@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BookAnalytics } from '@/components/ui/book-analytics';
 import { Button } from '@/components/ui/button';
+import { BookAnalytics } from '@/components/ui/book-analytics';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
-  BarChart3, TrendingUp, Users, Eye, 
-  ArrowLeft, Filter, Download, RefreshCw,
-  Calendar, Globe, Smartphone, Award
+  ArrowLeft, BookOpen, BarChart3, Users, Clock, Eye, TrendingUp, Download, Award, Globe
 } from 'lucide-react';
 
 export default function TestAnalyticsPage() {

@@ -29,11 +29,23 @@ import {
   Bold, Italic, Underline, ArrowUp, ArrowDown, Video, Link, BookOpen,
   RotateCw, Palette, FlipHorizontal,
   Scissors, Clipboard, Wand2, Sparkles, Target, FileText,
-  Volume2
+  Volume2, Send, CheckCircle, PlayCircle, XCircle, Clock, Archive, Download,
+  ArrowRight
 } from 'lucide-react';
-import { uploadMedia, uploadMediaFromUrl, MediaType, UploadResult } from '@/utils/mediaUpload';
+import { uploadMedia, uploadMediaFromUrl } from '@/utils/mediaUpload';
+import type { MediaType, UploadResult } from '@/utils/mediaUpload';
 
 // Enhanced Types
+export type MediaType = 'image' | 'video' | 'audio';
+export type UploadResult = {
+  success: boolean;
+  url?: string;
+  error?: string;
+  fileName?: string;
+  fileSize?: number;
+};
+
+// Enhanced Book type with version control and collaboration
 type Book = {
   id: string;
   base_url: string;
@@ -44,11 +56,17 @@ type Book = {
   updated_at: string;
   canvas_elements?: string;
   canvas_settings?: string;
+  status?: 'Draft' | 'Moderation' | 'Approved' | 'Active' | 'Rejected';
+  version?: number;
+  collaborators?: string[];
+  auto_save_enabled?: boolean;
+  last_auto_save?: string;
 };
 
+// Enhanced Canvas Element with grouping, animations, and filters
 type CanvasElement = {
   id: string;
-  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video' | 'audio';
+  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video' | 'audio' | 'group';
   x: number;
   y: number;
   width: number;
@@ -60,6 +78,19 @@ type CanvasElement = {
   opacity: number;
   locked?: boolean;
   visible?: boolean;
+  // Grouping support
+  groupId?: string;
+  isGroup?: boolean;
+  children?: string[];
+  // Animation properties
+  animations?: {
+    entrance?: 'fadeIn' | 'slideInLeft' | 'slideInRight' | 'slideInUp' | 'slideInDown' | 'zoomIn' | 'bounceIn';
+    exit?: 'fadeOut' | 'slideOutLeft' | 'slideOutRight' | 'slideOutUp' | 'slideOutDown' | 'zoomOut' | 'bounceOut';
+    duration?: number;
+    delay?: number;
+    iteration?: number;
+  };
+  // Enhanced properties
   properties: {
     fontSize?: number;
     fontFamily?: string;
@@ -96,9 +127,26 @@ type CanvasElement = {
       colors: string[];
       direction?: number;
     };
+    // Filters and effects
+    filters?: {
+      blur?: number;
+      brightness?: number;
+      contrast?: number;
+      saturate?: number;
+      sepia?: number;
+      hueRotate?: number;
+      invert?: boolean;
+      grayscale?: number;
+    };
+    // Transform properties
+    skewX?: number;
+    skewY?: number;
+    scaleX?: number;
+    scaleY?: number;
   };
 };
 
+// Enhanced Canvas Settings with guides and performance options
 type CanvasSettings = {
   zoom: number;
   currentPage: number;
@@ -111,45 +159,270 @@ type CanvasSettings = {
   gridSize: number;
   showRulers: boolean;
   showGuides: boolean;
+  // Smart guides
+  smartGuides: boolean;
+  snapToElements: boolean;
+  snapDistance: number;
+  // Performance settings
+  renderQuality: 'draft' | 'normal' | 'high';
+  enableAnimations: boolean;
+  maxUndoSteps: number;
+  // Auto-save settings
+  autoSave: boolean;
+  autoSaveInterval: number; // in seconds
 };
 
+// Template system
 type Template = {
   id: string;
   name: string;
   preview: string;
   elements: CanvasElement[];
-  category: 'basic' | 'business' | 'creative' | 'education';
+  category: 'basic' | 'business' | 'creative' | 'education' | 'presentation' | 'book' | 'magazine';
+  tags: string[];
+  author: string;
+  downloads: number;
+  premium: boolean;
 };
 
-// Enhanced Tool definitions with more elements and categories
-const TOOLS = [
-  { id: 'select', icon: MousePointer, label: 'Выбрать', category: 'basic', hotkey: 'V' },
-  
-  // Text tools
-  { id: 'text', icon: Type, label: 'Текст', category: 'text', hotkey: 'T' },
-  { id: 'paragraph', icon: AlignLeft, label: 'Абзац', category: 'text', hotkey: 'P' },
-  { id: 'heading', icon: FileText, label: 'Заголовок', category: 'text', hotkey: 'H' },
-  
-  // Shape tools
-  { id: 'rectangle', icon: Square, label: 'Прямоугольник', category: 'shapes', hotkey: 'R' },
-  { id: 'circle', icon: Circle, label: 'Круг', category: 'shapes', hotkey: 'C' },
-  { id: 'triangle', icon: Triangle, label: 'Треугольник', category: 'shapes', hotkey: '' },
-  { id: 'star', icon: Star, label: 'Звезда', category: 'shapes', hotkey: '' },
-  { id: 'heart', icon: Heart, label: 'Сердце', category: 'shapes', hotkey: '' },
-  { id: 'line', icon: Minus, label: 'Линия', category: 'shapes', hotkey: 'L' },
-  { id: 'arrow', icon: Move3D, label: 'Стрелка', category: 'shapes', hotkey: 'A' },
+// Collaboration types
+type Comment = {
+  id: string;
+  elementId?: string;
+  x: number;
+  y: number;
+  page: number;
+  content: string;
+  author: string;
+  timestamp: Date;
+  resolved: boolean;
+  replies?: Comment[];
+};
+
+type CollaborationState = {
+  isActive: boolean;
+  users: Array<{
+    id: string;
+    name: string;
+    cursor?: { x: number; y: number };
+    selection?: string[];
+    color: string;
+  }>;
+  comments: Comment[];
+};
+
+// Version control
+type Version = {
+  id: string;
+  bookId: string;
+  version: number;
+  elements: CanvasElement[];
+  settings: CanvasSettings;
+  author: string;
+  timestamp: Date;
+  description: string;
+  isAutoSave: boolean;
+};
+
+// Smart guides and snapping
+type SnapLine = {
+  id: string;
+  type: 'vertical' | 'horizontal';
+  position: number;
+  elements: string[];
+  temporary?: boolean;
+};
+
+// Keyboard shortcuts
+type KeyboardShortcut = {
+  keys: string[];
+  action: string;
+  description: string;
+  handler: () => void;
+};
+
+// Enhanced tool definitions with new categories
+const ENHANCED_TOOLS = [
+  // Content tools
+  { id: 'text', name: 'Текст', label: 'Текст', icon: Type, category: 'content', needsFileUpload: false, hotkey: 'T' },
+  { id: 'paragraph', name: 'Абзац', label: 'Абзац', icon: AlignLeft, category: 'content', needsFileUpload: false, hotkey: 'P' },
   
   // Media tools
-  { id: 'image', icon: ImageIcon, label: 'Изображение', category: 'media', hotkey: 'I' },
-  { id: 'upload', icon: Upload, label: 'Загрузить', category: 'media', hotkey: '' },
-  { id: 'video', icon: Video, label: 'Видео', category: 'media', hotkey: '' },
-  { id: 'video-url', icon: Link, label: 'Видео по URL', category: 'media', hotkey: '' },
-  { id: 'audio', icon: Volume2, label: 'Аудио', category: 'media', hotkey: '' },
+  { id: 'image', name: 'Изображение', label: 'Изображение', icon: ImageIcon, category: 'media', needsFileUpload: true, accepts: 'image/*', hotkey: 'I' },
+  { id: 'video', name: 'Видео', label: 'Видео', icon: Video, category: 'media', needsFileUpload: true, accepts: 'video/*', hotkey: 'V' },
+  { id: 'audio', name: 'Аудио', label: 'Аудио', icon: Volume2, category: 'media', needsFileUpload: true, accepts: 'audio/*', hotkey: 'U' },
+  
+  // Shape tools
+  { id: 'rectangle', name: 'Прямоугольник', label: 'Прямоугольник', icon: Square, category: 'shapes', needsFileUpload: false, hotkey: 'R' },
+  { id: 'circle', name: 'Круг', label: 'Круг', icon: Circle, category: 'shapes', needsFileUpload: false, hotkey: 'C' },
+  { id: 'triangle', name: 'Треугольник', label: 'Треугольник', icon: Triangle, category: 'shapes', needsFileUpload: false, hotkey: '' },
+  { id: 'star', name: 'Звезда', label: 'Звезда', icon: Star, category: 'shapes', needsFileUpload: false, hotkey: '' },
+  { id: 'heart', name: 'Сердце', label: 'Сердце', icon: Heart, category: 'shapes', needsFileUpload: false, hotkey: '' },
+  
+  // Drawing tools
+  { id: 'line', name: 'Линия', label: 'Линия', icon: Minus, category: 'drawing', needsFileUpload: false, hotkey: 'L' },
+  { id: 'arrow', name: 'Стрелка', label: 'Стрелка', icon: ArrowRight, category: 'drawing', needsFileUpload: false, hotkey: 'A' },
   
   // Advanced tools
-  { id: 'gradient-bg', icon: Palette, label: 'Градиент', category: 'advanced', hotkey: '' },
-  { id: 'smart-crop', icon: Scissors, label: 'Умная обрезка', category: 'advanced', hotkey: '' },
-  { id: 'magic-resize', icon: Wand2, label: 'Умный ресайз', category: 'advanced', hotkey: '' },
+  { id: 'gradient', name: 'Градиент', label: 'Градиент', icon: Palette, category: 'advanced', needsFileUpload: false, hotkey: 'G' },
+  { id: 'group', name: 'Группировка', label: 'Группировка', icon: Layers, category: 'advanced', needsFileUpload: false, hotkey: 'Ctrl+G' },
+] as const;
+
+const ENHANCED_TOOL_CATEGORIES = [
+  { id: 'content', label: 'Контент', icon: Type },
+  { id: 'shapes', label: 'Фигуры', icon: Square },
+  { id: 'media', label: 'Медиа', icon: ImageIcon },
+  { id: 'drawing', label: 'Рисование', icon: Minus },
+  { id: 'advanced', label: 'Продвинутые', icon: Sparkles },
+  { id: 'templates', label: 'Шаблоны', icon: FileText },
+];
+
+// Animation presets
+const ANIMATION_PRESETS = {
+  entrance: [
+    { name: 'Плавное появление', value: 'fadeIn', duration: 600 },
+    { name: 'Слева', value: 'slideInLeft', duration: 500 },
+    { name: 'Справа', value: 'slideInRight', duration: 500 },
+    { name: 'Сверху', value: 'slideInUp', duration: 500 },
+    { name: 'Снизу', value: 'slideInDown', duration: 500 },
+    { name: 'Увеличение', value: 'zoomIn', duration: 400 },
+    { name: 'Подпрыгивание', value: 'bounceIn', duration: 800 },
+  ],
+  exit: [
+    { name: 'Плавное исчезновение', value: 'fadeOut', duration: 600 },
+    { name: 'Влево', value: 'slideOutLeft', duration: 500 },
+    { name: 'Вправо', value: 'slideOutRight', duration: 500 },
+    { name: 'Вверх', value: 'slideOutUp', duration: 500 },
+    { name: 'Вниз', value: 'slideOutDown', duration: 500 },
+    { name: 'Уменьшение', value: 'zoomOut', duration: 400 },
+    { name: 'Подпрыгивание из', value: 'bounceOut', duration: 800 },
+  ],
+};
+
+// Filter presets
+const FILTER_PRESETS = {
+  none: { name: 'Без фильтра', filters: {} },
+  vintage: { 
+    name: 'Винтаж', 
+    filters: { sepia: 0.8, brightness: 1.1, contrast: 1.2 } 
+  },
+  blackWhite: { 
+    name: 'Чёрно-белый', 
+    filters: { grayscale: 1, contrast: 1.1 } 
+  },
+  warm: { 
+    name: 'Тёплый', 
+    filters: { hueRotate: 15, saturate: 1.2, brightness: 1.1 } 
+  },
+  cool: { 
+    name: 'Холодный', 
+    filters: { hueRotate: -15, saturate: 1.1, brightness: 0.9 } 
+  },
+  dramatic: { 
+    name: 'Драматичный', 
+    filters: { contrast: 1.4, saturate: 0.8, brightness: 0.9 } 
+  },
+  soft: { 
+    name: 'Мягкий', 
+    filters: { blur: 0.5, brightness: 1.1, saturate: 0.9 } 
+  },
+};
+
+// Keyboard shortcuts configuration
+const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
+  {
+    keys: ['Ctrl', 'S'],
+    action: 'save',
+    description: 'Сохранить',
+    handler: () => {},
+  },
+  {
+    keys: ['Ctrl', 'Z'],
+    action: 'undo',
+    description: 'Отменить',
+    handler: () => {},
+  },
+  {
+    keys: ['Ctrl', 'Y'],
+    action: 'redo',
+    description: 'Повторить',
+    handler: () => {},
+  },
+  {
+    keys: ['Ctrl', 'C'],
+    action: 'copy',
+    description: 'Копировать',
+    handler: () => {},
+  },
+  {
+    keys: ['Ctrl', 'V'],
+    action: 'paste',
+    description: 'Вставить',
+    handler: () => {},
+  },
+  {
+    keys: ['Ctrl', 'G'],
+    action: 'group',
+    description: 'Группировать',
+    handler: () => {},
+  },
+  {
+    keys: ['Ctrl', 'Shift', 'G'],
+    action: 'ungroup',
+    description: 'Разгруппировать',
+    handler: () => {},
+  },
+  {
+    keys: ['Delete'],
+    action: 'delete',
+    description: 'Удалить',
+    handler: () => {},
+  },
+  {
+    keys: ['Ctrl', 'D'],
+    action: 'duplicate',
+    description: 'Дублировать',
+    handler: () => {},
+  },
+  {
+    keys: ['Escape'],
+    action: 'deselect',
+    description: 'Снять выделение',
+    handler: () => {},
+  },
+];
+
+// Performance optimization utilities
+const PERFORMANCE_CONFIG = {
+  VIRTUALIZATION_THRESHOLD: 100, // Number of elements before enabling virtualization
+  RENDER_DEBOUNCE_MS: 16, // 60fps
+  AUTO_SAVE_DEBOUNCE_MS: 2000,
+  COLLABORATION_SYNC_MS: 1000,
+  UNDO_STACK_LIMIT: 50,
+  ELEMENT_CACHE_SIZE: 200,
+};
+
+// Enhanced Enhanced tool definitions with more elements and categories
+const TOOLS = [
+  // Content tools
+  { id: 'text', name: 'Текст', label: 'Текст', icon: Type, category: 'content', needsFileUpload: false, hotkey: 'T' },
+  { id: 'paragraph', name: 'Абзац', label: 'Абзац', icon: AlignLeft, category: 'content', needsFileUpload: false, hotkey: 'P' },
+  
+  // Media tools
+  { id: 'image', name: 'Изображение', label: 'Изображение', icon: ImageIcon, category: 'media', needsFileUpload: true, accepts: 'image/*', hotkey: 'I' },
+  { id: 'video', name: 'Видео', label: 'Видео', icon: Video, category: 'media', needsFileUpload: true, accepts: 'video/*', hotkey: 'V' },
+  { id: 'audio', name: 'Аудио', label: 'Аудио', icon: Volume2, category: 'media', needsFileUpload: true, accepts: 'audio/*', hotkey: 'U' },
+  
+  // Shape tools
+  { id: 'rectangle', name: 'Прямоугольник', label: 'Прямоугольник', icon: Square, category: 'shapes', needsFileUpload: false, hotkey: 'R' },
+  { id: 'circle', name: 'Круг', label: 'Круг', icon: Circle, category: 'shapes', needsFileUpload: false, hotkey: 'C' },
+  { id: 'triangle', name: 'Треугольник', label: 'Треугольник', icon: Triangle, category: 'shapes', needsFileUpload: false, hotkey: '' },
+  { id: 'star', name: 'Звезда', label: 'Звезда', icon: Star, category: 'shapes', needsFileUpload: false, hotkey: '' },
+  { id: 'heart', name: 'Сердце', label: 'Сердце', icon: Heart, category: 'shapes', needsFileUpload: false, hotkey: '' },
+  
+  // Drawing tools
+  { id: 'line', name: 'Линия', label: 'Линия', icon: Minus, category: 'drawing', needsFileUpload: false, hotkey: 'L' },
+  { id: 'arrow', name: 'Стрелка', label: 'Стрелка', icon: ArrowRight, category: 'drawing', needsFileUpload: false, hotkey: 'A' },
 ] as const;
 
 const TOOL_CATEGORIES = [
@@ -263,8 +536,6 @@ function DraggableTool({
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [urlInput, setUrlInput] = useState('');
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
   const IconComponent = tool.icon;
@@ -274,13 +545,7 @@ function DraggableTool({
     e.stopPropagation();
     onSelect?.();
     
-    if (tool.id === 'upload') {
-      fileInputRef.current?.click();
-    } else if (tool.id === 'video') {
-      fileInputRef.current?.click();
-    } else if (tool.id === 'video-url') {
-      setShowUrlInput(true);
-    } else if (tool.id === 'audio') {
+    if (tool.id === 'image' || tool.id === 'video' || tool.id === 'audio') {
       fileInputRef.current?.click();
     }
   };
@@ -315,7 +580,7 @@ function DraggableTool({
         document.body.appendChild(notification);
         setTimeout(() => {
           notification.style.transform = 'translateX(100%)';
-          setTimeout(() => document.body.removeChild(notification), 300);
+          setTimeout(() => document.body.removeChild(notification), 3000);
         }, 3000);
       } else {
         setUploadError(result.error || 'Ошибка загрузки');
@@ -328,40 +593,6 @@ function DraggableTool({
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }
-  };
-
-  const handleUrlUpload = async () => {
-    if (!urlInput.trim()) return;
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      const result: UploadResult = await uploadMediaFromUrl(urlInput, 'video');
-      
-      if (result.success && result.url) {
-        if (onMediaUploaded) {
-          onMediaUploaded(result.url, 'video');
-        }
-        
-        // Success notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
-        notification.textContent = 'Видео по URL загружено! Перетащите на холст.';
-        document.body.appendChild(notification);
-        setTimeout(() => document.body.removeChild(notification), 3000);
-        
-        setUrlInput('');
-        setShowUrlInput(false);
-      } else {
-        setUploadError(result.error || 'Ошибка загрузки видео по URL');
-      }
-    } catch (error) {
-      setUploadError('Ошибка загрузки видео');
-      console.error('URL upload error:', error);
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -391,17 +622,27 @@ function DraggableTool({
   };
 
   // Determine if this tool needs click functionality
-  const needsClickFunctionality = ['upload', 'video', 'video-url', 'audio'].includes(tool.id);
+  const needsClickFunctionality = ['image', 'video', 'audio'].includes(tool.id);
 
   const handleGeneralToolClick = (e: React.MouseEvent) => {
     if (!needsClickFunctionality) {
       e.stopPropagation();
       const position = getSmartPosition();
       
+      // Determine the correct element type based on tool category
+      const getElementType = (toolId: string): CanvasElement['type'] => {
+        // Check if it's a shape tool
+        if (['rectangle', 'circle', 'triangle', 'star', 'heart'].includes(toolId)) {
+          return 'shape';
+        }
+        // For other tools, use their ID as type
+        return toolId as CanvasElement['type'];
+      };
+      
       // Enhanced element creation with better defaults
       const newElement = {
         id: `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type: tool.id as CanvasElement['type'],
+        type: getElementType(tool.id),
         ...position,
         width: getDefaultWidth(tool.id),
         height: getDefaultHeight(tool.id),
@@ -500,8 +741,9 @@ function DraggableTool({
           ...baseProps,
           shapeType: 'rectangle' as const,
           backgroundColor: '#3498db',
-          borderWidth: 0,
+          borderWidth: 2,
           borderColor: '#2980b9',
+          borderStyle: 'solid',
           borderRadius: 8,
         };
       case 'circle':
@@ -509,8 +751,36 @@ function DraggableTool({
           ...baseProps,
           shapeType: 'circle' as const,
           backgroundColor: '#e74c3c',
-          borderWidth: 0,
+          borderWidth: 2,
           borderColor: '#c0392b',
+          borderStyle: 'solid',
+        };
+      case 'triangle':
+        return {
+          ...baseProps,
+          shapeType: 'triangle' as const,
+          backgroundColor: '#f39c12',
+          borderWidth: 2,
+          borderColor: '#e67e22',
+          borderStyle: 'solid',
+        };
+      case 'star':
+        return {
+          ...baseProps,
+          shapeType: 'star' as const,
+          backgroundColor: '#f1c40f',
+          borderWidth: 2,
+          borderColor: '#f39c12',
+          borderStyle: 'solid',
+        };
+      case 'heart':
+        return {
+          ...baseProps,
+          shapeType: 'heart' as const,
+          backgroundColor: '#e91e63',
+          borderWidth: 2,
+          borderColor: '#c2185b',
+          borderStyle: 'solid',
         };
       case 'line':
         return {
@@ -544,7 +814,7 @@ function DraggableTool({
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         className={`
-          flex flex-col items-center p-3 rounded-xl transition-all duration-200 
+          flex flex-col items-center p-4 rounded-xl transition-all duration-200 min-w-[80px] min-h-[80px]
           ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-110'} 
           ${isSelected ? 'bg-blue-50 border-2 border-blue-400 shadow-lg' : 'bg-white border-2 border-gray-200'} 
           ${needsClickFunctionality ? 'cursor-pointer' : 'cursor-pointer hover:cursor-grab'} 
@@ -572,8 +842,8 @@ function DraggableTool({
           </div>
         )}
         
-        <IconComponent className={`h-6 w-6 mb-2 transition-colors ${isSelected ? 'text-blue-600' : 'text-gray-700 group-hover:text-blue-600'}`} />
-        <span className={`text-xs text-center font-medium transition-colors ${isSelected ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-800'}`}>
+        <IconComponent className={`h-7 w-7 mb-2 transition-colors ${isSelected ? 'text-blue-600' : 'text-gray-700 group-hover:text-blue-600'}`} />
+        <span className={`text-xs text-center font-medium transition-colors leading-tight ${isSelected ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-800'}`}>
           {tool.label}
         </span>
         
@@ -586,7 +856,7 @@ function DraggableTool({
         )}
         
         {/* Hidden file input */}
-        {(tool.id === 'upload' || tool.id === 'video' || tool.id === 'audio') && (
+        {(tool.id === 'image' || tool.id === 'video' || tool.id === 'audio') && (
           <input
             ref={fileInputRef}
             type="file"
@@ -599,16 +869,16 @@ function DraggableTool({
       
       {/* Enhanced tooltip */}
       {showTooltip && !isDragging && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg z-50 whitespace-nowrap">
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg z-[9999] whitespace-nowrap">
           <div className="font-medium">{tool.label}</div>
           {tool.hotkey && tool.hotkey.trim() && <div className="text-gray-300">Горячая клавиша: {tool.hotkey}</div>}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-800"></div>
         </div>
       )}
       
       {/* Enhanced error display */}
       {uploadError && (
-        <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg shadow-lg z-20">
+        <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg shadow-lg z-[90]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
@@ -623,67 +893,28 @@ function DraggableTool({
               }}
               className="text-red-600 hover:text-red-800 transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 w-4" />
             </button>
           </div>
           <div className="mt-1 text-red-600">{uploadError}</div>
-        </div>
-      )}
-      
-      {/* Enhanced URL input */}
-      {showUrlInput && tool.id === 'video-url' && (
-        <div className="absolute top-full left-0 right-0 mt-2 p-4 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-64">
-          <div className="space-y-3">
-            <div>
-              <Label className="text-sm font-medium text-gray-700 mb-1 block">URL видео</Label>
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/video.mp4"
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onClick={(e) => e.stopPropagation()}
-                autoFocus
-              />
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleUrlUpload();
-                }}
-                disabled={isUploading || !urlInput.trim()}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isUploading ? 'Загрузка...' : 'Загрузить'}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowUrlInput(false);
-                  setUrlInput('');
-                  setUploadError(null);
-                }}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm py-2 px-3 rounded-lg font-medium transition-colors"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
   );
 }
 
-// Enhanced Canvas Element Component with resize handles
+// Enhanced Canvas Element Component with resize handles and advanced features
 function CanvasElementComponent({ 
   element, 
   isSelected, 
   onSelect, 
   onUpdate,
   isEditing,
-  onEdit 
+  onEdit,
+  onGroup,
+  isGrouped = false,
+  snapLines = [],
+  onShowSnapLines
 }: { 
   element: CanvasElement;
   isSelected: boolean;
@@ -691,6 +922,10 @@ function CanvasElementComponent({
   onUpdate: (updates: Partial<CanvasElement>) => void;
   isEditing: boolean;
   onEdit: (editing: boolean) => void;
+  onGroup?: (elementIds: string[]) => void;
+  isGrouped?: boolean;
+  snapLines?: Array<{x?: number, y?: number}>;
+  onShowSnapLines?: (lines: Array<{x?: number, y?: number}>) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
@@ -872,21 +1107,35 @@ function CanvasElementComponent({
               );
             case 'star':
               return (
-                <Star 
-                  className="w-full h-full" 
-                  fill={element.properties.backgroundColor || '#e5e5e5'}
-                  stroke={element.properties.borderColor || '#000000'}
-                  strokeWidth={element.properties.borderWidth || 1}
-                />
+                <div className="w-full h-full flex items-center justify-center">
+                  <Star 
+                    className="w-full h-full" 
+                    fill={element.properties.backgroundColor || '#e5e5e5'}
+                    stroke={element.properties.borderColor || 'transparent'}
+                    strokeWidth={element.properties.borderWidth || 0}
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '100%',
+                      display: 'block'
+                    }}
+                  />
+                </div>
               );
             case 'heart':
               return (
-                <Heart 
-                  className="w-full h-full" 
-                  fill={element.properties.backgroundColor || '#e5e5e5'}
-                  stroke={element.properties.borderColor || '#000000'}
-                  strokeWidth={element.properties.borderWidth || 1}
-                />
+                <div className="w-full h-full flex items-center justify-center">
+                  <Heart 
+                    className="w-full h-full" 
+                    fill={element.properties.backgroundColor || '#e5e5e5'}
+                    stroke={element.properties.borderColor || 'transparent'}
+                    strokeWidth={element.properties.borderWidth || 0}
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '100%',
+                      display: 'block'
+                    }}
+                  />
+                </div>
               );
             default: // rectangle
               return (
@@ -1795,10 +2044,10 @@ function PropertiesPanel({
                 type="number"
                 min="0"
                 max="100"
-                value={Math.round((1 - (selectedElement.opacity || 1)) * 100)}
+                value={Math.round((selectedElement.opacity || 1) * 100)}
                 onChange={(e) => {
                   e.preventDefault();
-                  onUpdate({ opacity: 1 - (Number(e.target.value) / 100) });
+                  onUpdate({ opacity: Number(e.target.value) / 100 });
                 }}
                 className="h-8"
               />
@@ -1826,6 +2075,13 @@ function BookEditor() {
   const [history, setHistory] = useState<CanvasElement[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [_uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
+  const [changeLog, setChangeLog] = useState<Array<{
+    id: string;
+    timestamp: Date;
+    action: string;
+    details: string;
+    user: string;
+  }>>([]);
   
   // UI State
   const [mainSidebarHidden, setMainSidebarHidden] = useState(searchParams?.get('hideSidebar') === 'true');
@@ -1860,6 +2116,31 @@ function BookEditor() {
 
   // Generate unique ID
   const generateId = useCallback(() => `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, []);
+
+  // Smart element positioning function
+  const getSmartPosition = useCallback(() => {
+    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+    if (!canvasElement) return { x: 100, y: 100 };
+
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const zoomFactor = canvasSettings.zoom / 100;
+    
+    // Calculate center position
+    let centerX = (canvasRect.width / 2) / zoomFactor;
+    let centerY = (canvasRect.height / 2) / zoomFactor;
+    
+    // Add some random offset to avoid overlapping
+    centerX += (Math.random() - 0.5) * 100;
+    centerY += (Math.random() - 0.5) * 100;
+    
+    // Snap to grid if enabled
+    if (canvasSettings.snapToGrid) {
+      centerX = Math.round(centerX / canvasSettings.gridSize) * canvasSettings.gridSize;
+      centerY = Math.round(centerY / canvasSettings.gridSize) * canvasSettings.gridSize;
+    }
+    
+    return { x: Math.max(0, centerX - 50), y: Math.max(0, centerY - 25) };
+  }, [canvasSettings]);
 
   // Add to history
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -1941,6 +2222,13 @@ function BookEditor() {
     if (!book) return;
     
     try {
+      // Show loading notification
+      const loadingNotification = document.createElement('div');
+      loadingNotification.id = 'save-loading';
+      loadingNotification.className = 'fixed top-4 right-4 bg-blue-500 text-white p-3 rounded-lg shadow-lg z-50';
+      loadingNotification.textContent = 'Сохранение...';
+      document.body.appendChild(loadingNotification);
+
       const supabase = createClient();
       const { error } = await supabase
         .from('books')
@@ -1948,22 +2236,224 @@ function BookEditor() {
           canvas_elements: JSON.stringify(elements),
           canvas_settings: JSON.stringify(canvasSettings),
           updated_at: new Date().toISOString(),
+          // Устанавливаем статус 'Draft' если он не определен
+          ...(book.status === undefined && { status: 'Draft' })
         })
         .eq('id', book.id);
       
+      // Remove loading notification
+      const existingLoading = document.getElementById('save-loading');
+      if (existingLoading) {
+        document.body.removeChild(existingLoading);
+      }
+
       if (error) throw error;
       
       // Show success notification
       const notification = document.createElement('div');
       notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
-      notification.textContent = 'Сохранено!';
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+          </svg>
+          Изменения сохранены!
+        </div>
+      `;
       document.body.appendChild(notification);
-      setTimeout(() => document.body.removeChild(notification), 2000);
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 3000);
     } catch (error) {
+      // Remove loading notification if it exists
+      const existingLoading = document.getElementById('save-loading');
+      if (existingLoading) {
+        document.body.removeChild(existingLoading);
+      }
+
       console.error('Save error:', error);
-      alert('Ошибка сохранения');
+      
+      // Show error notification
+      const errorNotification = document.createElement('div');
+      errorNotification.className = 'fixed top-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50 max-w-md';
+      errorNotification.innerHTML = `
+        <div class="flex items-start">
+          <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          <div>
+            <div class="font-medium">Ошибка сохранения</div>
+            <div class="text-sm opacity-90">${error instanceof Error ? error.message : 'Неизвестная ошибка'}</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(errorNotification);
+      setTimeout(() => {
+        if (document.body.contains(errorNotification)) {
+          document.body.removeChild(errorNotification);
+        }
+      }, 5000);
     }
   }, [book, elements, canvasSettings]);
+
+  // Book management functions for different roles
+  const handleSendToModeration = useCallback(async () => {
+    if (!book || !_userProfile) return;
+    
+    if (!confirm(`Отправить книгу "${book.title}" на модерацию? После отправки вы не сможете её редактировать.`)) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ status: 'Moderation' })
+        .eq('id', book.id);
+
+      if (error) throw error;
+
+      // Update local book state
+      setBook(prev => prev ? { ...prev, status: 'Moderation' } : null);
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-blue-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Книга отправлена на модерацию!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error sending to moderation:', error);
+      alert('Ошибка отправки на модерацию');
+    }
+  }, [book, _userProfile]);
+
+  const handleApproveBook = useCallback(async () => {
+    if (!book || !_userProfile) return;
+    
+    if (!confirm(`Одобрить книгу "${book.title}"?`)) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ 
+          status: 'Approved',
+          moderator_id: _userProfile.id
+        })
+        .eq('id', book.id);
+
+      if (error) throw error;
+
+      setBook(prev => prev ? { ...prev, status: 'Approved' } : null);
+      
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Книга одобрена!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error approving book:', error);
+      alert('Ошибка одобрения книги');
+    }
+  }, [book, _userProfile]);
+
+  const handleActivateBook = useCallback(async () => {
+    if (!book || !_userProfile) return;
+    
+    if (!confirm(`Активировать книгу "${book.title}"? Она станет доступна для покупки.`)) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ status: 'Active' })
+        .eq('id', book.id);
+
+      if (error) throw error;
+
+      setBook(prev => prev ? { ...prev, status: 'Active' } : null);
+      
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-purple-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Книга активирована!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error activating book:', error);
+      alert('Ошибка активации книги');
+    }
+  }, [book, _userProfile]);
+
+  const handleRejectBook = useCallback(async () => {
+    if (!book || !_userProfile) return;
+    
+    const reason = prompt('Укажите причину отклонения книги:');
+    if (!reason) return;
+    
+    if (!confirm(`Отклонить книгу "${book.title}"?`)) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ 
+          status: 'Rejected',
+          rejection_reason: reason
+        })
+        .eq('id', book.id);
+
+      if (error) throw error;
+
+      setBook(prev => prev ? { ...prev, status: 'Rejected' } : null);
+      
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Книга отклонена!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error rejecting book:', error);
+      alert('Ошибка отклонения книги');
+    }
+  }, [book, _userProfile]);
+
+  const handleArchiveBook = useCallback(async () => {
+    if (!book || !_userProfile) return;
+    
+    if (!confirm(`Архивировать книгу "${book.title}"? Она будет скрыта от пользователей.`)) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({ status: 'Draft' })
+        .eq('id', book.id);
+
+      if (error) throw error;
+
+      setBook(prev => prev ? { ...prev, status: 'Draft' } : null);
+      
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-gray-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Книга архивирована!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error archiving book:', error);
+      alert('Ошибка архивирования книги');
+    }
+  }, [book, _userProfile]);
 
   // Element management
   const updateElement = useCallback((id: string, updates: Partial<CanvasElement>) => {
@@ -2024,9 +2514,135 @@ function BookEditor() {
 
   // Media upload handler
   const handleMediaUploaded = useCallback((url: string, type: string) => {
+    console.log('Media uploaded:', { url, type });
     setUploadedMediaUrls(prev => ({ ...prev, [type]: url }));
-  }, []);
-
+    
+    // Automatically create element if no element is currently being dragged
+    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+    let position = { x: 100, y: 100 };
+    
+    if (canvasElement) {
+      const canvasRect = canvasElement.getBoundingClientRect();
+      const zoomFactor = canvasSettings.zoom / 100;
+      
+      // Calculate center position
+      let centerX = (canvasRect.width / 2) / zoomFactor;
+      let centerY = (canvasRect.height / 2) / zoomFactor;
+      
+      // Add some random offset to avoid overlapping
+      centerX += (Math.random() - 0.5) * 100;
+      centerY += (Math.random() - 0.5) * 100;
+      
+      // Snap to grid if enabled
+      if (canvasSettings.snapToGrid) {
+        centerX = Math.round(centerX / canvasSettings.gridSize) * canvasSettings.gridSize;
+        centerY = Math.round(centerY / canvasSettings.gridSize) * canvasSettings.gridSize;
+      }
+      
+      position = { x: Math.max(0, centerX - 50), y: Math.max(0, centerY - 25) };
+    }
+    
+    let newElement: CanvasElement;
+    
+    if (type === 'image') {
+      newElement = {
+        id: generateId(),
+        type: 'image',
+        x: position.x,
+        y: position.y,
+        width: 200,
+        height: 150,
+        content: '',
+        page: canvasSettings.currentPage,
+        zIndex: elements.length,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        properties: {
+          imageUrl: url,
+          borderRadius: 8,
+          shadow: false,
+        },
+      };
+    } else if (type === 'video') {
+      newElement = {
+        id: generateId(),
+        type: 'video',
+        x: position.x,
+        y: position.y,
+        width: 300,
+        height: 200,
+        content: '',
+        page: canvasSettings.currentPage,
+        zIndex: elements.length,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        properties: {
+          videoUrl: url,
+          controls: true,
+          autoplay: false,
+          muted: true,
+          loop: false,
+          borderRadius: 8,
+        },
+      };
+    } else if (type === 'audio') {
+      newElement = {
+        id: generateId(),
+        type: 'audio',
+        x: position.x,
+        y: position.y,
+        width: 300,
+        height: 60,
+        content: '',
+        page: canvasSettings.currentPage,
+        zIndex: elements.length,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        properties: {
+          audioUrl: url,
+          controls: true,
+          autoplay: false,
+          muted: false,
+          loop: false,
+          borderRadius: 8,
+        },
+      };
+    } else {
+      return; // Unknown type
+    }
+    
+    // Add element to canvas
+    setElements(prev => {
+      const newElements = [...prev, newElement];
+      addToHistory(newElements);
+      return newElements;
+    });
+    
+    // Show notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+    notification.innerHTML = `
+      <div class="flex items-center space-x-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span>${type === 'video' ? 'Видео' : type === 'audio' ? 'Аудио' : 'Изображение'} добавлено на холст!</span>
+      </div>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 3000);
+  }, [generateId, canvasSettings, elements.length, addToHistory]);
+  
   // Sidebar toggle
   const toggleMainSidebar = useCallback(() => {
     setMainSidebarHidden(prev => !prev);
@@ -2218,6 +2834,586 @@ function BookEditor() {
     setCanvasSettings(prev => ({ ...prev, currentPage: toPage }));
   }, [addToHistory]);
 
+  // Export functions for approved books
+  const handleExportHTML = useCallback(async () => {
+    if (!book) return;
+    
+    try {
+      // Generate HTML content from canvas elements
+      const htmlContent = generateHTMLFromElements(elements, canvasSettings, book);
+      
+      // Create and download file
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'HTML файл успешно скачан!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error exporting HTML:', error);
+      alert('Ошибка экспорта в HTML');
+    }
+  }, [book, elements, canvasSettings]);
+
+  const handleExportPDF = useCallback(async () => {
+    if (!book) return;
+    
+    try {
+      // Generate PDF content (simplified version)
+      const pdfContent = generatePDFFromElements(elements, canvasSettings, book);
+      
+      // Create and download file
+      const blob = new Blob([pdfContent], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'PDF файл успешно скачан!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Ошибка экспорта в PDF');
+    }
+  }, [book, elements, canvasSettings]);
+
+  const handleExportJSON = useCallback(async () => {
+    if (!book) return;
+    
+    try {
+      // Export book data as JSON
+      const exportData = {
+        book: {
+          title: book.title,
+          description: book.description,
+          created_at: book.created_at,
+          updated_at: book.updated_at
+        },
+        elements: elements,
+        settings: canvasSettings
+      };
+      
+      const jsonContent = JSON.stringify(exportData, null, 2);
+      
+      // Create and download file
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'JSON файл успешно скачан!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error exporting JSON:', error);
+      alert('Ошибка экспорта в JSON');
+    }
+  }, [book, elements, canvasSettings]);
+
+  // Export source code for editing (for moderators, super admins, teachers)
+  const handleExportSourceCode = useCallback(async () => {
+    if (!book) return;
+    
+    try {
+      // Generate editable HTML/CSS source code
+      const sourceCode = generateEditableSourceCode(elements, canvasSettings, book);
+      
+      // Create and download file
+      const blob = new Blob([sourceCode], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}_source.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-purple-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Исходный код успешно скачан для редактирования!';
+      document.body.appendChild(notification);
+      setTimeout(() => document.body.removeChild(notification), 3000);
+    } catch (error) {
+      console.error('Error exporting source code:', error);
+      alert('Ошибка экспорта исходного кода');
+    }
+  }, [book, elements, canvasSettings]);
+
+  // Helper function to generate HTML from elements
+  const generateHTMLFromElements = (elements: CanvasElement[], settings: CanvasSettings, book: Book): string => {
+    const pages = Array.from({ length: settings.totalPages }, (_, i) => i + 1);
+    
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${book.title}</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background: #f5f5f5; }
+        .book-container { max-width: ${settings.canvasWidth * 3.7795}px; margin: 0 auto; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .page { position: relative; width: ${settings.canvasWidth * 3.7795}px; height: ${settings.canvasHeight * 3.7795}px; margin: 20px 0; page-break-after: always; overflow: hidden; }
+        .element { position: absolute; }
+        .text-element { display: flex; align-items: center; justify-content: center; }
+        .paragraph-element { padding: 8px; white-space: pre-wrap; }
+        .shape-element { }
+        .image-element { background-size: cover; background-position: center; }
+        @media print { body { background: white; padding: 0; } .page { margin: 0; box-shadow: none; } }
+    </style>
+</head>
+<body>
+    <div class="book-container">
+        <h1 style="text-align: center; padding: 20px; margin: 0; border-bottom: 1px solid #ddd;">${book.title}</h1>
+        ${pages.map(pageNum => {
+          const pageElements = elements.filter(el => el.page === pageNum);
+          return `
+        <div class="page" data-page="${pageNum}">
+            ${pageElements.map(el => {
+              const style = `
+                left: ${el.x}px;
+                top: ${el.y}px;
+                width: ${el.width}px;
+                height: ${el.height}px;
+                transform: rotate(${el.rotation}deg);
+                opacity: ${el.opacity};
+                z-index: ${el.zIndex};
+                ${el.properties.fontSize ? `font-size: ${el.properties.fontSize}px;` : ''}
+                ${el.properties.fontFamily ? `font-family: ${el.properties.fontFamily};` : ''}
+                ${el.properties.fontWeight ? `font-weight: ${el.properties.fontWeight};` : ''}
+                ${el.properties.color ? `color: ${el.properties.color};` : ''}
+                ${el.properties.backgroundColor ? `background-color: ${el.properties.backgroundColor};` : ''}
+                ${el.properties.textAlign ? `text-align: ${el.properties.textAlign};` : ''}
+                ${el.properties.borderRadius ? `border-radius: ${el.properties.borderRadius}px;` : ''}
+              `;
+              
+              return `<div class="element ${el.type}-element" style="${style}">${el.content || ''}</div>`;
+            }).join('')}
+        </div>`;
+        }).join('')}
+    </div>
+</body>
+</html>`;
+    
+    return htmlContent;
+  };
+
+  // Helper function to generate PDF content (basic implementation)
+  const generatePDFFromElements = (elements: CanvasElement[], settings: CanvasSettings, book: Book): string => {
+    // This is a simplified PDF generation - in real implementation you'd use a library like jsPDF
+    return `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 ${settings.canvasWidth * 2.83} ${settings.canvasHeight * 2.83}]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+(${book.title}) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000244 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+338
+%%EOF`;
+  };
+
+  // Helper function to generate editable source code
+  const generateEditableSourceCode = (elements: CanvasElement[], settings: CanvasSettings, book: Book): string => {
+    const pages = Array.from({ length: settings.totalPages }, (_, i) => i + 1);
+    
+    // Generate CSS classes for each element type
+    const generateCSS = () => {
+      let css = `
+        /* ==============================================
+           РЕДАКТИРУЕМЫЕ СТИЛИ КНИГИ: ${book.title}
+           ============================================== */
+        
+        /* Основные стили страницы */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .book-container {
+            max-width: ${settings.canvasWidth * 3.7795}px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .book-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            margin-bottom: 0;
+        }
+        
+        .book-title {
+            font-size: 2.5em;
+            margin: 0;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .book-description {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .page {
+            position: relative;
+            width: ${settings.canvasWidth * 3.7795}px;
+            height: ${settings.canvasHeight * 3.7795}px;
+            margin: 0;
+            page-break-after: always;
+            overflow: hidden;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .page:last-child {
+            border-bottom: none;
+        }
+        
+        .page-number {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 12px;
+            color: #888;
+            background: rgba(255,255,255,0.8);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        
+        /* Стили элементов */
+        .element {
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+        
+        .element:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .text-element {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .paragraph-element {
+            padding: 12px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .shape-element {
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .image-element {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        
+        .line-element {
+            background: #333;
+        }
+        
+        .arrow-element {
+            background: #333;
+        }
+        
+        /* Адаптивные стили */
+        @media screen and (max-width: 768px) {
+            body { padding: 10px; }
+            .book-container { margin: 0; }
+            .book-title { font-size: 2em; }
+        }
+        
+        @media print {
+            body { 
+                background: white !important; 
+                padding: 0 !important; 
+            }
+            .book-container { 
+                box-shadow: none !important; 
+                border-radius: 0 !important; 
+            }
+            .page { 
+                margin: 0 !important; 
+                box-shadow: none !important; 
+                border: none !important; 
+            }
+            .element:hover {
+                transform: none !important;
+                box-shadow: none !important;
+            }
+        }
+        
+        /* Кастомные стили для редактирования */
+        .editable-text {
+            border: 2px dashed transparent;
+            transition: border-color 0.3s ease;
+        }
+        
+        .editable-text:hover {
+            border-color: #007bff;
+            background: rgba(0,123,255,0.05);
+        }
+        
+        .highlight-important {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%) !important;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .call-to-action {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            padding: 15px 25px;
+            border-radius: 25px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        }
+      `;
+      
+      return css;
+    };
+    
+    // Generate HTML structure
+    const htmlContent = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${book.title} - Исходный код для редактирования</title>
+    <style>
+        ${generateCSS()}
+    </style>
+</head>
+<body>
+    <!-- ИНСТРУКЦИЯ ПО РЕДАКТИРОВАНИЮ -->
+    <!-- 
+    Этот файл содержит исходный код книги "${book.title}" для редактирования.
+    
+    КАК РЕДАКТИРОВАТЬ:
+    1. Откройте этот файл в любом текстовом редакторе (VS Code, Sublime Text, Notepad++)
+    2. Измените содержимое между тегами HTML
+    3. Настройте стили в секции <style> выше
+    4. Сохраните файл и откройте в браузере для просмотра
+    
+    СТРУКТУРА:
+    - Секция <style> содержит все CSS стили
+    - Каждая страница находится в элементе .page
+    - Элементы книги имеют классы .element, .text-element, .paragraph-element и т.д.
+    
+    ПОЛЕЗНЫЕ КЛАССЫ:
+    - .highlight-important - выделение важного текста
+    - .call-to-action - кнопки призыва к действию
+    - .editable-text - редактируемый текст с hover-эффектом
+    -->
+    
+    <div class="book-container">
+        <div class="book-header">
+            <h1 class="book-title">${book.title}</h1>
+            ${book.description ? `<p class="book-description">${book.description}</p>` : ''}
+        </div>
+        
+        ${pages.map(pageNum => {
+          const pageElements = elements.filter(el => el.page === pageNum);
+          return `
+        <!-- СТРАНИЦА ${pageNum} -->
+        <div class="page" data-page="${pageNum}" id="page-${pageNum}">
+            <div class="page-number">Страница ${pageNum}</div>
+            ${pageElements.map((el, index) => {
+              const style = `
+                left: ${el.x}px;
+                top: ${el.y}px;
+                width: ${el.width}px;
+                height: ${el.height}px;
+                transform: rotate(${el.rotation}deg);
+                opacity: ${el.opacity};
+                z-index: ${el.zIndex};
+                ${el.properties.fontSize ? `font-size: ${el.properties.fontSize}px;` : ''}
+                ${el.properties.fontFamily ? `font-family: '${el.properties.fontFamily}', sans-serif;` : ''}
+                ${el.properties.fontWeight ? `font-weight: ${el.properties.fontWeight};` : ''}
+                ${el.properties.color ? `color: ${el.properties.color};` : ''}
+                ${el.properties.backgroundColor ? `background-color: ${el.properties.backgroundColor};` : ''}
+                ${el.properties.textAlign ? `text-align: ${el.properties.textAlign};` : ''}
+                ${el.properties.borderRadius ? `border-radius: ${el.properties.borderRadius}px;` : ''}
+                ${el.properties.borderColor ? `border: ${el.properties.borderWidth || 1}px solid ${el.properties.borderColor};` : ''}
+              `.trim();
+              
+              const elementId = `element-${pageNum}-${index}`;
+              const classes = `element ${el.type}-element ${el.type === 'text' || el.type === 'paragraph' ? 'editable-text' : ''}`;
+              
+              return `
+            <!-- ЭЛЕМЕНТ: ${el.type.toUpperCase()} -->
+            <div id="${elementId}" class="${classes}" style="${style}">
+                ${el.content || ''}
+            </div>`;
+            }).join('')}
+        </div>`;
+        }).join('')}
+        
+        <!-- ФУТЕР С ИНФОРМАЦИЕЙ -->
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; border-top: 1px solid #dee2e6;">
+            <p><strong>Исходный код книги:</strong> ${book.title}</p>
+            <p>Экспортировано: ${new Date().toLocaleDateString('ru-RU')} в ${new Date().toLocaleTimeString('ru-RU')}</p>
+            <p>Система: EduAdmin | Редактируемый HTML/CSS</p>
+            <p style="margin-top: 15px; font-size: 14px;">
+                💡 <strong>Совет:</strong> Используйте классы .highlight-important и .call-to-action для стилизации важных элементов
+            </p>
+        </div>
+    </div>
+    
+    <!-- JAVASCRIPT ДЛЯ ИНТЕРАКТИВНОСТИ (ОПЦИОНАЛЬНО) -->
+    <script>
+        // Простая интерактивность для редактируемых элементов
+        document.addEventListener('DOMContentLoaded', function() {
+            const editableElements = document.querySelectorAll('.editable-text');
+            
+            editableElements.forEach(element => {
+                element.addEventListener('click', function() {
+                    this.classList.toggle('highlight-important');
+                });
+                
+                element.addEventListener('dblclick', function() {
+                    this.classList.toggle('call-to-action');
+                });
+            });
+            
+            // Логирование изменений
+            console.log('📚 Исходный код книги "${book.title}" загружен');
+            console.log('🔧 Для редактирования откройте этот файл в текстовом редакторе');
+            console.log('✨ Клик по тексту - выделение важного, двойной клик - кнопка действия');
+        });
+    </script>
+</body>
+</html>`;
+    
+    return htmlContent;
+  };
+
+  // Log changes
+  const logChange = useCallback((action: string, details: string, user = 'Текущий пользователь') => {
+    const newLog = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date(),
+      action,
+      details,
+      user
+    };
+    
+    setChangeLog(prev => [newLog, ...prev.slice(0, 99)]); // Keep only last 100 changes
+    
+    // Store in localStorage for persistence
+    try {
+      const existingLogs = JSON.parse(localStorage.getItem(`book_logs_${params?.base_url}`) || '[]');
+      const updatedLogs = [newLog, ...existingLogs.slice(0, 99)];
+      localStorage.setItem(`book_logs_${params?.base_url}`, JSON.stringify(updatedLogs));
+    } catch (error) {
+      console.error('Failed to save change log:', error);
+    }
+  }, [params?.base_url]);
+
+  // Load change log on component mount
+  useEffect(() => {
+    try {
+      const savedLogs = JSON.parse(localStorage.getItem(`book_logs_${params?.base_url}`) || '[]');
+      setChangeLog(savedLogs.map((log: any) => ({
+        ...log,
+        timestamp: new Date(log.timestamp)
+      })));
+    } catch (error) {
+      console.error('Failed to load change log:', error);
+    }
+  }, [params?.base_url]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -2250,14 +3446,14 @@ function BookEditor() {
     >
       <div className="h-screen bg-gray-50 flex flex-col">
         {/* Header - Canva style */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
-          <div className="flex items-center space-x-4">
+        <div className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm z-40 relative min-w-0">
+          <div className="flex items-center space-x-4 flex-shrink-0">
             {/* Sidebar toggle */}
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleMainSidebar}
-              className="text-gray-600 hover:bg-gray-100 transition-colors"
+              className="text-gray-600 hover:bg-gray-100 transition-colors h-9"
               title={mainSidebarHidden ? "Показать главную панель" : "Скрыть главную панель"}
             >
               {mainSidebarHidden ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
@@ -2277,13 +3473,13 @@ function BookEditor() {
             </div>
 
             {/* Undo/Redo */}
-            <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
+            <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1.5">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={undo}
                 disabled={historyIndex <= 0}
-                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50 h-9"
                 title="Отменить (Ctrl+Z)"
               >
                 <Undo2 className="h-4 w-4" />
@@ -2293,7 +3489,7 @@ function BookEditor() {
                 size="sm"
                 onClick={redo}
                 disabled={historyIndex >= history.length - 1}
-                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50 h-9"
                 title="Повторить (Ctrl+Y)"
               >
                 <Redo2 className="h-4 w-4" />
@@ -2302,9 +3498,9 @@ function BookEditor() {
           </div>
 
           {/* Center controls */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-6 flex-shrink-0">
             {/* Zoom controls */}
-            <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-2">
+            <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-2.5">
               <Button
                 variant="ghost"
                 size="sm"
@@ -2312,7 +3508,7 @@ function BookEditor() {
                   ...prev, 
                   zoom: Math.max(10, prev.zoom - 10) 
                 }))}
-                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all h-9"
                 title="Уменьшить масштаб"
               >
                 <ZoomOut className="h-4 w-4" />
@@ -2325,7 +3521,7 @@ function BookEditor() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setCanvasSettings(prev => ({ ...prev, zoom: 100 }))}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 h-8"
                   title="Сбросить масштаб"
                 >
                   100%
@@ -2338,7 +3534,7 @@ function BookEditor() {
                   ...prev, 
                   zoom: Math.min(300, prev.zoom + 10) 
                 }))}
-                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all h-9"
                 title="Увеличить масштаб"
               >
                 <ZoomIn className="h-4 w-4" />
@@ -2346,7 +3542,7 @@ function BookEditor() {
             </div>
 
             {/* Page navigation */}
-            <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-2">
+            <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-2.5">
               <Button
                 variant="ghost"
                 size="sm"
@@ -2355,7 +3551,7 @@ function BookEditor() {
                   currentPage: Math.max(1, prev.currentPage - 1) 
                 }))}
                 disabled={canvasSettings.currentPage <= 1}
-                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50 h-9"
                 title="Предыдущая страница"
               >
                 <SkipBack className="h-4 w-4" />
@@ -2386,7 +3582,7 @@ function BookEditor() {
                     }));
                   }
                 }}
-                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                className="text-gray-600 hover:bg-white hover:shadow-sm transition-all h-9"
                 title={canvasSettings.currentPage >= canvasSettings.totalPages ? "Добавить новую страницу" : "Следующая страница"}
               >
                 {canvasSettings.currentPage >= canvasSettings.totalPages ? (
@@ -2405,7 +3601,7 @@ function BookEditor() {
                 ...prev, 
                 showGrid: !prev.showGrid 
               }))}
-              className={`transition-all ${canvasSettings.showGrid 
+              className={`transition-all h-9 ${canvasSettings.showGrid 
                 ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
                 : 'text-gray-600 hover:bg-gray-100'
               }`}
@@ -2415,16 +3611,16 @@ function BookEditor() {
             </Button>
           </div>
 
-          {/* Right controls */}
-          <div className="flex items-center space-x-3">
+          {/* Right controls - Expanded width and ensured space */}
+          <div className="flex items-center space-x-3 flex-shrink-0 min-w-0 ml-4">
             {/* Element actions */}
             {selectedElementId && (
-              <div className="flex items-center space-x-1 bg-red-50 rounded-lg p-1">
+              <div className="flex items-center space-x-1 bg-red-50 rounded-lg p-1.5">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => duplicateElement(selectedElementId)}
-                  className="text-gray-600 hover:bg-white hover:text-green-700 hover:shadow-sm transition-all"
+                  className="text-gray-600 hover:bg-white hover:text-green-700 hover:shadow-sm transition-all h-9"
                   title="Дублировать элемент (Ctrl+D)"
                 >
                   <Copy className="h-4 w-4" />
@@ -2433,7 +3629,7 @@ function BookEditor() {
                   variant="ghost"
                   size="sm"
                   onClick={() => deleteElement(selectedElementId)}
-                  className="text-red-600 hover:bg-white hover:text-red-700 hover:shadow-sm transition-all"
+                  className="text-red-600 hover:bg-white hover:text-red-700 hover:shadow-sm transition-all h-9"
                   title="Удалить элемент (Delete)"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -2442,12 +3638,12 @@ function BookEditor() {
             )}
 
             {/* Panel toggles */}
-            <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
+            <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1.5">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setPagesPanelOpen(!pagesPanelOpen)}
-                className={`transition-all ${pagesPanelOpen 
+                className={`transition-all h-9 ${pagesPanelOpen 
                   ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
                   : 'text-gray-600 hover:bg-white hover:shadow-sm'
                 }`}
@@ -2460,7 +3656,7 @@ function BookEditor() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setToolsPanelOpen(!toolsPanelOpen)}
-                className={`transition-all ${toolsPanelOpen 
+                className={`transition-all h-9 ${toolsPanelOpen 
                   ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
                   : 'text-gray-600 hover:bg-white hover:shadow-sm'
                 }`}
@@ -2473,7 +3669,7 @@ function BookEditor() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
-                className={`transition-all ${propertiesPanelOpen 
+                className={`transition-all h-9 ${propertiesPanelOpen 
                   ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
                   : 'text-gray-600 hover:bg-white hover:shadow-sm'
                 }`}
@@ -2483,15 +3679,108 @@ function BookEditor() {
               </Button>
             </div>
 
+            {/* Action buttons group - Enhanced size and spacing */}
+            <div className="flex items-center justify-center bg-gray-50 rounded-lg px-12 py-3 min-w-fit w-auto">
             {/* Save button */}
             <Button 
               onClick={handleSave}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                variant="ghost"
+                size="sm"
+                className="text-green-600 hover:bg-white hover:text-green-700 hover:shadow-sm transition-all font-medium px-5 py-2.5 rounded-lg whitespace-nowrap h-10"
               title="Сохранить изменения (Ctrl+S)"
             >
               <Save className="h-4 w-4 mr-2" />
               Сохранить
             </Button>
+            
+            {/* Source code button for special roles - placed harmoniously next to save */}
+            {_userProfile && (_userProfile.role === 'moderator' || _userProfile.role === 'super_admin' || _userProfile.role === 'teacher') && (
+              <>
+                {/* Beautiful separator */}
+                <div className="w-px h-7 bg-gradient-to-t from-gray-200 via-gray-400 to-gray-200 mx-6"></div>
+                <Button
+                  onClick={handleExportSourceCode}
+                  variant="ghost"
+                  size="sm"
+                  className="text-purple-600 hover:bg-white hover:text-purple-700 hover:shadow-sm transition-all font-medium px-5 py-2.5 rounded-lg whitespace-nowrap h-10"
+                  title="Скачать исходный код для редактирования (HTML/CSS)"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Исходный код
+                </Button>
+              </>
+            )}
+            </div>
+
+            {/* Book Management Actions - Compact */}
+            {_userProfile && book && (
+              <div className="flex items-center space-x-2">
+                {/* Status indicator */}
+                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  book.status === 'Draft' ? 'bg-gray-100 text-gray-800' :
+                  book.status === 'Moderation' ? 'bg-yellow-100 text-yellow-800' :
+                  book.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                  book.status === 'Active' ? 'bg-blue-100 text-blue-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {book.status === 'Draft' ? '' :
+                   book.status === 'Moderation' ? 'Модерация' :
+                   book.status === 'Approved' ? 'Одобрено' :
+                   book.status === 'Active' ? 'Активно' :
+                   'Отклонено'}
+                </div>
+
+                {/* Quick Management Actions */}
+                {_userProfile.role === 'moderator' && book.status === 'Moderation' && (
+                  <>
+                    <Button onClick={handleApproveBook} variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-0 h-9" title="Одобрить">
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                    <Button onClick={handleRejectBook} variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-0 h-9" title="Отклонить">
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+
+                {_userProfile.role === 'super_admin' && (
+                  <>
+                    {book.status === 'Moderation' && (
+                      <>
+                        <Button onClick={handleApproveBook} variant="outline" size="sm" className="bg-green-500 hover:bg-green-600 text-white border-0 h-9" title="Одобрить">
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button onClick={handleRejectBook} variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-0 h-9" title="Отклонить">
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    {book.status === 'Approved' && (
+                      <Button onClick={handleActivateBook} variant="outline" size="sm" className="bg-purple-500 hover:bg-purple-600 text-white border-0 h-9" title="Активировать">
+                        <PlayCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {book.status === 'Active' && (
+                      <Button onClick={handleArchiveBook} variant="outline" size="sm" className="bg-gray-500 hover:bg-gray-600 text-white border-0 h-9" title="Архивировать">
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            
+            {/* Compact Export Section */}
+            {book && (book.status === 'Approved' || book.status === 'Active') && (
+              <div className="flex items-center space-x-1 border-l border-gray-200 pl-3">
+                <span className="text-xs text-gray-500">Скачать:</span>
+                <Button onClick={handleExportHTML} variant="outline" size="sm" className="bg-blue-500 hover:bg-blue-600 text-white border-0 px-2 h-9" title="HTML">
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Button onClick={handleExportPDF} variant="outline" size="sm" className="bg-red-500 hover:bg-red-600 text-white border-0 px-2 h-9" title="PDF">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2521,7 +3810,7 @@ function BookEditor() {
 
               {/* Tools grid */}
               <div className="flex-1 p-4 overflow-y-auto">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   {TOOLS.filter(tool => tool.category === activeCategory).map((tool) => (
                     <DraggableTool key={tool.id} tool={tool} onMediaUploaded={handleMediaUploaded} isSelected={selectedElementId === tool.id} onSelect={() => setSelectedElementId(tool.id)} canvasSettings={canvasSettings} />
                   ))}

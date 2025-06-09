@@ -7,8 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, BookOpen, Activity, MessageSquare, Clock } from 'lucide-react';
 
+// Types
+interface Collaborator {
+  id: string;
+  name: string;
+  role: 'owner' | 'editor' | 'viewer';
+  status: 'active' | 'pending' | 'inactive';
+  avatar: string;
+  lastActive: string;
+  permissions: string[];
+}
+
+interface ActivityLog {
+  id: string;
+  user: string;
+  action: string;
+  timestamp: string;
+  details: string;
+}
+
 export default function TestCollaborationPage() {
-  const [collaborators, setCollaborators] = useState<BookCollaborator[]>([
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([
     {
       id: 'collab1',
       user_id: 'user1',
@@ -76,7 +95,7 @@ export default function TestCollaborationPage() {
     }
   ]);
 
-  const [activityLog, setActivityLog] = useState([
+  const [activityLog, _setActivityLog] = useState([
     {
       id: 1,
       user: 'Редактор Иван',

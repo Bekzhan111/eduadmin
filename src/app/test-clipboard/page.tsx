@@ -5,7 +5,12 @@ import { safeCopyToClipboard, showCopyNotification } from '@/utils/clipboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Copy, Key, Link, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  ArrowLeft, BookOpen, Copy, Download, Upload, 
+  CheckCircle2, XCircle, AlertCircle, FileText,
+  Image as ImageIcon, Archive, RefreshCw
+} from 'lucide-react';
 
 export default function TestClipboardPage() {
   const [testText, setTestText] = useState('test-key-12345-abcdef');
@@ -70,7 +75,7 @@ export default function TestClipboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Key className="h-5 w-5 mr-2" />
+            <BookOpen className="h-5 w-5 mr-2" />
             Тестовые Случаи
           </CardTitle>
           <CardDescription>

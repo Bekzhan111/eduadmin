@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { 
-  BarChart3, TrendingUp, TrendingDown, Users, Eye, Heart,
-  MessageCircle, Star, Download, Share2, Calendar, Clock,
-  MapPin, Smartphone, Monitor, Tablet, Globe, Filter,
-  RefreshCw, FileText, PieChart, Activity, Target
+  BarChart3, Users, Eye, Clock, Download, Star, 
+  ChevronRight, Smartphone, Monitor, Tablet, Share,
+  RefreshCw, FileText, Target, MessageCircle, Share2, Heart
 } from 'lucide-react';
 
 // Types for analytics data

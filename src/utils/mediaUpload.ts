@@ -164,7 +164,7 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
         const retryFileName = `retry-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const retryFilePath = `${type}s/${retryFileName}`;
         
-        const { data: retryData, error: retryError } = await supabase.storage
+        const { data: _retryData, error: retryError } = await supabase.storage
           .from('media')
           .upload(retryFilePath, file, {
             cacheControl: '3600',
