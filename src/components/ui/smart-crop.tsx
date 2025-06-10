@@ -18,7 +18,7 @@ interface SmartCropProps {
 
 export function SmartCrop({ element, onUpdate }: SmartCropProps) {
   const [cropMode, setCropMode] = React.useState<'free' | 'square' | 'circle' | '16:9' | '4:3'>('free');
-  const [isDragging, setIsDragging] = React.useState(false);
+  const [_isDragging, _setIsDragging] = React.useState(false);
 
   const cropPresets = [
     { ratio: null, name: 'Свободно', icon: Crop },

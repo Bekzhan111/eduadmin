@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { 
   Lightbulb, Star, TrendingUp, Users, Eye, Bookmark,
-  Heart, Download, Clock, Brain, Target, Sparkles,
-  ChevronRight, ChevronLeft, MoreHorizontal, Filter,
-  Shuffle, RefreshCw, Settings, User, Book
+  Clock, Brain, Target, Sparkles,
+  ChevronRight, ChevronLeft, Filter,
+  RefreshCw, Settings, User, Book
 } from 'lucide-react';
 
 // Types

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { 
   MessageCircle, Star, ThumbsUp, ThumbsDown, Reply, Flag, 
   Edit, Trash2, Send,
-  User, Calendar, Filter
+  Calendar, Filter
 } from 'lucide-react';
 
 // Types
@@ -138,13 +138,11 @@ export function BookComments({
     const totalComments = mockComments.length;
     const ratings = mockComments.filter(c => c.rating).map(c => c.rating!);
     const averageRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
-    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    ratings.forEach(rating => ratingDistribution[rating]++);
     
     setStats({
       totalComments,
       averageRating,
-      ratingDistribution,
+      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
       recentComments: mockComments.filter(c => 
         new Date(c.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       ).length
@@ -352,6 +350,19 @@ export function BookComments({
     }
   };
 
+  // Calculate rating distribution
+  const calculateRatingDistribution = () => {
+    const ratings = comments.filter(c => c.rating).map(c => c.rating!);
+    const ratingDistribution: { [key: number]: number } = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    ratings.forEach((rating: number) => ratingDistribution[rating]++);
+    
+    return Object.entries(ratingDistribution).map(([stars, count]) => ({
+      stars: parseInt(stars),
+      count,
+      percentage: ratings.length > 0 ? (count / ratings.length) * 100 : 0
+    }));
+  };
+
   return (
     <div className={`bg-white rounded-xl shadow-lg p-6 ${className}`}>
       {/* Header */}
@@ -389,22 +400,22 @@ export function BookComments({
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Распределение оценок</h4>
           <div className="space-y-2">
-            {[5, 4, 3, 2, 1].map((rating) => (
-              <div key={rating} className="flex items-center space-x-3">
+            {calculateRatingDistribution().map(({ stars, count, percentage }) => (
+              <div key={stars} className="flex items-center space-x-3">
                 <div className="flex items-center space-x-1 w-12">
-                  <span className="text-sm text-gray-600">{rating}</span>
+                  <span className="text-sm text-gray-600">{stars}</span>
                   <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
                 </div>
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      width: `${stats.totalComments > 0 ? (stats.ratingDistribution[rating as keyof typeof stats.ratingDistribution] / stats.totalComments) * 100 : 0}%` 
+                      width: `${percentage}%` 
                     }}
                   />
                 </div>
                 <span className="text-sm text-gray-500 w-8">
-                  {stats.ratingDistribution[rating]}
+                  {count}
                 </span>
               </div>
             ))}

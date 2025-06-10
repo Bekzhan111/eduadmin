@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Eye, Users, TrendingUp, Calendar, User, Clock } from 'lucide-react';
-import { getBookViewStats, getRecentViewers } from '@/utils/book-views';
+import { getRecentViewers as _getRecentViewers } from '@/utils/book-views';
+import { createClient as _createClient } from '@/utils/supabase';
 
 interface BookViewStats {
   total_views: number;

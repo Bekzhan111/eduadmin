@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  User, Settings, BookOpen, Star, Heart, Download,
-  Eye, Clock, Target, Award, Bookmark, Bell,
+  User, Settings, BookOpen, Star, Heart as _Heart, Download as _Download,
+  Eye, Clock as _Clock, Target as _Target, Award as _Award, Bookmark as _Bookmark, Bell,
   Shield, Globe, Palette, Monitor, Moon, Sun,
-  Mail, Phone, Edit, Save, X, Plus, Trash2,
-  Calendar, BarChart3, TrendingUp, Users, Camera
+  Mail as _Mail, Phone as _Phone, Edit, Save, X, Plus, Trash2 as _Trash2,
+  Calendar, BarChart3 as _BarChart3, TrendingUp as _TrendingUp, Users, Camera
 } from 'lucide-react';
 
 // Types
@@ -256,7 +256,7 @@ export function UserProfile({
     });
   };
 
-  const renderStars = (rating: number) => {
+  const _renderStars = (rating: number) => {
     return (
       <div className="flex items-center space-x-1">
         {[1, 2, 3, 4, 5].map((star) => (

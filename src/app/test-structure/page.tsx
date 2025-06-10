@@ -103,7 +103,7 @@ export default function TestStructurePage() {
         try {
           const imported = JSON.parse(e.target?.result as string);
           setSections(imported);
-        } catch (error) {
+        } catch {
           alert('Ошибка при импорте файла');
         }
       };

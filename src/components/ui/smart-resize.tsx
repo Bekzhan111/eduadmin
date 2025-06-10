@@ -14,7 +14,7 @@ interface SmartResizeProps {
   onUpdate: (updates: any) => void;
 }
 
-export function SmartResize({ element, onResize, onUpdate }: SmartResizeProps) {
+export function SmartResize({ element, onResize, onUpdate: _onUpdate }: SmartResizeProps) {
   const [locked, setLocked] = React.useState(false);
   const [aspectRatio, setAspectRatio] = React.useState(element.width / element.height);
 

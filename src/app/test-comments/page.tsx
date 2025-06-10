@@ -5,7 +5,7 @@ import { BookComments } from '@/components/ui/book-comments';
 import { Button } from '@/components/ui/button';
 import { 
   MessageCircle, Star, Users, TrendingUp, 
-  BookOpen, ArrowLeft, Settings, Shield
+  ArrowLeft, Settings, Shield
 } from 'lucide-react';
 
 export default function TestCommentsPage() {

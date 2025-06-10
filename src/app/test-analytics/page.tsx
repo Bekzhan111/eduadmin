@@ -3,10 +3,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { BookAnalytics } from '@/components/ui/book-analytics';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
-  ArrowLeft, BookOpen, BarChart3, Users, Clock, Eye, TrendingUp, Download, Award, Globe
+  ArrowLeft, BarChart3, Users, Eye, TrendingUp, Download, Award, Globe
 } from 'lucide-react';
 
 export default function TestAnalyticsPage() {

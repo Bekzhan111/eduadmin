@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   BookOpen, Plus, Trash2, Edit, GripVertical, ChevronDown, ChevronRight,
-  FileText, Folder, FolderOpen, Move, Copy, Eye, EyeOff
+  FileText, Folder, FolderOpen, Copy, Eye, EyeOff
 } from 'lucide-react';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 export type BookSection = {
@@ -170,12 +170,12 @@ export function BookStructure({
   };
 
   // Drag and drop handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    const section = findSectionById(event.active.id as string);
+  const handleDragStart = (_event: DragStartEvent) => {
+    const section = findSectionById(_event.active.id as string);
     setDraggedItem(section);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (_event: DragEndEvent) => {
     setDraggedItem(null);
     // TODO: Implement reordering logic
   };
@@ -282,7 +282,7 @@ export function BookStructure({
 function SortableItem({
   id,
   section,
-  level,
+  level: _level,
   isEditing,
   isSelected,
   hasChildren,

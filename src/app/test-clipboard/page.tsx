@@ -1,20 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { safeCopyToClipboard, showCopyNotification } from '@/utils/clipboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
-  ArrowLeft, BookOpen, Copy, Download, Upload, 
-  CheckCircle2, XCircle, AlertCircle, FileText,
-  Image as ImageIcon, Archive, RefreshCw
+  BookOpen, Copy, FileText
 } from 'lucide-react';
 
 export default function TestClipboardPage() {
   const [testText, setTestText] = useState('test-key-12345-abcdef');
   const [copyResults, setCopyResults] = useState<string[]>([]);
+  const [isClient, setIsClient] = useState(false);
+  
+  // Check if we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleTestCopy = async (text: string, description: string) => {
     const success = await safeCopyToClipboard(text);
@@ -151,20 +154,26 @@ export default function TestClipboardPage() {
           <CardTitle>Информация о Браузере</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>Clipboard API:</strong> {navigator.clipboard ? '✅ Поддерживается' : '❌ Не поддерживается'}
+          {isClient ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <strong>Clipboard API:</strong> {typeof navigator !== 'undefined' && navigator.clipboard ? '✅ Поддерживается' : '❌ Не поддерживается'}
+              </div>
+              <div>
+                <strong>Secure Context:</strong> {typeof window !== 'undefined' && window.isSecureContext ? '✅ Да' : '❌ Нет'}
+              </div>
+              <div>
+                <strong>User Agent:</strong> {typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 50) + '...' : 'Недоступно'}
+              </div>
+              <div>
+                <strong>execCommand:</strong> {typeof document !== 'undefined' && document.queryCommandSupported?.('copy') ? '✅ Поддерживается' : '❌ Не поддерживается'}
+              </div>
             </div>
-            <div>
-              <strong>Secure Context:</strong> {window.isSecureContext ? '✅ Да' : '❌ Нет'}
+          ) : (
+            <div className="text-center text-gray-500 py-4">
+              Загрузка информации о браузере...
             </div>
-            <div>
-              <strong>User Agent:</strong> {navigator.userAgent.substring(0, 50)}...
-            </div>
-            <div>
-              <strong>execCommand:</strong> {document.queryCommandSupported?.('copy') ? '✅ Поддерживается' : '❌ Не поддерживается'}
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

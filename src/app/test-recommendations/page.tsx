@@ -41,7 +41,7 @@ export default function TestRecommendationsPage() {
     }
   ];
 
-  const algorithmStats = {
+  const _algorithmStats = {
     collaborative: { accuracy: 87.8, users: 12500, recommendations: 156000 },
     content_based: { accuracy: 84.5, books: 8900, features: 45 },
     hybrid: { accuracy: 92.3, precision: 89.1, recall: 86.4 },

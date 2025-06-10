@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Bell, BellRing, MessageCircle, Star, Heart, BookOpen, 
-  Users, TrendingUp, Award, AlertCircle, CheckCircle, 
-  X, Settings, Filter, Search, Calendar, Clock,
-  Mail, Smartphone, Monitor, Volume2, VolumeX,
-  Eye, EyeOff, Trash2, Archive, MoreHorizontal
+  Bell, BellRing as _BellRing, MessageCircle, Star, Heart, BookOpen, 
+  Users, TrendingUp as _TrendingUp, Award, AlertCircle, CheckCircle, 
+  X as _X, Settings, Filter, Search, Calendar, Clock,
+  Mail, Smartphone, Monitor, Volume2 as _Volume2, VolumeX as _VolumeX,
+  Eye, EyeOff as _EyeOff, Trash2, Archive as _Archive, MoreHorizontal as _MoreHorizontal
 } from 'lucide-react';
 
 // Types
@@ -121,7 +121,7 @@ export function NotificationSystem({ userId, className = '' }: NotificationSyste
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
 
   // Mock data for demonstration
   useEffect(() => {

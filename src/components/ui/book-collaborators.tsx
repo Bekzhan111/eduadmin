@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Users, Plus, Trash2, Edit, Crown, UserCheck, UserX, Mail, Search,
-  Shield, Eye, EyeOff, Settings, Clock, CheckCircle, XCircle
+  Users, Trash2, Edit, Crown,
+  Eye, EyeOff, Clock, CheckCircle, XCircle
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase';
 
@@ -144,8 +144,8 @@ export function BookCollaborators({
       const filteredUsers = users?.filter(user => !existingUserIds.includes(user.id)) || [];
       
       setSearchResults(filteredUsers);
-    } catch (error) {
-      console.error('Error searching users:', error);
+    } catch {
+      console.error('Error searching users');
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -205,8 +205,8 @@ export function BookCollaborators({
       setInviteEmail('');
       setSearchResults([]);
       
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Ошибка при отправке приглашения');
+    } catch {
+      setError('Ошибка при отправке приглашения');
     } finally {
       setIsInviting(false);
     }
@@ -230,7 +230,7 @@ export function BookCollaborators({
       onCollaboratorsChange(updatedCollaborators);
       
       setSuccess('Соавтор удален');
-    } catch (error) {
+    } catch {
       setError('Ошибка при удалении соавтора');
     }
   };
@@ -251,7 +251,7 @@ export function BookCollaborators({
 
       onCollaboratorsChange(updatedCollaborators);
       setSuccess('Роль соавтора изменена');
-    } catch (error) {
+    } catch {
       setError('Ошибка при изменении роли');
     }
   };

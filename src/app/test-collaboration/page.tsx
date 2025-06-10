@@ -1,24 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { BookCollaborators, BookCollaborator, CollaboratorRole } from '@/components/ui/book-collaborators';
+import { BookCollaborators, BookCollaborator } from '@/components/ui/book-collaborators';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, BookOpen, Activity, MessageSquare, Clock } from 'lucide-react';
 
 // Types
-interface Collaborator {
-  id: string;
-  name: string;
-  role: 'owner' | 'editor' | 'viewer';
-  status: 'active' | 'pending' | 'inactive';
-  avatar: string;
-  lastActive: string;
-  permissions: string[];
-}
-
-interface ActivityLog {
+interface _ActivityLog {
   id: string;
   user: string;
   action: string;
@@ -27,7 +17,7 @@ interface ActivityLog {
 }
 
 export default function TestCollaborationPage() {
-  const [collaborators, setCollaborators] = useState<Collaborator[]>([
+  const [collaborators, setCollaborators] = useState<BookCollaborator[]>([
     {
       id: 'collab1',
       user_id: 'user1',
@@ -95,7 +85,7 @@ export default function TestCollaborationPage() {
     }
   ]);
 
-  const [activityLog, _setActivityLog] = useState([
+  const [_activityLog, _setActivityLog] = useState([
     {
       id: 1,
       user: 'Редактор Иван',
@@ -254,7 +244,7 @@ export default function TestCollaborationPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activityLog.map((activity) => (
+                {_activityLog.map((activity: any) => (
                   <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className="flex-shrink-0 mt-1">
                       {getActivityIcon(activity.type)}

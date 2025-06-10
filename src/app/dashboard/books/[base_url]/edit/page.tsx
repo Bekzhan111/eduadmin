@@ -22,28 +22,18 @@ import {
   DragOverEvent,
 } from '@dnd-kit/core';
 import { 
-  Save, Type, Square, Circle, MousePointer, Image as ImageIcon, Minus, AlignLeft,
+  Save, Type, Square, Circle, Image as ImageIcon, Minus, AlignLeft,
   Menu, X, PanelLeftClose, PanelLeftOpen, Plus, Trash2, Copy, Undo2, Redo2,
   ZoomIn, ZoomOut, Grid3X3, Eye, SkipForward, SkipBack, Settings, Layers,
-  Triangle, Star, Heart, Upload, Move3D, Lock,
-  Bold, Italic, Underline, ArrowUp, ArrowDown, Video, Link, BookOpen,
-  RotateCw, Palette, FlipHorizontal,
-  Scissors, Clipboard, Wand2, Sparkles, Target, FileText,
-  Volume2, Send, CheckCircle, PlayCircle, XCircle, Clock, Archive, Download,
+  Triangle, Star, Heart, Upload, Lock,
+  Bold, Italic, Underline, ArrowUp, ArrowDown, Video, BookOpen,
+  RotateCw, FlipHorizontal,
+  Clipboard, Target, FileText,
+  Volume2, CheckCircle, PlayCircle, XCircle, Archive, Download,
   ArrowRight
 } from 'lucide-react';
-import { uploadMedia, uploadMediaFromUrl } from '@/utils/mediaUpload';
+import { uploadMedia } from '@/utils/mediaUpload';
 import type { MediaType, UploadResult } from '@/utils/mediaUpload';
-
-// Enhanced Types
-export type MediaType = 'image' | 'video' | 'audio';
-export type UploadResult = {
-  success: boolean;
-  url?: string;
-  error?: string;
-  fileName?: string;
-  fileSize?: number;
-};
 
 // Enhanced Book type with version control and collaboration
 type Book = {
@@ -186,7 +176,7 @@ type Template = {
 };
 
 // Collaboration types
-type Comment = {
+type _Comment = {
   id: string;
   elementId?: string;
   x: number;
@@ -196,210 +186,7 @@ type Comment = {
   author: string;
   timestamp: Date;
   resolved: boolean;
-  replies?: Comment[];
-};
-
-type CollaborationState = {
-  isActive: boolean;
-  users: Array<{
-    id: string;
-    name: string;
-    cursor?: { x: number; y: number };
-    selection?: string[];
-    color: string;
-  }>;
-  comments: Comment[];
-};
-
-// Version control
-type Version = {
-  id: string;
-  bookId: string;
-  version: number;
-  elements: CanvasElement[];
-  settings: CanvasSettings;
-  author: string;
-  timestamp: Date;
-  description: string;
-  isAutoSave: boolean;
-};
-
-// Smart guides and snapping
-type SnapLine = {
-  id: string;
-  type: 'vertical' | 'horizontal';
-  position: number;
-  elements: string[];
-  temporary?: boolean;
-};
-
-// Keyboard shortcuts
-type KeyboardShortcut = {
-  keys: string[];
-  action: string;
-  description: string;
-  handler: () => void;
-};
-
-// Enhanced tool definitions with new categories
-const ENHANCED_TOOLS = [
-  // Content tools
-  { id: 'text', name: 'Текст', label: 'Текст', icon: Type, category: 'content', needsFileUpload: false, hotkey: 'T' },
-  { id: 'paragraph', name: 'Абзац', label: 'Абзац', icon: AlignLeft, category: 'content', needsFileUpload: false, hotkey: 'P' },
-  
-  // Media tools
-  { id: 'image', name: 'Изображение', label: 'Изображение', icon: ImageIcon, category: 'media', needsFileUpload: true, accepts: 'image/*', hotkey: 'I' },
-  { id: 'video', name: 'Видео', label: 'Видео', icon: Video, category: 'media', needsFileUpload: true, accepts: 'video/*', hotkey: 'V' },
-  { id: 'audio', name: 'Аудио', label: 'Аудио', icon: Volume2, category: 'media', needsFileUpload: true, accepts: 'audio/*', hotkey: 'U' },
-  
-  // Shape tools
-  { id: 'rectangle', name: 'Прямоугольник', label: 'Прямоугольник', icon: Square, category: 'shapes', needsFileUpload: false, hotkey: 'R' },
-  { id: 'circle', name: 'Круг', label: 'Круг', icon: Circle, category: 'shapes', needsFileUpload: false, hotkey: 'C' },
-  { id: 'triangle', name: 'Треугольник', label: 'Треугольник', icon: Triangle, category: 'shapes', needsFileUpload: false, hotkey: '' },
-  { id: 'star', name: 'Звезда', label: 'Звезда', icon: Star, category: 'shapes', needsFileUpload: false, hotkey: '' },
-  { id: 'heart', name: 'Сердце', label: 'Сердце', icon: Heart, category: 'shapes', needsFileUpload: false, hotkey: '' },
-  
-  // Drawing tools
-  { id: 'line', name: 'Линия', label: 'Линия', icon: Minus, category: 'drawing', needsFileUpload: false, hotkey: 'L' },
-  { id: 'arrow', name: 'Стрелка', label: 'Стрелка', icon: ArrowRight, category: 'drawing', needsFileUpload: false, hotkey: 'A' },
-  
-  // Advanced tools
-  { id: 'gradient', name: 'Градиент', label: 'Градиент', icon: Palette, category: 'advanced', needsFileUpload: false, hotkey: 'G' },
-  { id: 'group', name: 'Группировка', label: 'Группировка', icon: Layers, category: 'advanced', needsFileUpload: false, hotkey: 'Ctrl+G' },
-] as const;
-
-const ENHANCED_TOOL_CATEGORIES = [
-  { id: 'content', label: 'Контент', icon: Type },
-  { id: 'shapes', label: 'Фигуры', icon: Square },
-  { id: 'media', label: 'Медиа', icon: ImageIcon },
-  { id: 'drawing', label: 'Рисование', icon: Minus },
-  { id: 'advanced', label: 'Продвинутые', icon: Sparkles },
-  { id: 'templates', label: 'Шаблоны', icon: FileText },
-];
-
-// Animation presets
-const ANIMATION_PRESETS = {
-  entrance: [
-    { name: 'Плавное появление', value: 'fadeIn', duration: 600 },
-    { name: 'Слева', value: 'slideInLeft', duration: 500 },
-    { name: 'Справа', value: 'slideInRight', duration: 500 },
-    { name: 'Сверху', value: 'slideInUp', duration: 500 },
-    { name: 'Снизу', value: 'slideInDown', duration: 500 },
-    { name: 'Увеличение', value: 'zoomIn', duration: 400 },
-    { name: 'Подпрыгивание', value: 'bounceIn', duration: 800 },
-  ],
-  exit: [
-    { name: 'Плавное исчезновение', value: 'fadeOut', duration: 600 },
-    { name: 'Влево', value: 'slideOutLeft', duration: 500 },
-    { name: 'Вправо', value: 'slideOutRight', duration: 500 },
-    { name: 'Вверх', value: 'slideOutUp', duration: 500 },
-    { name: 'Вниз', value: 'slideOutDown', duration: 500 },
-    { name: 'Уменьшение', value: 'zoomOut', duration: 400 },
-    { name: 'Подпрыгивание из', value: 'bounceOut', duration: 800 },
-  ],
-};
-
-// Filter presets
-const FILTER_PRESETS = {
-  none: { name: 'Без фильтра', filters: {} },
-  vintage: { 
-    name: 'Винтаж', 
-    filters: { sepia: 0.8, brightness: 1.1, contrast: 1.2 } 
-  },
-  blackWhite: { 
-    name: 'Чёрно-белый', 
-    filters: { grayscale: 1, contrast: 1.1 } 
-  },
-  warm: { 
-    name: 'Тёплый', 
-    filters: { hueRotate: 15, saturate: 1.2, brightness: 1.1 } 
-  },
-  cool: { 
-    name: 'Холодный', 
-    filters: { hueRotate: -15, saturate: 1.1, brightness: 0.9 } 
-  },
-  dramatic: { 
-    name: 'Драматичный', 
-    filters: { contrast: 1.4, saturate: 0.8, brightness: 0.9 } 
-  },
-  soft: { 
-    name: 'Мягкий', 
-    filters: { blur: 0.5, brightness: 1.1, saturate: 0.9 } 
-  },
-};
-
-// Keyboard shortcuts configuration
-const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
-  {
-    keys: ['Ctrl', 'S'],
-    action: 'save',
-    description: 'Сохранить',
-    handler: () => {},
-  },
-  {
-    keys: ['Ctrl', 'Z'],
-    action: 'undo',
-    description: 'Отменить',
-    handler: () => {},
-  },
-  {
-    keys: ['Ctrl', 'Y'],
-    action: 'redo',
-    description: 'Повторить',
-    handler: () => {},
-  },
-  {
-    keys: ['Ctrl', 'C'],
-    action: 'copy',
-    description: 'Копировать',
-    handler: () => {},
-  },
-  {
-    keys: ['Ctrl', 'V'],
-    action: 'paste',
-    description: 'Вставить',
-    handler: () => {},
-  },
-  {
-    keys: ['Ctrl', 'G'],
-    action: 'group',
-    description: 'Группировать',
-    handler: () => {},
-  },
-  {
-    keys: ['Ctrl', 'Shift', 'G'],
-    action: 'ungroup',
-    description: 'Разгруппировать',
-    handler: () => {},
-  },
-  {
-    keys: ['Delete'],
-    action: 'delete',
-    description: 'Удалить',
-    handler: () => {},
-  },
-  {
-    keys: ['Ctrl', 'D'],
-    action: 'duplicate',
-    description: 'Дублировать',
-    handler: () => {},
-  },
-  {
-    keys: ['Escape'],
-    action: 'deselect',
-    description: 'Снять выделение',
-    handler: () => {},
-  },
-];
-
-// Performance optimization utilities
-const PERFORMANCE_CONFIG = {
-  VIRTUALIZATION_THRESHOLD: 100, // Number of elements before enabling virtualization
-  RENDER_DEBOUNCE_MS: 16, // 60fps
-  AUTO_SAVE_DEBOUNCE_MS: 2000,
-  COLLABORATION_SYNC_MS: 1000,
-  UNDO_STACK_LIMIT: 50,
-  ELEMENT_CACHE_SIZE: 200,
+  replies?: _Comment[];
 };
 
 // Enhanced Enhanced tool definitions with more elements and categories
@@ -426,10 +213,10 @@ const TOOLS = [
 ] as const;
 
 const TOOL_CATEGORIES = [
-  { id: 'text', label: 'Текст', icon: Type },
+  { id: 'content', label: 'Текст', icon: Type },
   { id: 'shapes', label: 'Фигуры', icon: Square },
   { id: 'media', label: 'Медиа', icon: ImageIcon },
-  { id: 'advanced', label: 'Продвинутые', icon: Sparkles },
+  { id: 'drawing', label: 'Рисование', icon: Minus },
 ];
 
 // Predefined templates
@@ -439,6 +226,10 @@ const _TEMPLATES: Template[] = [
     name: 'Титульная страница',
     preview: '/templates/title-page.svg',
     category: 'basic',
+    tags: ['заголовок', 'титул', 'обложка'],
+    author: 'EduAdmin',
+    downloads: 0,
+    premium: false,
     elements: [
       {
         id: 'template-title',
@@ -911,10 +702,10 @@ function CanvasElementComponent({
   onUpdate,
   isEditing,
   onEdit,
-  onGroup,
-  isGrouped = false,
-  snapLines = [],
-  onShowSnapLines
+  onGroup: _onGroup,
+  isGrouped: _isGrouped = false,
+  snapLines: _snapLines = [],
+  onShowSnapLines: _onShowSnapLines
 }: { 
   element: CanvasElement;
   isSelected: boolean;
@@ -2075,7 +1866,7 @@ function BookEditor() {
   const [history, setHistory] = useState<CanvasElement[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [_uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
-  const [changeLog, setChangeLog] = useState<Array<{
+  const [_changeLog, _setChangeLog] = useState<Array<{
     id: string;
     timestamp: Date;
     action: string;
@@ -2088,7 +1879,7 @@ function BookEditor() {
   const [toolsPanelOpen, setToolsPanelOpen] = useState(true);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true);
   const [pagesPanelOpen, setPagesPanelOpen] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('text');
+  const [activeCategory, setActiveCategory] = useState('content');
 
   // Canvas settings
   const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>({
@@ -2103,6 +1894,17 @@ function BookEditor() {
     gridSize: 10,
     showRulers: false,
     showGuides: false,
+    // Smart guides
+    smartGuides: false,
+    snapToElements: false,
+    snapDistance: 10,
+    // Performance settings
+    renderQuality: 'normal',
+    enableAnimations: true,
+    maxUndoSteps: 50,
+    // Auto-save settings
+    autoSave: true,
+    autoSaveInterval: 30, // in seconds
   });
 
   // Sensors with proper configuration
@@ -2118,7 +1920,7 @@ function BookEditor() {
   const generateId = useCallback(() => `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, []);
 
   // Smart element positioning function
-  const getSmartPosition = useCallback(() => {
+  const _getSmartPosition = useCallback(() => {
     const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
     if (!canvasElement) return { x: 100, y: 100 };
 
@@ -3086,7 +2888,7 @@ startxref
     
     // Generate CSS classes for each element type
     const generateCSS = () => {
-      let css = `
+      const css = `
         /* ==============================================
            РЕДАКТИРУЕМЫЕ СТИЛИ КНИГИ: ${book.title}
            ============================================== */
@@ -3380,7 +3182,7 @@ startxref
   };
 
   // Log changes
-  const logChange = useCallback((action: string, details: string, user = 'Текущий пользователь') => {
+  const _logChange = useCallback((action: string, details: string, user = 'Текущий пользователь') => {
     const newLog = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
@@ -3389,7 +3191,7 @@ startxref
       user
     };
     
-    setChangeLog(prev => [newLog, ...prev.slice(0, 99)]); // Keep only last 100 changes
+    _setChangeLog(prev => [newLog, ...prev.slice(0, 99)]); // Keep only last 100 changes
     
     // Store in localStorage for persistence
     try {
@@ -3401,11 +3203,22 @@ startxref
     }
   }, [params?.base_url]);
 
+  // Define unused callback functions to fix TypeScript errors
+  const _onGroup = useCallback((_elementIds: string[]) => {
+    // Group functionality placeholder
+  }, []);
+
+  const _isGrouped = false;
+  const _snapLines: Array<{x?: number, y?: number}> = [];
+  const _onShowSnapLines = useCallback((_lines: Array<{x?: number, y?: number}>) => {
+    // Snap lines functionality placeholder
+  }, []);
+
   // Load change log on component mount
   useEffect(() => {
     try {
       const savedLogs = JSON.parse(localStorage.getItem(`book_logs_${params?.base_url}`) || '[]');
-      setChangeLog(savedLogs.map((log: any) => ({
+      _setChangeLog(savedLogs.map((log: any) => ({
         ...log,
         timestamp: new Date(log.timestamp)
       })));
@@ -3693,8 +3506,42 @@ startxref
               Сохранить
             </Button>
             
+            {/* Author actions */}
+            {_userProfile && book && book.author_id === _userProfile.id && book.status === 'Draft' && (
+              <>
+                <div className="w-px h-7 bg-gradient-to-t from-gray-200 via-gray-400 to-gray-200 mx-6"></div>
+                <Button
+                  onClick={handleSendToModeration}
+                  variant="ghost"
+                  size="sm"
+                  className="text-blue-600 hover:bg-white hover:text-blue-700 hover:shadow-sm transition-all font-medium px-5 py-2.5 rounded-lg whitespace-nowrap h-10"
+                  title="Отправить книгу на модерацию"
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  На модерацию
+                </Button>
+              </>
+            )}
+            
+            {/* Export JSON for authors */}
+            {_userProfile && book && book.author_id === _userProfile.id && (
+              <>
+                <div className="w-px h-7 bg-gradient-to-t from-gray-200 via-gray-400 to-gray-200 mx-6"></div>
+                <Button
+                  onClick={handleExportJSON}
+                  variant="ghost"
+                  size="sm"
+                  className="text-orange-600 hover:bg-white hover:text-orange-700 hover:shadow-sm transition-all font-medium px-5 py-2.5 rounded-lg whitespace-nowrap h-10"
+                  title="Экспортировать данные книги в JSON формате"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  JSON
+                </Button>
+              </>
+            )}
+            
             {/* Source code button for special roles - placed harmoniously next to save */}
-            {_userProfile && (_userProfile.role === 'moderator' || _userProfile.role === 'super_admin' || _userProfile.role === 'teacher') && (
+            {_userProfile && (_userProfile.role === 'moderator' || _userProfile.role === 'super_admin' || _userProfile.role === 'teacher') && book && (book.status === 'Moderation' || book.status === 'Approved' || book.status === 'Active' || book.author_id === _userProfile.id) && (
               <>
                 {/* Beautiful separator */}
                 <div className="w-px h-7 bg-gradient-to-t from-gray-200 via-gray-400 to-gray-200 mx-6"></div>
@@ -3723,7 +3570,7 @@ startxref
                   book.status === 'Active' ? 'bg-blue-100 text-blue-800' :
                   'bg-red-100 text-red-800'
                 }`}>
-                  {book.status === 'Draft' ? '' :
+                  {book.status === 'Draft' ? 'Черновик' :
                    book.status === 'Moderation' ? 'Модерация' :
                    book.status === 'Approved' ? 'Одобрено' :
                    book.status === 'Active' ? 'Активно' :
@@ -3983,6 +3830,10 @@ startxref
                   onSelect={() => setSelectedElementId(element.id)}
                   onUpdate={(updates) => updateElement(element.id, updates)}
                   onEdit={(editing) => setEditingElementId(editing ? element.id : null)}
+                  onGroup={_onGroup}
+                  isGrouped={_isGrouped}
+                  snapLines={_snapLines}
+                  onShowSnapLines={_onShowSnapLines}
                 />
               ))}
             </CanvasDropZone>
