@@ -9,10 +9,6 @@ const nextConfig: NextConfig = {
     // Игнорировать TypeScript ошибки при сборке
     ignoreBuildErrors: true,
   },
-  experimental: {
-    // Отключаем строгий режим для совместимости
-    esmExternals: false,
-  },
 };
 
 export default nextConfig;

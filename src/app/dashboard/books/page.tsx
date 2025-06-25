@@ -149,13 +149,22 @@ export default function BooksPage() {
   };
 
   const fetchBooks = useCallback(async () => {
-    setIsLoading(true);
+    // Don't set loading state if we already have books (to prevent UI flicker on refresh)
+    if (books.length === 0) {
+      setIsLoading(true);
+    }
     setError(null);
+    
+    // Добавляем таймаут для загрузки
+    const fetchTimeout = setTimeout(() => {
+      if (isLoading) {
+        setError('Превышено время ожидания загрузки книг. Пожалуйста, обновите страницу.');
+        setIsLoading(false);
+      }
+    }, 15000); // 15 секунд таймаут
     
     try {
       const supabase = createClient();
-      
-      console.log('🔍 Fetching books for role:', userProfile?.role, 'User ID:', userProfile?.id);
       
       // Используем новую функцию для получения книг с правильным клиентом
       const { data: booksData, error: booksError } = await fetchBooksWithCorrectClient(
@@ -164,12 +173,36 @@ export default function BooksPage() {
         supabase
       );
       
+      // Очищаем таймаут, так как запрос завершен
+      clearTimeout(fetchTimeout);
+      
       if (booksError) {
         console.error('❌ Database error:', booksError);
-        console.error('📊 Error details:', JSON.stringify(booksError, null, 2));
         
-        // Show the actual error to the user instead of falling back to mock data
-        setError(`Ошибка загрузки книг: ${booksError.message}. Проверьте подключение к базе данных.`);
+        // Проверяем, является ли ошибка сетевой
+        if (booksError.message && (
+            booksError.message.includes('network') || 
+            booksError.message.includes('fetch') || 
+            booksError.message.includes('connection')
+          )) {
+          setError(`Ошибка сети при загрузке книг. Пожалуйста, проверьте подключение к интернету и попробуйте снова.`);
+          
+          // Автоматическая повторная попытка через 5 секунд
+          setTimeout(() => {
+            if (isLoading) {
+              fetchBooks();
+            }
+          }, 5000);
+        } else {
+          setError(`Ошибка загрузки книг: ${booksError.message}. Проверьте подключение к базе данных.`);
+        }
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      // Early return if no data to avoid unnecessary processing
+      if (!booksData || booksData.length === 0) {
         setBooks([]);
         setFilteredBooks([]);
         setBookStats({
@@ -179,33 +212,32 @@ export default function BooksPage() {
           moderation_books: 0,
           approved_books: 0,
         });
+        setIsLoading(false);
         return;
       }
       
-      console.log('✅ Books fetched successfully:', booksData?.length || 0, 'books');
-      
-      // Получаем данные авторов отдельным запросом
+      // Optimize author data fetching by collecting unique IDs first
+      const authorIds = [...new Set(booksData.map((book: RawBookData) => book.author_id).filter(Boolean))];
       let authorsData: Array<{ id: string; display_name?: string; email: string }> = [];
-      if (booksData && booksData.length > 0) {
-        const authorIds = [...new Set(booksData.map((book: RawBookData) => book.author_id).filter(Boolean))];
-        if (authorIds.length > 0) {
-          console.log('👥 Fetching authors data for', authorIds.length, 'authors');
-          const { data: authors, error: authorsError } = await supabase
+      
+      if (authorIds.length > 0) {
+        const { data: authors } = await supabase
             .from('users')
             .select('id, display_name, email')
             .in('id', authorIds);
           
-          if (!authorsError && authors) {
+        if (authors) {
             authorsData = authors;
-            console.log('✅ Authors data fetched:', authorsData.length, 'authors');
-          } else {
-            console.warn('⚠️ Could not fetch authors data:', authorsError?.message);
-          }
         }
       }
 
-      // Форматируем данные
-      const formattedBooks = (booksData || []).map((book: RawBookData) => {
+      // Process books in batches to avoid blocking the main thread
+      const batchSize = 100;
+      const formattedBooks = [];
+      
+      for (let i = 0; i < booksData.length; i += batchSize) {
+        const batch = booksData.slice(i, i + batchSize);
+        const formattedBatch = batch.map((book: RawBookData) => {
         const authorData = authorsData.find(author => author.id === book.author_id);
         return {
           id: book.id,
@@ -229,18 +261,15 @@ export default function BooksPage() {
         };
       });
       
-      console.log('📊 Formatted books:', formattedBooks.length);
-      console.log('📊 Status breakdown:', {
-        draft: formattedBooks.filter((b: Book) => b.status === 'Draft').length,
-        moderation: formattedBooks.filter((b: Book) => b.status === 'Moderation').length,
-        approved: formattedBooks.filter((b: Book) => b.status === 'Approved').length,
-        active: formattedBooks.filter((b: Book) => b.status === 'Active').length,
-      });
+        formattedBooks.push(...formattedBatch);
+        
+        // Allow UI to update between batches if processing large datasets
+        if (i + batchSize < booksData.length) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
       
-      setBooks(formattedBooks);
-      setFilteredBooks(formattedBooks);
-      
-      // Считаем статистику
+      // Calculate stats once after all books are processed
       const stats: BookStats = {
         total_books: formattedBooks.length,
         active_books: formattedBooks.filter((b: Book) => b.status === 'Active').length,
@@ -248,62 +277,77 @@ export default function BooksPage() {
         moderation_books: formattedBooks.filter((b: Book) => b.status === 'Moderation').length,
         approved_books: formattedBooks.filter((b: Book) => b.status === 'Approved').length,
       };
-      setBookStats(stats);
       
+      setBookStats(stats);
+      setBooks(formattedBooks);
+      setFilteredBooks(formattedBooks);
     } catch (error) {
-      console.error('❌ Error fetching books:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      setError(`Не удалось получить книги: ${errorMessage}`);
-      setBooks([]);
-      setFilteredBooks([]);
-      setBookStats({
-        total_books: 0,
-        active_books: 0,
-        draft_books: 0,
-        moderation_books: 0,
-        approved_books: 0,
-      });
+      console.error('Unexpected error:', error);
+      setError(`Произошла неожиданная ошибка: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsLoading(false);
+      clearTimeout(fetchTimeout);
     }
-  }, [userProfile]);
+  }, [userProfile?.role, userProfile?.id, books.length, isLoading]);
 
-  // Filter books based on search term and filters
+  // Filter books based on search term and filters - optimize with useMemo
   useEffect(() => {
+    // Skip filtering if books array is empty
+    if (books.length === 0) {
+      setFilteredBooks([]);
+      return;
+    }
+    
+    // Optimize filtering by avoiding unnecessary work
+    const hasSearchTerm = Boolean(searchTerm);
+    const hasGradeFilter = gradeFilter !== 'all';
+    const hasCourseFilter = courseFilter !== 'all';
+    const hasStatusFilter = statusFilter !== 'all';
+    const hasCategoryFilter = categoryFilter !== 'all';
+    
+    // If no filters are applied, just use the original books array
+    if (!hasSearchTerm && !hasGradeFilter && !hasCourseFilter && !hasStatusFilter && !hasCategoryFilter) {
+      setFilteredBooks(books);
+      return;
+    }
+    
+    // Apply filters only when needed
     let filtered = books;
     
     // Apply search filter
-    if (searchTerm) {
+    if (hasSearchTerm) {
+      const searchTermLower = searchTerm.toLowerCase();
       filtered = filtered.filter(book => 
-        (book.title && book.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (book.description && book.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (book.author_name && book.author_name.toLowerCase().includes(searchTerm.toLowerCase()))
+        (book.title && book.title.toLowerCase().includes(searchTermLower)) ||
+        (book.description && book.description.toLowerCase().includes(searchTermLower)) ||
+        (book.author_name && book.author_name.toLowerCase().includes(searchTermLower))
       );
     }
     
     // Apply grade filter
-    if (gradeFilter !== 'all') {
+    if (hasGradeFilter) {
       filtered = filtered.filter(book => book.grade_level === gradeFilter);
     }
     
     // Apply course filter
-    if (courseFilter !== 'all') {
+    if (hasCourseFilter) {
       filtered = filtered.filter(book => book.course === courseFilter);
     }
     
     // Apply status filter
-    if (statusFilter !== 'all') {
+    if (hasStatusFilter) {
       filtered = filtered.filter(book => book.status === statusFilter);
     }
     
     // Apply category filter
-    if (categoryFilter !== 'all') {
+    if (hasCategoryFilter) {
       filtered = filtered.filter(book => book.category === categoryFilter);
     }
     
     setFilteredBooks(filtered);
   }, [books, searchTerm, gradeFilter, courseFilter, statusFilter, categoryFilter]);
 
+  // Fetch books when auth is ready
   useEffect(() => {
     if (!authLoading && userProfile) {
       if (userProfile.role !== 'super_admin' && userProfile.role !== 'author' && userProfile.role !== 'moderator' && userProfile.role !== 'school' && userProfile.role !== 'teacher' && userProfile.role !== 'student') {
@@ -339,7 +383,7 @@ export default function BooksPage() {
   const getModeratorStatusInfo = (book: Book) => {
     if (book.moderator_id && book.status === 'Approved') {
       return {
-        approved: true,
+        status: 'approved',
         moderatorId: book.moderator_id,
         message: '✅ Одобрено модератором',
         submessage: '🔄 Ожидает публикации администратором'
@@ -662,6 +706,12 @@ export default function BooksPage() {
     }
   };
 
+  // Добавляем функцию для повторной загрузки данных
+  const handleRetryFetch = () => {
+    setError(null);
+    fetchBooks();
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -675,18 +725,27 @@ export default function BooksPage() {
 
   if (error && !books.length) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center text-red-600">
-              <p className="text-lg font-semibold">Ошибка</p>
-              <p>{error}</p>
-              <Button onClick={() => window.location.reload()} className="mt-4">
-                Перезагрузить Страницу
-              </Button>
+      <div className="container mx-auto p-6">
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-500" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-center mt-4">
+          <Button 
+            onClick={handleRetryFetch}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Повторить загрузку
+          </Button>
+        </div>
       </div>
     );
   }

@@ -2,6 +2,819 @@
 
 This file documents any bugs encountered during development and their fixes.
 
+## Current Status: Math Formula Editor Enhancement ✅
+
+### Latest Feature: Visual Math Formula Editor
+**Date**: 2025-06-06  
+**Task**: Enhance math formula editing with a visual interface  
+**Status**: ✅ COMPLETELY IMPLEMENTED  
+
+#### Feature Description
+**Requirement**: 
+- Replace direct MathML code editing with a user-friendly visual interface
+- Provide a math keyboard for easy formula creation
+- Add visual preview of formulas during editing
+- Support different mathematical elements and symbols
+
+**Implementation Details**: 
+- **MAIN FEATURE**: Created a visual math formula editor with a math keyboard
+- Implemented categorized math elements (basic, advanced, symbols, matrices)
+- Added visual preview with real-time rendering
+- Implemented undo/redo functionality for formula editing
+- Created a tabbed interface for different types of mathematical elements
+
+**Solution Applied**: 
+1. **Visual Editor Implementation**:
+   - Created MathFormulaEditor.tsx component with a modern UI
+   - Implemented tabbed interface for different math element categories
+   - Added visual preview with real-time MathML rendering
+   - Created a grid-based math keyboard for easy formula creation
+
+2. **Math Elements Categories**:
+   - Basic operators (+, -, ×, ÷, =, x², √, fractions)
+   - Advanced functions (Σ, Π, ∫, ∞, lim, subscripts, log, sin)
+   - Greek symbols and comparison operators (α, β, γ, δ, θ, π, ≤, ≥)
+   - Matrix templates (2×2, 3×3)
+
+3. **User Experience Improvements**:
+   - Added common variables and numbers for quick insertion
+   - Implemented undo/redo functionality
+   - Added visual/code view toggle
+   - Created a clean, modern interface with proper spacing and visual hierarchy
+
+**Result**: ✅ **MATH FORMULA EDITING GREATLY IMPROVED**
+- Users can now create formulas without knowing MathML syntax
+- Visual keyboard provides easy access to common mathematical elements
+- Real-time preview shows how the formula will appear
+- Categorized tabs make finding specific elements easier
+- Undo/redo functionality provides safety when editing
+
+**Files Created/Modified**:
+- `src/components/book-editor/MathFormulaEditor.tsx` - New visual editor component
+- `src/components/book-editor/MathElement.tsx` - Updated to use the visual editor
+
+**Impact**: The book editor now provides a significantly improved experience for creating mathematical content. The visual editor makes it accessible to users without knowledge of MathML syntax, expanding the potential user base and making the creation of mathematical educational content much easier.
+
+## Current Status: Math Formula Support Added ✅
+
+### Latest Feature: Mathematical Expressions and Formulas
+**Date**: 2025-06-06  
+**Task**: Add support for mathematical expressions and formulas using MathML  
+**Status**: ✅ COMPLETELY IMPLEMENTED  
+
+#### Feature Description
+**Requirement**: 
+- Add support for inserting mathematical expressions and formulas in content
+- Use MathML (Mathematical Markup Language) for standardized formula display
+- Provide user-friendly interface for formula editing
+- Support different display modes and sizes for formulas
+
+**Implementation Details**: 
+- **MAIN FEATURE**: Added a new 'math' element type to the book editor
+- Created MathElement component for rendering MathML content
+- Added math formula tool to the toolbar with Sigma icon
+- Implemented formula editing interface with MathML source editing
+- Added properties panel controls for formula display options
+
+**Solution Applied**: 
+1. **Core Implementation**:
+   - Added 'math' to CanvasElement type definition
+   - Created MathElement.tsx component for rendering and editing formulas
+   - Added mathFormula, mathDisplay, and mathSize properties to element properties
+   - Implemented default MathML example for new formula elements
+
+2. **User Interface**:
+   - Added Sigma icon to the toolbar for creating math formulas
+   - Implemented double-click editing for formulas
+   - Created properties panel section for math-specific settings
+   - Added display mode selection (inline vs block)
+   - Added size options (small, normal, large)
+
+3. **Technical Implementation**:
+   - Used dangerouslySetInnerHTML for rendering MathML content
+   - Implemented proper state management for formula editing
+   - Added visual feedback during editing
+   - Ensured proper sizing and positioning of formulas
+
+**Result**: ✅ **MATH FORMULA SUPPORT FULLY IMPLEMENTED**
+- Users can now add mathematical formulas to their content
+- Formulas are rendered using standard MathML
+- Different display modes and sizes are supported
+- Formulas can be edited with direct MathML source access
+- Properties panel provides easy customization options
+
+**Files Created/Modified**:
+- `src/components/book-editor/MathElement.tsx` - New component for math formulas
+- `src/components/book-editor/types.ts` - Updated to include math element type and properties
+- `src/components/book-editor/ToolPanel.tsx` - Added math tool to toolbar
+- `src/components/book-editor/utils.ts` - Added default properties for math elements
+- `src/components/book-editor/CanvasElement.tsx` - Updated to render math elements
+- `src/components/book-editor/PropertiesPanel.tsx` - Added math properties section
+- `src/components/book-editor/BookEditor.tsx` - Added math tool to TOOLS array
+
+**Impact**: The book editor now provides comprehensive support for mathematical content, making it suitable for creating educational materials that require mathematical expressions and formulas. This significantly enhances the editor's capabilities for STEM education content.
+
+## Current Status: Table Cell Merging & Properties Panel Fix ✅
+
+### Latest Issue: Table Cell Merging and Duplicate Properties Panel
+**Date**: 2025-06-05  
+**Issue**: Tables lacked cell merging functionality and properties panel had duplicate sections  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Tables had no way to merge cells together
+- No UI for selecting multiple cells
+- Properties panel showed duplicate "Фон и границы" (Background and Borders) sections
+- No way to split merged cells back to individual cells
+
+**Root Cause**: 
+- **MAIN ISSUE**: Missing implementation for cell merging functionality
+- Incomplete cell selection system in the table component
+- Duplicate section in the properties panel due to component refactoring
+- Missing cell merge state tracking in the table data model
+
+**Solution Applied**: 
+1. **Cell Merging Implementation**:
+   - Added multi-cell selection with Shift+click and mouse drag
+   - Implemented cell merging functionality with rowSpan and colSpan attributes
+   - Added visual feedback for selected cells
+   - Created a merge button in the table controls
+   - Implemented cell splitting functionality for merged cells
+
+2. **Properties Panel Fix**:
+   - Removed the duplicate "Фон и границы" section from the properties panel
+   - Kept the working section that properly handles table styling
+
+3. **Type Definitions Update**:
+   - Extended table cell type definition to include isMerged and mergedTo properties
+   - Updated rendering logic to skip cells that are part of merged cells
+
+**Technical Implementation**:
+```typescript
+// 1. Cell selection state
+const [selectionStart, setSelectionStart] = useState<{row: number, col: number} | null>(null);
+const [selectionEnd, setSelectionEnd] = useState<{row: number, col: number} | null>(null);
+const [selectedCells, setSelectedCells] = useState<string[]>([]);
+const [isSelecting, setIsSelecting] = useState(false);
+
+// 2. Cell merging function
+const mergeSelectedCells = () => {
+  if (selectedCells.length <= 1) {
+    alert('Выберите несколько ячеек для объединения');
+    return;
+  }
+  
+  // Find the boundaries of the selection
+  let minRow = tableData.rows;
+  let maxRow = 0;
+  let minCol = tableData.columns;
+  let maxCol = 0;
+  
+  selectedCells.forEach(cellKey => {
+    const [rowStr, colStr] = cellKey.split('-');
+    const row = parseInt(rowStr);
+    const col = parseInt(colStr);
+    
+    minRow = Math.min(minRow, row);
+    maxRow = Math.max(maxRow, row);
+    minCol = Math.min(minCol, col);
+    maxCol = Math.max(maxCol, col);
+  });
+  
+  // Calculate spans
+  const rowSpan = maxRow - minRow + 1;
+  const colSpan = maxCol - minCol + 1;
+  
+  // Set the top-left cell as the merged cell
+  const mergedCellKey = `${minRow}-${minCol}`;
+  updatedCells[mergedCellKey] = {
+    ...updatedCells[mergedCellKey],
+    content: combinedContent,
+    rowSpan,
+    colSpan
+  };
+  
+  // Mark other cells as part of the merged cell
+  selectedCells.forEach(cellKey => {
+    if (cellKey !== mergedCellKey) {
+      updatedCells[cellKey] = {
+        ...updatedCells[cellKey],
+        content: '',
+        isMerged: true,
+        mergedTo: mergedCellKey
+      };
+    }
+  });
+};
+
+// 3. Cell splitting function
+const splitMergedCell = (rowIndex: number, colIndex: number) => {
+  const cellKey = `${rowIndex}-${colIndex}`;
+  const cell = tableData.cells[cellKey];
+  
+  if (!cell || (!cell.rowSpan && !cell.colSpan)) {
+    alert('Эта ячейка не объединена');
+    return;
+  }
+  
+  const rowSpan = cell.rowSpan || 1;
+  const colSpan = cell.colSpan || 1;
+  
+  // Reset the merged cell
+  updatedCells[cellKey] = {
+    ...updatedCells[cellKey],
+    rowSpan: undefined,
+    colSpan: undefined
+  };
+  
+  // Reset all cells that were part of this merged cell
+  for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
+    for (let c = colIndex; c < colIndex + colSpan; c++) {
+      if (r === rowIndex && c === colIndex) continue;
+      
+      const currentCellKey = `${r}-${c}`;
+      updatedCells[currentCellKey] = {
+        ...updatedCells[currentCellKey],
+        content: '',
+        isMerged: undefined,
+        mergedTo: undefined,
+        // Reset other properties...
+      };
+    }
+  }
+};
+```
+
+**Result**: ✅ **TABLE FUNCTIONALITY NOW COMPLETE**
+- Users can select multiple cells using Shift+click or mouse drag
+- Selected cells can be merged with a single button click
+- Merged cells properly display with rowSpan and colSpan attributes
+- Split button appears in merged cells to revert them back to individual cells
+- Properties panel no longer shows duplicate sections
+- Table styling controls work properly
+
+**Files Fixed**:
+- `src/components/book-editor/TableElement.tsx` - Added cell merging functionality
+- `src/components/book-editor/PropertiesPanel.tsx` - Removed duplicate section
+- `src/components/book-editor/types.ts` - Updated type definitions for merged cells
+
+**Impact**: The book editor now provides complete table editing capabilities similar to professional word processors and design tools. Users can create complex table layouts with merged cells, improving the flexibility and presentation options for educational content.
+
+## Current Status: Zoom Functionality Enhanced & Fixed ✅
+
+### Latest Issue: Zoom Controls Unresponsive and Limited
+**Date**: 2025-06-02  
+**Issue**: Zoom buttons not responding properly and limited zoom control options  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Zoom in/out buttons didn't respond to the first click
+- Default zoom was too low at 50%, making content hard to see
+- No way to enter custom zoom values
+- Limited zoom range (50% to 200%)
+- No quick preset zoom options
+
+**Root Cause**: 
+- **MAIN ISSUE**: Event handling issues with click events not properly executing the callback
+- Restricted zoom range limiting usability
+- Missing user input functionality for custom zoom values
+- Lack of proper zoom presets and reset options
+- Limited keyboard shortcut support
+
+**Solution Applied**: 
+1. **Fixed Default Settings**:
+   - Changed default zoom from 50% to 100%
+   - Extended zoom range from 10% to 500% for greater flexibility
+   - Added proper clamping to ensure zoom stays within valid range
+
+2. **Enhanced User Controls**:
+   - Added input field for direct zoom value entry
+   - Implemented dropdown with preset zoom values (50%, 75%, 100%, 125%, 150%, 200%, etc.)
+   - Added "Fit to Screen" button to quickly reset zoom to 100%
+   - Improved keyboard shortcut support (Ctrl/Cmd + +/-, Ctrl/Cmd + 0)
+
+3. **Improved Zoom Experience**:
+   - Enhanced the canvas rendering to better handle different zoom levels
+   - Added dynamic padding that adjusts with zoom level
+   - Improved grid rendering at different zoom levels
+   - Added smooth transitions for better visual feedback
+   - Fixed page indicator scaling at extreme zoom levels
+
+4. **User Interface Improvements**:
+   - Added clear visual feedback when zoom changes
+   - Added tooltips with keyboard shortcuts
+   - Improved dropdown interaction with click-outside detection
+   - Ensured consistent styling across all zoom controls
+
+**Technical Implementation**:
+```typescript
+// 1. Custom zoom input component
+<div className="flex items-center">
+  <input
+    type="text"
+    className="w-14 h-8 text-sm text-center border rounded-l mx-1 p-0"
+    value={zoomInput}
+    onChange={handleZoomInputChange}
+    onKeyDown={handleApplyCustomZoom}
+    onBlur={handleApplyCustomZoom}
+    aria-label="Zoom percentage"
+  />
+  <div className="relative">
+    <button
+      className="bg-gray-100 hover:bg-gray-200 border border-l-0 rounded-r h-8 px-1"
+      onClick={() => setShowZoomPresets(!showZoomPresets)}
+      title="Preset zoom levels"
+    >
+      <ChevronDown className="h-3 w-3" />
+    </button>
+    {/* Dropdown content... */}
+  </div>
+  <span className="text-sm mr-1">%</span>
+</div>
+
+// 2. Enhanced zoom function with feedback
+const setZoom = useCallback((newZoom: number) => {
+  console.log('Setting zoom to:', newZoom);
+  const clampedZoom = Math.min(Math.max(newZoom, 10), 500);
+  setCanvasSettings(prev => ({
+    ...prev,
+    zoom: clampedZoom
+  }));
+  setZoomInput(clampedZoom.toString());
+}, []);
+
+// 3. Keyboard shortcuts including "reset to 100%"
+if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+  e.preventDefault();
+  setZoom(canvasSettings.zoom + 10);
+}
+
+if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+  e.preventDefault();
+  setZoom(canvasSettings.zoom - 10);
+}
+
+if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+  e.preventDefault();
+  setZoom(100);
+}
+
+// 4. Improved canvas rendering with dynamic adjustments
+const { canvasStyle, containerStyle, gridStyle } = useMemo(() => {
+  return {
+    canvasStyle: {
+      width: `${actualWidth}px`,
+      height: `${actualHeight}px`,
+      transform: `scale(${zoomFactor})`,
+      transformOrigin: 'top left',
+      transition: 'transform 0.12s ease-out',
+    },
+    // other styles...
+  };
+}, [actualWidth, actualHeight, zoomFactor, scaledWidth, scaledHeight, showGrid]);
+```
+
+**Result**: ✅ **ZOOM FUNCTIONALITY NOW FULLY FEATURED AND RESPONSIVE**
+- Zoom controls work properly on first click
+- Users can enter exact zoom percentages
+- Dropdown menu provides quick preset zoom values
+- "Fit to Screen" button quickly resets to 100% zoom
+- Extended zoom range from 10% to 500%
+- Keyboard shortcuts for all zoom operations
+- Smooth transitions and visual feedback
+- Better grid rendering at different zoom levels
+- Dynamic padding that adjusts with zoom level
+
+**Files Fixed**:
+- `src/components/book-editor/BookEditor.tsx` - Enhanced zoom controls and keyboard shortcuts
+- `src/components/book-editor/CanvasDropZone.tsx` - Improved canvas rendering at different zoom levels
+
+**Impact**: The book editor now provides a professional zoom experience with multiple control options, matching the functionality found in industry-standard design tools. Users have precise control over zoom levels with immediate visual feedback.
+
+## Current Status: Canvas Element Resizing Implemented ✅
+
+### Latest Issue: Elements Lacked Resize Functionality
+**Date**: 2025-06-03  
+**Issue**: Elements could not be resized after being placed on the canvas  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Elements had fixed size after insertion with no way to resize them
+- Resize handles were visible but non-functional
+- No support for aspect ratio preservation or grid snapping while resizing
+- No visual feedback during resize operations
+
+**Root Cause**: 
+- **MAIN ISSUE**: Although resize handles were rendered in `renderResizeHandles()`, they lacked event handlers
+- Missing mouse event handling for resize operations
+- No state management for tracking resize operations
+- No implementation for grid snapping or aspect ratio preservation during resize
+
+**Solution Applied**: 
+1. **Core Resizing Implementation**:
+   - Added resize state management with React useState hooks
+   - Implemented mouse event handlers for resize start, move, and end
+   - Created direction-specific resize logic for each handle (corners and sides)
+   - Added global event listeners during resize operations
+
+2. **Enhanced User Experience**:
+   - Visual feedback during resize with dashed outline overlay
+   - Shift key support for maintaining aspect ratio
+   - Grid snapping integration with existing canvas settings
+   - Minimum size constraints to prevent elements from becoming too small
+
+3. **Technical Improvements**:
+   - Properly accounted for zoom level in resize calculations
+   - Smooth transitions when not resizing
+   - Cursor changes based on resize handle direction
+   - Prevented dragging during resize operations
+
+**Technical Implementation**:
+```typescript
+// 1. Resize state management
+const [isResizing, setIsResizing] = useState(false);
+const [resizeDirection, setResizeDirection] = useState<ResizeDirection>(null);
+const [startResize, setStartResize] = useState({ x: 0, y: 0, width: 0, height: 0 });
+const [currentResize, setCurrentResize] = useState({ width: 0, height: 0, x: 0, y: 0 });
+const [keepAspectRatio, setKeepAspectRatio] = useState(false);
+const [originalAspectRatio, setOriginalAspectRatio] = useState(1);
+
+// 2. Shift key handling for aspect ratio
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Shift') {
+      if (isResizing) {
+        setKeepAspectRatio(true);
+      }
+    }
+  };
+
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (e.key === 'Shift') {
+      setKeepAspectRatio(false);
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+  };
+}, [isResizing]);
+
+// 3. Resize handles with mouse event handlers
+<div 
+  className={`${handleStyle} -top-1 -left-1 cursor-nw-resize`} 
+  onMouseDown={(e) => handleResizeStart(e, 'nw')}
+/>
+<div 
+  className={`${handleStyle} -top-1 -right-1 cursor-ne-resize`}
+  onMouseDown={(e) => handleResizeStart(e, 'ne')}
+/>
+
+// 4. Resize preview overlay
+{isResizing && (
+  <div 
+    className="absolute inset-0 border-2 border-dashed border-blue-500 bg-blue-100 bg-opacity-20 pointer-events-none"
+  />
+)}
+```
+
+**Result**: ✅ **ELEMENT RESIZING NOW FULLY FUNCTIONAL**
+- Elements can be resized by dragging handles at corners and sides
+- Smooth visual feedback during resize operations
+- Hold Shift key to maintain aspect ratio
+- Grid snapping works when enabled in canvas settings
+- Proper zoom level consideration in resize calculations
+- Minimum size constraints prevent elements from becoming too small
+- All element types support resizing functionality
+
+**Files Fixed**:
+- `src/components/book-editor/CanvasElement.tsx` - Implemented resize functionality
+- `src/components/book-editor/BookEditor.tsx` - Updated to pass canvas settings to elements
+
+**Impact**: The book editor now provides a complete editing experience with both drag-and-drop and resize capabilities, matching the functionality of professional design tools. This enables users to precisely control the size and position of all elements on their canvas.
+
+## Current Status: Element Resize Position Fix ✅
+
+### Latest Issue: Element Resize Position Bug
+**Date**: 2025-06-04  
+**Issue**: Elements jumping to position (0,0) when resizing  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- When resizing elements, the bounding box would snap to a single dot and jump to position (0,0)
+- Elements would lose their original position during resize operations
+- No smooth visual feedback during resizing
+- Elements would not maintain their position when being resized
+
+**Root Cause**: 
+- **MAIN ISSUE**: Incorrect initialization of resize state in `handleResizeStart`
+- Improper tracking of mouse position relative to element position
+- Missing proper calculation of position changes during resize operations
+- Incorrect delta calculation for position updates
+
+**Solution Applied**: 
+1. **Fixed Resize State Initialization**:
+   - Added `mouseX` and `mouseY` to the `startResize` state to properly track mouse position
+   - Properly initialized `currentResize` state with element's current dimensions and position
+   - Added effect hook to update resize state when element changes
+
+2. **Improved Position Calculation**:
+   - Fixed delta calculation to properly account for mouse movement
+   - Added proper position adjustment for each resize direction (N, S, E, W, NE, NW, SE, SW)
+   - Ensured elements maintain their position during resize operations
+   - Added proper zoom factor consideration for accurate resizing
+
+3. **Enhanced Visual Feedback**:
+   - Added data attributes to help debug element position and dimensions
+   - Improved resize preview overlay with dashed border
+   - Ensured smooth visual feedback during resize operations
+
+**Technical Implementation**:
+```typescript
+// 1. Improved resize state tracking
+const [startResize, setStartResize] = useState({ 
+  x: 0, y: 0, width: 0, height: 0, mouseX: 0, mouseY: 0 
+});
+const [currentResize, setCurrentResize] = useState({ 
+  width: element.width, 
+  height: element.height, 
+  x: element.x, 
+  y: element.y 
+});
+
+// 2. Proper initialization in handleResizeStart
+setStartResize({ 
+  x: element.x, 
+  y: element.y, 
+  width: element.width, 
+  height: element.height,
+  mouseX: e.clientX,
+  mouseY: e.clientY
+});
+
+// 3. Fixed delta calculation in handleResizeMove
+const zoomFactor = canvasSettings.zoom / 100;
+const deltaX = (e.clientX - startResize.mouseX) / zoomFactor;
+const deltaY = (e.clientY - startResize.mouseY) / zoomFactor;
+
+// 4. Direction-specific position adjustment
+if (resizeDirection.includes('w')) {
+  const widthChange = deltaX;
+  newWidth = Math.max(20, startResize.width - widthChange);
+  newX = startResize.x + widthChange;
+  
+  if (keepAspectRatio) {
+    const heightChange = widthChange / originalAspectRatio;
+    newHeight = startResize.height - heightChange;
+    if (resizeDirection === 'nw') {
+      newY = startResize.y + heightChange;
+    }
+  }
+}
+```
+
+**Result**: ✅ **ELEMENT RESIZING NOW WORKS CORRECTLY**
+- Elements maintain their position when being resized
+- Resize handles properly update the element's dimensions
+- Visual feedback is smooth and accurate during resize operations
+- Elements can be resized to the desired dimensions with precision
+- Aspect ratio can be maintained with Shift key
+- Grid snapping works correctly when enabled
+
+**Files Fixed**:
+- `src/components/book-editor/CanvasElement.tsx` - Fixed resize state initialization and position calculation
+
+**Impact**: The book editor now provides a professional resizing experience where elements maintain their position and provide smooth visual feedback during resize operations. This enables users to precisely control the size and position of all elements on their canvas.
+
+## Previous Status: Element Movement Fixed ✅
+
+### Issue: Elements Could Not Be Moved After Being Placed
+**Date**: 2025-01-23  
+**Issue**: Elements could not be moved after being inserted into the canvas  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- After inserting elements onto the canvas, users could not move them to new positions
+- Drag operations on existing elements were not working properly
+- Elements appeared to be draggable but did not move to the new position
+
+**Root Cause**: 
+- **MAIN ISSUE**: Canvas elements were not wrapped in a `DndContext` component
+- The BookEditor had two separate `DndContext` components - one for tools panel and none for canvas elements
+- Elements need to be inside a `DndContext` to be draggable with @dnd-kit/core
+- The `handleDragEnd` function logic was also incorrect for existing elements
+
+**Solution Applied**: 
+1. **Primary Fix**: Wrapped the canvas area with a `DndContext` component
+   - Added `DndContext` around `CanvasDropZone` in the main canvas area
+   - Used the same sensors and event handlers (handleDragStart, handleDragEnd, handleDragOver)
+2. **Secondary Fix**: Modified the `handleDragEnd` function logic
+   - Changed condition from `if (!over || !active) return;` to `if (!active) return;`
+   - Added specific check for `over && over.id === 'canvas'` only for tools, not for existing elements
+   - Added proper zoom factor adjustment to delta coordinates
+   - Added element selection after drag to maintain selection state
+
+**Technical Implementation**:
+```typescript
+// Added DndContext wrapper around canvas
+<div className="flex-1 overflow-auto bg-gray-300 dark:bg-gray-700 p-8 flex items-center justify-center">
+  <DndContext 
+    sensors={sensors} 
+    onDragStart={handleDragStart}
+    onDragEnd={handleDragEnd}
+    onDragOver={handleDragOver}
+  >
+    <CanvasDropZone settings={canvasSettings} showGrid={canvasSettings.showGrid}>
+      {currentPageElements.map(element => (
+        <CanvasElementComponent ... />
+      ))}
+    </CanvasDropZone>
+  </DndContext>
+</div>
+
+// Fixed drag coordinate calculation
+const zoomFactor = canvasSettings.zoom / 100;
+const newX = Math.max(0, element.x + delta.x / zoomFactor);
+const newY = Math.max(0, element.y + delta.y / zoomFactor);
+```
+
+**Result**: ✅ **ELEMENTS NOW MOVE PROPERLY**
+- Elements can be moved after being inserted on the canvas
+- Position calculation works correctly with zoom factor
+- Elements remain selected after being moved
+- Smooth drag and drop experience for all element types
+- Both tool dragging from panel and element dragging on canvas work correctly
+
+**Files Fixed**:
+- `src/components/book-editor/BookEditor.tsx` - Added DndContext wrapper for canvas and fixed handleDragEnd function
+
+**Impact**: The book editor now provides a complete drag-and-drop experience where elements can be both inserted and moved around the canvas, matching the behavior of professional design tools like Canva.
+
+### Latest Issue: Book Editor Interface Missing Top Margin
+**Date**: 2025-01-23  
+**Issue**: Book editor interface was touching the top of the page without proper spacing  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Book editor interface appeared cramped against the page top
+- No visual breathing room between editor and browser chrome
+- Poor visual hierarchy and professional appearance
+
+**Root Cause**: 
+- **MAIN ISSUE**: DashboardLayout was wrapping book editor in container with padding, but BookEditor used `h-screen` which overrode the container padding
+- BookEditor component designed for full-screen use but constrained by dashboard layout structure
+- No special handling for book editor pages in the layout system
+
+**Solution Applied**: 
+- **Modified DashboardLayout** to detect book editor pages using `isBookEditorPage` check
+- **Added conditional rendering** in main content area:
+  - Book editor pages: `<div className="pt-4">` for top padding only
+  - Other pages: `<div className="container mx-auto p-4">` for full container padding
+- **Maintained full-screen layout** for book editor while adding proper top spacing
+
+**Technical Implementation**:
+```typescript
+// DashboardLayout.tsx - Conditional layout for book editor
+<main className="flex-1 overflow-y-auto">
+  {isBookEditorPage ? (
+    <div className="pt-4">
+      {children}
+    </div>
+  ) : (
+    <div className="container mx-auto p-4">
+      {children}
+    </div>
+  )}
+</main>
+```
+
+**Result**: ✅ **PROPER TOP SPACING ACHIEVED**
+- Book editor now has 16px top margin for better visual hierarchy
+- Full-screen layout maintained for professional editor experience
+- Other dashboard pages unaffected by the change
+- Clean separation between browser chrome and editor interface
+
+**Files Fixed**:
+- `src/components/layout/DashboardLayout.tsx` - Added conditional layout for book editor pages
+
+**Impact**: The book editor now provides proper visual spacing while maintaining its full-screen professional layout, improving the overall user experience and visual hierarchy.
+
+### Latest Issue: Properties Panel Not Scrollable
+**Date**: 2025-01-23  
+**Issue**: Properties panel content was cut off and not scrollable, preventing access to all controls  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Properties panel (Свойства) content was cut off at the bottom
+- Users couldn't access all property controls and options
+- No scrolling functionality in the properties panel
+- Poor user experience when working with element properties
+
+**Root Cause**: 
+- Properties panel container didn't have proper flex layout structure
+- Missing `overflow-y-auto` for scrolling functionality
+- Header was not properly constrained, causing layout issues
+- No height constraints on the properties content area
+
+**Solution Applied**: 
+- **Restructured properties panel layout** with proper flex container
+- **Added scrolling functionality** to properties content area
+- **Fixed header positioning** to prevent compression
+- **Maintained fixed width** while allowing content to scroll
+
+**Technical Implementation**:
+```typescript
+// Before: Non-scrollable properties panel
+<div className="border-l w-80 bg-gray-50 dark:bg-gray-800">
+  <div className="p-4 border-b flex items-center justify-between">
+    <h3 className="font-semibold">Свойства</h3>
+    {/* Close button */}
+  </div>
+  <PropertiesPanel ... />
+</div>
+
+// After: Scrollable properties panel with proper layout
+<div className="border-l w-80 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
+  <div className="p-4 border-b flex items-center justify-between flex-shrink-0">
+    <h3 className="font-semibold">Свойства</h3>
+    {/* Close button */}
+  </div>
+  <div className="flex-1 overflow-y-auto">
+    <PropertiesPanel ... />
+  </div>
+</div>
+```
+
+**Result**: ✅ **PROPERTIES PANEL NOW FULLY SCROLLABLE**
+- Users can access all property controls by scrolling
+- Header remains fixed at the top for consistent navigation
+- Smooth scrolling experience with proper styling
+- All element properties are now accessible regardless of panel height
+
+**Files Fixed**:
+- `src/components/book-editor/BookEditor.tsx` - Added scrollable layout to properties panel
+
+**Impact**: The properties panel now provides complete access to all element controls, significantly improving the user experience when editing element properties in the book editor.
+
+### Latest Issue: Build Errors After Table Implementation
+**Date**: 2025-01-22  
+**Issue**: Build errors after implementing table functionality in the book editor  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Build failing with missing Popover component
+- ESLint errors with unused variables and imports
+- Type errors in TableElement component
+
+**Root Cause**: 
+- Missing UI component (Popover) that was being used in TableElement
+- Unused imports in various components
+- Type errors with Record<string, unknown> not being compatible with expected types
+
+**Solution Applied**:
+1. **Created missing Popover component**
+   - Added `src/components/ui/popover.tsx` based on Radix UI
+   - Installed required dependency `@radix-ui/react-popover`
+
+2. **Fixed ESLint errors**
+   - Removed unused imports in BookEditor.tsx and other files
+   - Prefixed unused functions and variables with underscore
+   - Fixed unused variables in DraggableTool.tsx
+
+3. **Resolved TypeScript type issues**
+   - Fixed type issues in TableElement.tsx by using `typeof tableData.cells` instead of `Record<string, unknown>`
+   - Fixed boolean vs string type issues in DraggableTool.tsx
+
+4. **Fixed eslint.config.js**
+   - Converted ESM syntax to CommonJS to fix linting issues
+
+**Result**: ✅ **CLEAN BUILD WITH NO ERRORS**
+- Successful build with zero errors
+- Linting passes with only minor warnings
+- All TypeScript types properly defined
+- All components functioning correctly
+
+**Files Fixed**:
+- Created `src/components/ui/popover.tsx`
+- Fixed `src/components/book-editor/BookEditor.tsx`
+- Fixed `src/components/book-editor/DraggableTool.tsx`
+- Fixed `src/components/book-editor/TableElement.tsx`
+- Fixed `eslint.config.js`
+
+**Impact**: The book editor now builds successfully with table functionality working correctly. All components are properly typed and follow ESLint guidelines.
+
 ## Current Status: Dark Theme Removal - Fixed ✅
 
 ### Latest Issue: Complete Dark Theme Removal from Application
@@ -2096,3 +2909,232 @@ The page reload issue was resolved through a comprehensive 3-stage fix:
 3. **Stage 3**: Fixed dnd-kit import error by removing problematic `sortableKeyboardCoordinates` import
 
 **Final Result**: The drag-and-drop editor now provides a completely stable, professional experience without any page reloads during interactions.
+
+## Table Implementation Issues
+- **Issue**: Dialog component had type errors with className in DialogPortal
+  - **Cause**: The DialogPortal from @radix-ui/react-dialog doesn't accept className prop
+  - **Fix**: Removed className from DialogPortal component
+  
+- **Issue**: MediaType type error in DraggableTool component
+  - **Cause**: The mediaType variable was not properly typed to match the expected MediaType type
+  - **Fix**: Added proper type definition for MediaType and typed the variable correctly
+
+## Previous Issues
+- **Issue**: Drag and drop functionality not working after refactoring
+  - **Cause**: Missing event handlers in the BookEditor component to handle tool drops
+  - **Fix**: Implemented handleDragEnd function to create new elements when tools are dropped on the canvas
+
+### Latest Issue: Duplicate Properties Header
+**Date**: 2025-01-23  
+**Issue**: Properties panel showed "Свойства" header twice  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Properties panel displayed "Свойства" header twice
+- One header from BookEditor.tsx and another from PropertiesPanel component
+- Created visual redundancy and poor user experience
+- Wasted vertical space in the properties panel
+
+**Root Cause**: 
+- BookEditor.tsx had its own header section with "Свойства" title and close button
+- PropertiesPanel component also includes its own header with the same title
+- Both headers were being rendered simultaneously
+
+**Solution Applied**:
+1. **Removed duplicate header from BookEditor.tsx**
+   - Deleted the header section containing duplicate "Свойства" title
+   - Removed redundant close button from BookEditor wrapper
+   - PropertiesPanel component already has proper header with close functionality
+
+2. **Simplified layout structure**
+   - Streamlined properties panel container to only wrap the PropertiesPanel component
+   - Maintained proper scrolling functionality
+   - Improved visual hierarchy
+
+**Technical Implementation**:
+```typescript
+// Before: Duplicate headers
+<div className="border-l w-80 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
+  <div className="p-4 border-b flex items-center justify-between flex-shrink-0">
+    <h3 className="font-semibold">Свойства</h3> // Duplicate header
+    <Button onClick={() => setPropertiesPanelOpen(false)}>
+      <X className="h-4 w-4" />
+    </Button>
+  </div>
+  <div className="flex-1 overflow-y-auto">
+    <PropertiesPanel ... /> // Also has "Свойства" header
+  </div>
+</div>
+
+// After: Single clean header
+<div className="border-l w-80 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
+  <div className="flex-1 overflow-y-auto">
+    <PropertiesPanel ... /> // Only header needed
+  </div>
+</div>
+```
+
+**Impact**: Properties panel now has a clean, professional appearance without redundant headers, providing better user experience and more efficient use of vertical space.
+
+### Latest Issue: Canvas Content Cut Off at High Zoom Levels
+**Date**: 2025-01-23  
+**Issue**: Canvas content was not fully visible at 100% zoom, elements at the top were cut off  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- At 100% zoom level, canvas content was cut off and not fully visible
+- Elements positioned at the top of the canvas couldn't be seen
+- Scroll area was not properly calculated for scaled content
+- User couldn't access elements that were outside the visible area
+
+**Root Cause**: 
+- CanvasDropZone component was using `transform: scale()` without proper container sizing
+- Scroll area dimensions didn't account for the scaled canvas size
+- Container layout was centering content but not providing adequate scroll space
+- Grid and page indicators weren't scaling properly with zoom level
+
+**Solution Applied**:
+1. **Redesigned canvas container layout**
+   - Separated actual canvas dimensions from scaled display dimensions
+   - Added proper container sizing that accounts for zoom factor
+   - Changed from center-aligned to top-aligned layout for better scrolling
+
+2. **Fixed scroll area calculation**
+   - Calculate scaled dimensions: `scaledWidth = actualWidth * (zoom / 100)`
+   - Set container dimensions to match scaled canvas size
+   - Ensure scroll area encompasses the entire scaled content
+
+3. **Improved scaling for UI elements**
+   - Grid pattern now scales with zoom level
+   - Page indicator scales and positions correctly
+   - All elements maintain proper proportions at any zoom level
+
+**Technical Implementation**:
+```typescript
+// Before: Incorrect scaling and container sizing
+const canvasStyle = {
+  width: settings.canvasWidth * 3.7795 * (settings.zoom / 100), // Wrong approach
+  height: settings.canvasHeight * 3.7795 * (settings.zoom / 100),
+  transform: `scale(${settings.zoom / 100})`,
+  transformOrigin: 'top left',
+};
+
+return (
+  <div className="flex items-center justify-center p-8 bg-gray-50 min-h-full overflow-auto">
+    <div style={canvasStyle}>{children}</div>
+  </div>
+);
+
+// After: Proper scaling with container sizing
+const actualWidth = settings.canvasWidth * 3.7795;
+const actualHeight = settings.canvasHeight * 3.7795;
+const scaledWidth = actualWidth * (settings.zoom / 100);
+const scaledHeight = actualHeight * (settings.zoom / 100);
+
+const canvasStyle = {
+  width: actualWidth,  // Actual canvas size
+  height: actualHeight,
+  transform: `scale(${settings.zoom / 100})`, // Scale applied separately
+  transformOrigin: 'top left',
+};
+
+const containerStyle = {
+  width: scaledWidth,    // Container matches scaled size
+  height: scaledHeight,
+  minWidth: scaledWidth,
+  minHeight: scaledHeight,
+};
+
+return (
+  <div className="w-full h-full overflow-auto bg-gray-50 p-8">
+    <div className="flex items-start justify-center min-h-full">
+      <div style={containerStyle} className="relative">
+        <div style={canvasStyle}>{children}</div>
+      </div>
+    </div>
+  </div>
+);
+```
+
+**Impact**: Canvas is now fully scrollable at all zoom levels, ensuring that all content is always accessible regardless of zoom setting. Users can now work comfortably at 100% zoom without losing access to any elements.
+
+### Latest Issue: Table Properties Not Applied From Properties Panel
+**Date**: 2025-01-23  
+**Issue**: Table background color and border changes from properties panel were not being applied to the table  
+**Status**: ✅ COMPLETELY RESOLVED  
+
+#### Bug Description
+**Problem**: 
+- Table background color and border properties in the properties panel didn't affect table appearance
+- Changes to border width, border color, and border radius had no visual effect
+- Properties panel showed controls but they weren't connected to the table rendering
+- User couldn't style tables through the properties interface
+
+**Root Cause**: 
+- PropertiesPanel component didn't have table-specific property handling
+- Table properties were being treated as generic element properties
+- TableElement component expected properties in `tableData` structure but PropertiesPanel was updating generic properties
+- TypeScript types were missing backgroundColor and borderRadius for table data
+- No connection between properties panel controls and table rendering
+
+**Solution Applied**:
+1. **Added table-specific properties section to PropertiesPanel**
+   - Created dedicated "Фон и границы" section for table elements
+   - Added background color picker with color input and transparent option
+   - Added border width and border color controls
+   - Added border style (solid/separate) and border radius controls
+
+2. **Fixed property update structure**
+   - Updated properties to use correct `tableData` structure
+   - Border changes now update both table-level and cell-level properties
+   - Proper propagation of border width and color to all cells
+
+3. **Enhanced TypeScript types**
+   - Added missing `backgroundColor` and `borderRadius` to tableData type
+   - Fixed type compatibility issues
+
+4. **Updated TableElement rendering**
+   - Added table-level background color and border radius styling
+   - Added overflow hidden for proper border radius rendering
+
+**Technical Implementation**:
+```typescript
+// Added to PropertiesPanel.tsx
+{selectedElement.type === 'table' && (
+  <div>
+    <h4 className="text-sm font-medium mb-3">Фон и границы</h4>
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs">Цвет фона</Label>
+        <Input
+          type="color"
+          value={selectedElement.properties.tableData?.backgroundColor || '#ffffff'}
+          onChange={(e) => {
+            const tableData = selectedElement.properties.tableData || {};
+            onUpdate({
+              properties: {
+                ...selectedElement.properties,
+                tableData: { ...tableData, backgroundColor: e.target.value }
+              }
+            });
+          }}
+        />
+      </div>
+      // ... border controls
+    </div>
+  </div>
+)}
+
+// Updated TableElement.tsx
+<table 
+  style={{
+    backgroundColor: tableData.backgroundColor || 'transparent',
+    borderRadius: `${tableData.borderRadius || 0}px`,
+    overflow: 'hidden',
+  }}
+>
+```
+
+**Impact**: Table properties panel now provides full control over table appearance, allowing users to customize background colors, borders, and styling through an intuitive interface that immediately reflects changes in the table rendering.

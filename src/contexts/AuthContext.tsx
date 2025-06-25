@@ -16,6 +16,7 @@ type AuthState = {
   } | null;
   isLoading: boolean;
   error: string | null;
+  isInitialized: boolean;
 };
 
 type AuthContextType = AuthState & {
@@ -33,10 +34,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userProfile: null,
     isLoading: true,
     error: null,
+    isInitialized: false,
   });
 
   const isMountedRef = useRef(true);
   const isRefreshingRef = useRef(false);
+  
+  // Add cache for user profile to avoid unnecessary database calls
+  const profileCacheRef = useRef<{
+    userId: string;
+    profile: any;
+    timestamp: number;
+  } | null>(null);
+  
+  // Cache expiration time (5 minutes)
+  const CACHE_EXPIRATION = 5 * 60 * 1000;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -48,20 +60,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearAuth = useCallback(() => {
     if (!isMountedRef.current) return;
     
-    console.log('🧹 AuthContext: Clearing auth state');
+    // Clear profile cache when logging out
+    profileCacheRef.current = null;
+    
     setAuthState({
       user: null,
       session: null,
       userProfile: null,
       isLoading: false,
       error: null,
+      isInitialized: true,
     });
   }, []);
 
   const clearError = useCallback(() => {
     if (!isMountedRef.current) return;
     
-    console.log('🧹 AuthContext: Clearing error state');
     setAuthState(prev => ({
       ...prev,
       error: null,
@@ -72,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isMountedRef.current || isRefreshingRef.current) return;
 
     isRefreshingRef.current = true;
-    console.log('🔄 AuthContext: Starting auth refresh');
 
     try {
       const supabase = createClient();
@@ -80,31 +93,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // First, check if we can reach Supabase
       let sessionData;
       try {
-        console.log('🔍 AuthContext: Getting session...');
         const result = await supabase.auth.getSession();
         sessionData = result.data;
         
         if (result.error) {
-          console.error('❌ AuthContext: Session error:', result.error.message);
           if (isMountedRef.current) {
             setAuthState(prev => ({
               ...prev,
               error: result.error.message,
               isLoading: false,
+              isInitialized: true,
             }));
           }
+          isRefreshingRef.current = false;
           return;
         }
-        console.log('✅ AuthContext: Session retrieved successfully');
       } catch (networkError) {
-        console.error('❌ AuthContext: Network error getting session:', networkError);
-        console.error('❌ AuthContext: Error details:', {
-          name: networkError instanceof Error ? networkError.name : 'Unknown',
-          message: networkError instanceof Error ? networkError.message : String(networkError),
-          stack: networkError instanceof Error ? networkError.stack : 'No stack'
-        });
-        
-        // If it's a network error during logout, just clear auth without showing error
         if (isMountedRef.current) {
           setAuthState({
             user: null,
@@ -114,13 +118,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             error: (networkError instanceof Error && networkError.message.includes('Load failed')) ? 
               'Ошибка подключения. Проверьте интернет-соединение и перезагрузите страницу.' : 
               (networkError instanceof Error ? networkError.message : String(networkError)),
+            isInitialized: true,
           });
         }
+        isRefreshingRef.current = false;
         return;
       }
 
       if (!sessionData?.session) {
-        console.log('ℹ️ AuthContext: No session found - user not logged in');
         if (isMountedRef.current) {
           setAuthState({
             user: null,
@@ -128,47 +133,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             userProfile: null,
             isLoading: false,
             error: null,
+            isInitialized: true,
           });
         }
+        isRefreshingRef.current = false;
         return;
       }
 
-      console.log('✅ AuthContext: Session found for user:', sessionData.session.user.email, 'ID:', sessionData.session.user.id);
+      const userId = sessionData.session.user.id;
+      
+      // Check if we have a valid cached profile
+      const cachedProfile = profileCacheRef.current;
+      if (cachedProfile && 
+          cachedProfile.userId === userId && 
+          (Date.now() - cachedProfile.timestamp) < CACHE_EXPIRATION) {
+        
+        // Use cached profile data
+        if (isMountedRef.current) {
+          setAuthState({
+            user: sessionData.session.user,
+            session: sessionData.session,
+            userProfile: {
+              id: userId,
+              role: cachedProfile.profile.role || 'unknown',
+              email: cachedProfile.profile.email || sessionData.session.user.email || '',
+              display_name: cachedProfile.profile.display_name || null,
+              school_id: cachedProfile.profile.school_id || null,
+            },
+            isLoading: false,
+            error: null,
+            isInitialized: true,
+          });
+        }
+        isRefreshingRef.current = false;
+        return;
+      }
 
-      // Get user profile data with retry logic
+      // Get user profile data if not cached
       let userData;
       try {
-        console.log('👤 AuthContext: Fetching user profile...');
         const result = await supabase
           .from('users')
           .select('role, email, display_name, school_id')
-          .eq('id', sessionData.session.user.id)
+          .eq('id', userId)
           .maybeSingle();
 
         if (result.error) {
-          console.error('❌ AuthContext: Error fetching user profile:', result.error.message);
-          console.error('❌ AuthContext: Error details:', result.error);
           if (isMountedRef.current) {
             setAuthState(prev => ({
               ...prev,
               error: `Error fetching user profile: ${result.error.message}`,
               isLoading: false,
+              isInitialized: true,
             }));
           }
+          isRefreshingRef.current = false;
           return;
         }
         
         userData = result.data;
-        console.log('✅ AuthContext: User profile fetched successfully:', userData);
       } catch (networkError) {
-        console.error('❌ AuthContext: Network error fetching user profile:', networkError);
-        console.error('❌ AuthContext: Error details:', {
-          name: networkError instanceof Error ? networkError.name : 'Unknown',
-          message: networkError instanceof Error ? networkError.message : String(networkError),
-          stack: networkError instanceof Error ? networkError.stack : 'No stack'
-        });
-        
-        // For network errors, show better error message
         if (isMountedRef.current) {
           setAuthState(prev => ({
             ...prev,
@@ -176,36 +200,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               'Ошибка загрузки профиля. Проверьте подключение и обновите страницу.' : 
               `Network error: ${networkError instanceof Error ? networkError.message : String(networkError)}`,
             isLoading: false,
+            isInitialized: true,
           }));
         }
+        isRefreshingRef.current = false;
         return;
       }
 
-      // Если пользователь не найден в таблице users, но есть в auth
+      // If user not found in users table
       if (!userData) {
-        console.error('❌ AuthContext: User exists in auth but not in users table:', sessionData.session.user.id);
-        console.error('❌ AuthContext: This will cause "User profile not found" error');
         if (isMountedRef.current) {
           setAuthState(prev => ({
             ...prev,
             error: 'Профиль пользователя не найден. Обратитесь к администратору.',
             isLoading: false,
+            isInitialized: true,
           }));
         }
+        isRefreshingRef.current = false;
         return;
       }
 
-      console.log('✅ AuthContext: User profile found:', userData);
+      // Cache the profile data
+      profileCacheRef.current = {
+        userId,
+        profile: userData,
+        timestamp: Date.now()
+      };
 
       const userProfile = {
-        id: sessionData.session.user.id,
+        id: userId,
         role: userData.role || 'unknown',
         email: userData.email || sessionData.session.user.email || '',
         display_name: userData.display_name || null,
         school_id: userData.school_id || null,
       };
-
-      console.log('✅ AuthContext: Setting auth state with profile:', userProfile);
 
       if (isMountedRef.current) {
         setAuthState({
@@ -214,13 +243,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userProfile,
           isLoading: false,
           error: null,
+          isInitialized: true,
         });
       }
 
     } catch (error) {
-      console.error('❌ AuthContext: Auth refresh error:', error instanceof Error ? error.message : String(error));
-      console.error('❌ AuthContext: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      
       if (isMountedRef.current) {
         // For unexpected errors, check if it looks like a network issue
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -237,58 +264,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             userProfile: null,
             isLoading: false,
             error: 'Проблема с подключением. Проверьте интернет и обновите страницу.',
+            isInitialized: true,
           });
         } else {
+          // For other errors
           setAuthState(prev => ({
             ...prev,
-            error: `Ошибка аутентификации: ${errorMessage}`,
+            error: `Unexpected error: ${errorMessage}`,
             isLoading: false,
+            isInitialized: true,
           }));
         }
       }
     } finally {
       isRefreshingRef.current = false;
-      console.log('🏁 AuthContext: Auth refresh completed');
     }
   }, []);
 
+  // Инициализация при монтировании компонента
   useEffect(() => {
-    console.log('🚀 AuthContext: Initializing auth provider');
-    // Initial auth check
-    refreshAuth();
-
-    // Listen for auth state changes
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔔 AuthContext: Auth event:', event, 'Session exists:', !!session);
-      
-      if (event === 'SIGNED_OUT') {
-        clearAuth();
-      } else if (event === 'SIGNED_IN' && session) {
-        console.log('🔑 AuthContext: User signed in, refreshing auth');
-        // Trigger refresh to get user profile
-        await refreshAuth();
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🔄 AuthContext: Token refreshed');
-        // Update session without full refresh
-        if (isMountedRef.current) {
-          setAuthState(prev => ({
-            ...prev,
-            user: session.user,
-            session: session,
-          }));
-        }
+    // Устанавливаем таймаут для принудительной инициализации, если что-то пошло не так
+    const timeoutId = setTimeout(() => {
+      if (!authState.isInitialized) {
+        console.warn('Auth initialization timeout reached. Forcing initialization.');
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          isInitialized: true,
+        }));
       }
+    }, 5000); // 5 секунд таймаут
+    
+    refreshAuth();
+    
+    // Устанавливаем обработчик события для отслеживания изменений сессии
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      refreshAuth();
     });
 
     return () => {
-      console.log('🛑 AuthContext: Cleaning up auth provider');
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, [refreshAuth, clearAuth]);
+  }, [refreshAuth]);
 
   return (
-    <AuthContext.Provider value={{ ...authState, refreshAuth, clearAuth, clearError }}>
+    <AuthContext.Provider
+      value={{
+        ...authState,
+        refreshAuth,
+        clearAuth,
+        clearError,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

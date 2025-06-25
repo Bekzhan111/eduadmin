@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, Suspense } from 'react';
+import React, { useState, useCallback, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/layout/Sidebar';
@@ -13,12 +13,15 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error, refreshAuth, clearError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mainSidebarHidden, setMainSidebarHidden] = useState(false);
-
-  // Check if we're in book editor page
-  const isBookEditorPage = pathname?.includes('/books/') && pathname?.includes('/edit');
   
-  // Check for hideSidebar parameter in URL
-  const shouldHideSidebar = searchParams?.get('hideSidebar') === 'true';
+  // Use memoized values to prevent unnecessary re-renders
+  const isBookEditorPage = useMemo(() => {
+    return pathname?.includes('/books/') && pathname?.includes('/edit');
+  }, [pathname]);
+  
+  const shouldHideSidebar = useMemo(() => {
+    return searchParams?.get('hideSidebar') === 'true';
+  }, [searchParams]);
 
   useEffect(() => {
     // Set main sidebar hidden state based on URL parameter
@@ -30,26 +33,29 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
     }
   }, [isBookEditorPage, shouldHideSidebar]);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
 
-  const toggleMainSidebar = () => {
-    const newHiddenState = !mainSidebarHidden;
-    setMainSidebarHidden(newHiddenState);
-    
-    // Update URL parameters
-    const newSearchParams = new URLSearchParams(searchParams?.toString());
-    if (newHiddenState) {
-      newSearchParams.set('hideSidebar', 'true');
-    } else {
-      newSearchParams.delete('hideSidebar');
-    }
-    
-    // Use router.replace to update URL without page reload
-    const newUrl = `${pathname}?${newSearchParams.toString()}`;
-    router.replace(newUrl);
-  };
+  const toggleMainSidebar = useCallback(() => {
+    setMainSidebarHidden(prev => {
+      const newHiddenState = !prev;
+      
+      // Update URL parameters
+      const newSearchParams = new URLSearchParams(searchParams?.toString());
+      if (newHiddenState) {
+        newSearchParams.set('hideSidebar', 'true');
+      } else {
+        newSearchParams.delete('hideSidebar');
+      }
+      
+      // Use router.replace to update URL without page reload
+      const newUrl = `${pathname}?${newSearchParams.toString()}`;
+      router.replace(newUrl);
+      
+      return newHiddenState;
+    });
+  }, [pathname, router, searchParams]);
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
@@ -155,14 +161,23 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
         )}
         
         <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto p-4">
-            {children}
-          </div>
+          {isBookEditorPage ? (
+            <div className="pt-4">
+              {children}
+            </div>
+          ) : (
+            <div className="container mx-auto p-4">
+              {children}
+            </div>
+          )}
         </main>
       </div>
     </div>
   );
 }
+
+// Use React.memo to prevent unnecessary re-renders of the dashboard layout
+const MemoizedDashboardLayoutComponent = React.memo(DashboardLayoutComponent);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -174,7 +189,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </div>
     }>
-      <DashboardLayoutComponent>{children}</DashboardLayoutComponent>
+      <MemoizedDashboardLayoutComponent>{children}</MemoizedDashboardLayoutComponent>
     </Suspense>
   );
 } 
