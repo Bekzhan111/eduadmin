@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { LucideIcon, X } from 'lucide-react';
 import { CanvasSettings } from './types';
-import { uploadMedia } from '@/utils/mediaUpload';
+import { uploadMedia, MediaType } from '@/utils/mediaUpload';
 
 type Tool = {
   id: string;
@@ -20,9 +20,6 @@ type DraggableToolProps = {
   canvasSettings: CanvasSettings;
   onMediaUploaded?: (url: string, mediaType: string) => void;
 };
-
-// Define MediaType type to match what's expected in uploadMedia
-type MediaType = 'image' | 'video' | 'audio' | 'document';
 
 export function DraggableTool({ tool, canvasSettings, onMediaUploaded }: DraggableToolProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -76,7 +73,7 @@ export function DraggableTool({ tool, canvasSettings, onMediaUploaded }: Draggab
       // Upload media file
       const result = await uploadMedia(file, mediaType);
       
-      if (result?.url) {
+      if (result.success && result.url) {
         console.log(`${mediaType} uploaded:`, result.url);
         
         // Get the center of the canvas
@@ -116,6 +113,10 @@ export function DraggableTool({ tool, canvasSettings, onMediaUploaded }: Draggab
         
         // Callback
         onMediaUploaded?.(result.url, mediaType);
+      } else {
+        // Handle upload error
+        setUploadError(result.error || 'Ошибка загрузки файла');
+        console.error('Upload failed:', result.error);
       }
     } catch (error) {
       setUploadError('Ошибка загрузки файла');

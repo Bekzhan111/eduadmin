@@ -169,6 +169,7 @@ export function BookEditor() {
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [activeElement, setActiveElement] = useState<CanvasElementType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [history, setHistory] = useState<CanvasElementType[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [_uploadedMediaUrls, _setUploadedMediaUrls] = useState<Record<string, string>>({});
@@ -193,7 +194,7 @@ export function BookEditor() {
 
   // Canvas settings
   const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>({
-    zoom: 100,
+    zoom: 50,
     currentPage: 1,
     totalPages: 1,
     canvasWidth: 210, // A4 width in mm
@@ -204,23 +205,38 @@ export function BookEditor() {
     gridSize: 10,
     showRulers: false,
     showGuides: false,
-    // Smart guides
-    smartGuides: false,
-    snapToElements: false,
-    snapDistance: 10,
-    // Performance settings
+    smartGuides: true,
+    snapToElements: true,
+    snapDistance: 5,
     renderQuality: 'normal',
     enableAnimations: true,
     maxUndoSteps: 50,
-    // Auto-save settings
-    autoSave: true,
-    autoSaveInterval: 30, // in seconds
+    autoSave: false,
+    autoSaveInterval: 30,
   });
 
-  // State for zoom input
-  const [zoomInput, setZoomInput] = useState<string>('100');
+  // Zoom input state
+  const [zoomInput, setZoomInput] = useState('50');
 
-  // Sensors with proper configuration
+  // Sync zoom input with canvas settings
+  useEffect(() => {
+    setZoomInput(canvasSettings.zoom.toString());
+  }, [canvasSettings.zoom]);
+
+  // Resize state
+  const [isResizing, setIsResizing] = useState(false);
+  const [currentResize, setCurrentResize] = useState<{
+    elementId: string;
+    direction: string;
+    startX: number;
+    startY: number;
+    startWidth: number;
+    startHeight: number;
+    startElementX: number;
+    startElementY: number;
+  } | null>(null);
+
+  // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -229,66 +245,90 @@ export function BookEditor() {
     })
   );
 
-  // Generate unique ID
-  const generateId = useCallback(() => `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, []);
+  // Generate ID function  
+  const generateId = useCallback(() => {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }, []);
 
-  // Smart element positioning function
+  // Get smart position for new elements
   const _getSmartPosition = useCallback(() => {
-    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
-    if (!canvasElement) return { x: 100, y: 100 };
-
-    const canvasRect = canvasElement.getBoundingClientRect();
-    const zoomFactor = canvasSettings.zoom / 100;
+    // Default position
+    let x = 100;
+    let y = 100;
     
-    // Get actual canvas dimensions
-    const canvasWidth = canvasRect.width / zoomFactor;
-    const canvasHeight = canvasRect.height / zoomFactor;
+    // Try to place new elements in a smart way to avoid overlap
+    const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
     
-    // Calculate center position
-    let centerX = canvasWidth / 2;
-    let centerY = canvasHeight / 2;
-    
-    // Add some random offset to avoid overlapping (but keep within reasonable bounds)
-    const offsetRange = Math.min(canvasWidth, canvasHeight) * 0.1; // 10% of smaller dimension
-    centerX += (Math.random() - 0.5) * offsetRange;
-    centerY += (Math.random() - 0.5) * offsetRange;
-    
-    // Ensure position is within canvas bounds (with some margin for element size)
-    const margin = 50; // pixels margin for element size
-    centerX = Math.max(margin, Math.min(centerX, canvasWidth - margin));
-    centerY = Math.max(margin, Math.min(centerY, canvasHeight - margin));
-    
-    // Snap to grid if enabled
-    if (canvasSettings.snapToGrid) {
-      centerX = Math.round(centerX / canvasSettings.gridSize) * canvasSettings.gridSize;
-      centerY = Math.round(centerY / canvasSettings.gridSize) * canvasSettings.gridSize;
+    if (currentPageElements.length > 0) {
+      // Find a position that doesn't overlap with existing elements
+      const positions = currentPageElements.map(el => ({ x: el.x, y: el.y, width: el.width, height: el.height }));
+      
+      // Simple algorithm: try to place elements in a grid pattern
+      const gridSize = 120; // Space between elements
+      let foundPosition = false;
+      
+      for (let row = 0; row < 10 && !foundPosition; row++) {
+        for (let col = 0; col < 10 && !foundPosition; col++) {
+          const testX = 50 + col * gridSize;
+          const testY = 50 + row * gridSize;
+          
+          // Check if this position overlaps with any existing element
+          const overlaps = positions.some(pos => 
+            testX < pos.x + pos.width &&
+            testX + 100 > pos.x &&
+            testY < pos.y + pos.height &&
+            testY + 50 > pos.y
+          );
+          
+          if (!overlaps) {
+            x = testX;
+            y = testY;
+            foundPosition = true;
+          }
+        }
+      }
     }
     
-    return { x: centerX - 50, y: centerY - 25 };
-  }, [canvasSettings]);
+    return { x, y };
+  }, [elements, canvasSettings.currentPage]);
 
-  // Add to history
+  // Add to history with functional state updates to avoid stale closures
   const addToHistory = useCallback((newElements: CanvasElementType[]) => {
     setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
+      const newHistory = [...prev];
+      
+      // Remove any states after current index if we're not at the end
+      if (historyIndex < newHistory.length - 1) {
+        newHistory.splice(historyIndex + 1);
+      }
+      
+      // Add new state
       newHistory.push([...newElements]);
-      return newHistory.slice(-50); // Keep last 50 states
+      
+      // Keep only last 50 states
+      return newHistory.slice(-50);
     });
-    setHistoryIndex(prev => Math.min(prev + 1, 49));
+    
+    setHistoryIndex(prev => {
+      const newIndex = prev + 1;
+      return Math.min(newIndex, 49);
+    });
   }, [historyIndex]);
 
   // Undo/Redo functionality
   const undo = useCallback(() => {
     if (historyIndex > 0) {
-      setHistoryIndex(prev => prev - 1);
-      setElements(history[historyIndex - 1]);
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setElements(history[newIndex]);
     }
   }, [history, historyIndex]);
 
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
-      setHistoryIndex(prev => prev + 1);
-      setElements(history[historyIndex + 1]);
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setElements(history[newIndex]);
     }
   }, [history, historyIndex]);
 
@@ -303,12 +343,13 @@ export function BookEditor() {
   const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
   const selectedElement = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
 
-  // Load book data
+  // Load book data - removed addToHistory dependency to avoid re-renders
   useEffect(() => {
     const loadBook = async () => {
       if (!params?.base_url) return;
       
       try {
+        setIsLoading(true);
         const supabase = createClient();
         const { data: bookData, error } = await supabase
           .from('books')
@@ -325,29 +366,52 @@ export function BookEditor() {
           try {
             const parsedElements = JSON.parse(bookData.canvas_elements);
             setElements(parsedElements);
-            addToHistory(parsedElements);
+            
+            // Initialize history directly without using addToHistory
+            setHistory([parsedElements]);
+            setHistoryIndex(0);
           } catch (e) {
             console.error('Error parsing canvas elements:', e);
+            setElements([]);
+            setHistory([[]]);
+            setHistoryIndex(0);
           }
+        } else {
+          // No elements, initialize empty
+          setElements([]);
+          setHistory([[]]);
+          setHistoryIndex(0);
         }
         
         if (bookData.canvas_settings) {
           try {
             const parsedSettings = JSON.parse(bookData.canvas_settings);
-            setCanvasSettings(prev => ({ ...prev, ...parsedSettings }));
+            // Ensure zoom defaults to 50 if not set
+            const settingsWithDefaults = {
+              ...parsedSettings,
+              zoom: parsedSettings.zoom !== undefined ? parsedSettings.zoom : 50
+            };
+            setCanvasSettings(prev => ({ ...prev, ...settingsWithDefaults }));
           } catch (e) {
             console.error('Error parsing canvas settings:', e);
           }
         }
+        
+        setIsInitialized(true);
       } catch (error) {
         console.error('Error loading book:', error);
+        // Initialize empty state on error
+        setElements([]);
+        setHistory([[]]);
+        setHistoryIndex(0);
+        setIsInitialized(true);
       } finally {
         setIsLoading(false);
       }
     };
     
     loadBook();
-  }, [params?.base_url, addToHistory]);
+  }, [params?.base_url]); // Removed addToHistory dependency
 
   // Title editing functions
   const handleStartEditingTitle = useCallback(() => {
@@ -422,8 +486,14 @@ export function BookEditor() {
   // Add event listener for tool clicks
   useEffect(() => {
     const handleAddToolToCanvas = (event: CustomEvent) => {
-      const { toolId, position } = event.detail;
-      console.log('Add tool to canvas:', toolId, position);
+      // Skip if not initialized
+      if (!isInitialized) {
+        console.log('Skipping tool add - not initialized');
+        return;
+      }
+      
+      const { toolId, position, mediaUrl } = event.detail;
+      console.log('Add tool to canvas:', toolId, position, mediaUrl);
       
       // Special handling for table tool
       if (toolId === 'table') {
@@ -469,12 +539,24 @@ export function BookEditor() {
       
       // Create the new element
       const elementType = getElementType(toolId);
-      const elementProperties = getEnhancedPropertiesForTool(toolId);
+      let elementProperties = getEnhancedPropertiesForTool(toolId);
+      
+      // If mediaUrl is provided, update the appropriate property
+      if (mediaUrl) {
+        if (toolId === 'image') {
+          elementProperties = { ...elementProperties, imageUrl: mediaUrl };
+        } else if (toolId === 'video') {
+          elementProperties = { ...elementProperties, videoUrl: mediaUrl };
+        } else if (toolId === 'audio') {
+          elementProperties = { ...elementProperties, audioUrl: mediaUrl };
+        }
+      }
       
       console.log('=== HANDLE ADD TOOL DEBUG ===');
       console.log('Tool ID:', toolId);
       console.log('Element type:', elementType);
       console.log('Element properties from getEnhancedPropertiesForTool:', elementProperties);
+      console.log('Media URL:', mediaUrl);
       console.log('========================');
       
       // Create the new element
@@ -490,13 +572,36 @@ export function BookEditor() {
         zIndex: Math.max(0, ...elements.map(el => el.zIndex)) + 1,
         rotation: 0,
         opacity: 1,
-        properties: getEnhancedPropertiesForTool(toolId),
+        properties: elementProperties,
       };
       
       // Add the new element to the canvas
       setElements(prev => {
         const newElements = [...prev, newElement];
-        addToHistory(newElements);
+        
+        // Add to history with functional updates
+        setHistory(historyPrev => {
+          const newHistory = [...historyPrev];
+          
+          // Remove any states after current index if we're not at the end
+          setHistoryIndex(indexPrev => {
+            if (indexPrev < newHistory.length - 1) {
+              newHistory.splice(indexPrev + 1);
+            }
+            
+            // Add new state
+            newHistory.push([...newElements]);
+            
+            // Keep only last 50 states
+            const finalHistory = newHistory.slice(-50);
+            setHistory(finalHistory);
+            
+            return Math.min(indexPrev + 1, 49);
+          });
+          
+          return newHistory.slice(-50);
+        });
+        
         return newElements;
       });
       
@@ -509,7 +614,7 @@ export function BookEditor() {
     return () => {
       window.removeEventListener('addToolToCanvas', handleAddToolToCanvas as EventListener);
     };
-  }, [elements, canvasSettings, addToHistory, generateId]);
+  }, [elements, canvasSettings, generateId, isInitialized]);
 
   // Save functionality
   const handleSave = useCallback(async () => {
@@ -593,6 +698,12 @@ export function BookEditor() {
   const handleDeletePage = useCallback(() => {
     if (canvasSettings.totalPages <= 1) return;
     
+    // Skip if not initialized
+    if (!isInitialized) {
+      console.log('Skipping page delete - not initialized');
+      return;
+    }
+    
     // Delete elements from current page
     const newElements = elements.filter(el => el.page !== canvasSettings.currentPage);
     
@@ -605,7 +716,29 @@ export function BookEditor() {
     });
     
     setElements(adjustedElements);
-    addToHistory(adjustedElements);
+    
+    // Add to history with functional updates
+    setHistory(historyPrev => {
+      const newHistory = [...historyPrev];
+      
+      // Remove any states after current index if we're not at the end
+      setHistoryIndex(indexPrev => {
+        if (indexPrev < newHistory.length - 1) {
+          newHistory.splice(indexPrev + 1);
+        }
+        
+        // Add new state
+        newHistory.push([...adjustedElements]);
+        
+        // Keep only last 50 states
+        const finalHistory = newHistory.slice(-50);
+        setHistory(finalHistory);
+        
+        return Math.min(indexPrev + 1, 49);
+      });
+      
+      return newHistory.slice(-50);
+    });
     
     // Update canvas settings
     const newCurrentPage = canvasSettings.currentPage > 1 ? canvasSettings.currentPage - 1 : 1;
@@ -614,10 +747,16 @@ export function BookEditor() {
       totalPages: prev.totalPages - 1,
       currentPage: newCurrentPage,
     }));
-  }, [elements, canvasSettings, addToHistory]);
+  }, [elements, canvasSettings, isInitialized]);
 
   // Update element
   const updateElement = useCallback((elementId: string, updates: Partial<CanvasElementType>) => {
+    // Skip if not initialized
+    if (!isInitialized) {
+      console.log('Skipping element update - not initialized');
+      return;
+    }
+    
     setElements(prev => {
       const newElements = prev.map(el => {
         if (el.id === elementId) {
@@ -626,20 +765,71 @@ export function BookEditor() {
         return el;
       });
       
-      addToHistory(newElements);
+      // Add to history with functional updates
+      setHistory(historyPrev => {
+        const newHistory = [...historyPrev];
+        
+        // Remove any states after current index if we're not at the end
+        setHistoryIndex(indexPrev => {
+          if (indexPrev < newHistory.length - 1) {
+            newHistory.splice(indexPrev + 1);
+          }
+          
+          // Add new state
+          newHistory.push([...newElements]);
+          
+          // Keep only last 50 states
+          const finalHistory = newHistory.slice(-50);
+          setHistory(finalHistory);
+          
+          return Math.min(indexPrev + 1, 49);
+        });
+        
+        return newHistory.slice(-50);
+      });
+      
       return newElements;
     });
-  }, [addToHistory]);
+  }, [isInitialized]);
 
   // Delete element
   const deleteElement = useCallback((id: string) => {
+    // Skip if not initialized
+    if (!isInitialized) {
+      console.log('Skipping element delete - not initialized');
+      return;
+    }
+    
     setElements(prev => {
       const newElements = prev.filter(el => el.id !== id);
-      addToHistory(newElements);
+      
+      // Add to history with functional updates
+      setHistory(historyPrev => {
+        const newHistory = [...historyPrev];
+        
+        // Remove any states after current index if we're not at the end
+        setHistoryIndex(indexPrev => {
+          if (indexPrev < newHistory.length - 1) {
+            newHistory.splice(indexPrev + 1);
+          }
+          
+          // Add new state
+          newHistory.push([...newElements]);
+          
+          // Keep only last 50 states
+          const finalHistory = newHistory.slice(-50);
+          setHistory(finalHistory);
+          
+          return Math.min(indexPrev + 1, 49);
+        });
+        
+        return newHistory.slice(-50);
+      });
+      
       return newElements;
     });
     setSelectedElementId(null);
-  }, [addToHistory]);
+  }, [isInitialized]);
 
   // Duplicate element
   const _duplicateElement = useCallback((id: string) => {
@@ -901,7 +1091,7 @@ export function BookEditor() {
           
           // Select the new element
           setSelectedElementId(newElement.id);
-  }, [elements, canvasSettings, _getSmartPosition, generateId, addToHistory, getDefaultWidth, getDefaultHeight, getDefaultContent, getEnhancedPropertiesForTool]);
+  }, [elements, canvasSettings, _getSmartPosition, generateId]);
 
   // Handle drag over
   const handleDragOver = useCallback((_event: DragOverEvent) => {
@@ -911,11 +1101,18 @@ export function BookEditor() {
 
   // Handle change page
   const handleChangePage = useCallback((pageNumber: number) => {
+    // Skip if not initialized
+    if (!isInitialized) {
+      console.log('Skipping page change - not initialized');
+      return;
+    }
+    
+    console.log('Changing to page:', pageNumber);
     setCanvasSettings(prev => ({
       ...prev,
       currentPage: pageNumber,
     }));
-  }, []);
+  }, [isInitialized]);
 
   // Handle zoom
   const setZoom = useCallback((newZoom: number) => {
@@ -1327,9 +1524,8 @@ export function BookEditor() {
         return (
           <AssignmentElement
             element={element}
-            onUpdate={(id, updates) => updateElement(id, updates)}
-            isSelected={selectedElementId === element.id}
-            viewMode="edit"
+            _onUpdate={(updates: Partial<CanvasElementType>) => updateElement(element.id, updates)}
+            isEditing={editingElementId === element.id}
           />
         );
       case 'icon':

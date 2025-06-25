@@ -14,10 +14,50 @@ const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gi
 const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/mov', 'video/avi', 'video/mkv'];
 const SUPPORTED_AUDIO_TYPES = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/m4a', 'audio/flac'];
 
-// File size limits (in bytes)
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200MB
-const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB
+// File size limits (in bytes) - уменьшенные лимиты для Supabase
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_AUDIO_SIZE = 20 * 1024 * 1024; // 20MB
+
+// Функция сжатия изображений
+const compressImage = (file: File, maxWidth: number = 1920, quality: number = 0.8): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Вычисляем новые размеры с сохранением пропорций
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Рисуем сжатое изображение
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      // Конвертируем в blob
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        } else {
+          resolve(file); // Возвращаем оригинал если сжатие не удалось
+        }
+      }, 'image/jpeg', quality);
+    };
+    
+    img.onerror = () => resolve(file); // Возвращаем оригинал при ошибке
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 export const validateFile = (file: File, type: MediaType): { valid: boolean; error?: string } => {
   console.log(`Validating ${type} file:`, {
@@ -84,8 +124,20 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
   });
 
   try {
-    // Validate file
-    const validation = validateFile(file, type);
+    // Сжимаем изображение если оно слишком большое
+    let processedFile = file;
+    if (type === 'image' && file.size > MAX_IMAGE_SIZE && file.type !== 'image/svg+xml') {
+      console.log('Compressing image...');
+      processedFile = await compressImage(file);
+      console.log('Image compressed:', {
+        originalSize: file.size,
+        compressedSize: processedFile.size,
+        reduction: ((file.size - processedFile.size) / file.size * 100).toFixed(1) + '%'
+      });
+    }
+
+    // Validate processed file
+    const validation = validateFile(processedFile, type);
     if (!validation.valid) {
       console.error('File validation failed:', validation.error);
       return {
@@ -97,60 +149,19 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
     const supabase = createClient();
     
     // Generate unique filename
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'bin';
+    const fileExt = processedFile.name.split('.').pop()?.toLowerCase() || 'bin';
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${type}s/${fileName}`;
 
     console.log('Uploading to path:', filePath);
 
-    // Test Supabase connection first
-    try {
-      const { data: testData, error: testError } = await supabase.storage.listBuckets();
-      console.log('Storage buckets test:', { testData, testError });
-      
-      if (testError) {
-        console.error('Storage connection test failed:', testError);
-        return {
-          success: false,
-          error: `Ошибка подключения к хранилищу: ${testError.message}`
-        };
-      }
-    } catch (connectionError) {
-      console.error('Storage connection error:', connectionError);
-      return {
-        success: false,
-        error: 'Не удается подключиться к системе хранения файлов'
-      };
-    }
-
-    // Create bucket if it doesn't exist
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const mediaAccountBucket = buckets?.find(bucket => bucket.name === 'media');
-    
-    if (!mediaAccountBucket) {
-      console.log('Media bucket not found, creating...');
-      const { error: createError } = await supabase.storage.createBucket('media', {
-        public: true,
-        allowedMimeTypes: [...SUPPORTED_IMAGE_TYPES, ...SUPPORTED_VIDEO_TYPES, ...SUPPORTED_AUDIO_TYPES],
-        fileSizeLimit: MAX_VIDEO_SIZE
-      });
-
-      if (createError) {
-        console.error('Failed to create media bucket:', createError);
-        return {
-          success: false,
-          error: `Ошибка создания хранилища: ${createError.message}`
-        };
-      }
-    }
-
-    // Upload file to Supabase storage
+    // Upload file to Supabase storage (bucket должен уже существовать)
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('media')
-      .upload(filePath, file, {
+      .upload(filePath, processedFile, {
         cacheControl: '3600',
         upsert: false,
-        contentType: file.type
+        contentType: processedFile.type
       });
 
     console.log('Upload result:', { uploadData, uploadError });
@@ -166,10 +177,10 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
         
         const { data: _retryData, error: retryError } = await supabase.storage
           .from('media')
-          .upload(retryFilePath, file, {
+          .upload(retryFilePath, processedFile, {
             cacheControl: '3600',
             upsert: false,
-            contentType: file.type
+            contentType: processedFile.type
           });
 
         if (retryError) {
@@ -188,7 +199,16 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
           success: true,
           url: urlData.publicUrl,
           fileName: retryFileName,
-          fileSize: file.size
+          fileSize: processedFile.size
+        };
+      }
+      
+      // Handle RLS policy errors
+      if (uploadError.message.includes('row-level security policy') || 
+          uploadError.message.includes('policy')) {
+        return {
+          success: false,
+          error: 'Недостаточно прав для загрузки файлов. Обратитесь к администратору.'
         };
       }
       
@@ -218,7 +238,7 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
       success: true,
       url: urlData.publicUrl,
       fileName: fileName,
-      fileSize: file.size
+      fileSize: processedFile.size
     };
 
   } catch (error) {

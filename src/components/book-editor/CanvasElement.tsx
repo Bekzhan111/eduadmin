@@ -723,7 +723,7 @@ export function CanvasElementComponent({
                 autoPlay={element.properties.autoplay || false}
                 muted={element.properties.muted !== false}
                 loop={element.properties.loop || false}
-                className="w-full h-full object-cover"
+                className="w-full"
                 style={{ borderRadius: (element.properties.borderRadius || 0) * contentScale }}
                 preload="metadata"
               />
