@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
     // Игнорировать TypeScript ошибки при сборке
     ignoreBuildErrors: true,
   },
+  images: {
+    domains: [
+      'wxrqdytayiamnpwjauvi.supabase.co'
+    ],
+  },
 };
 
 export default nextConfig;

@@ -1,30 +1,36 @@
 // Enhanced Book type with version control and collaboration
-export type Book = {
+export interface Book {
   id: string;
-  base_url: string;
   title: string;
-  description: string;
-  author_id: string;
-  created_at: string;
-  updated_at: string;
+  base_url: string;
+  description?: string;
+  price?: number;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
   canvas_elements?: string;
   canvas_settings?: string;
-  status?: 'Draft' | 'Moderation' | 'Approved' | 'Active' | 'Rejected';
-  version?: number;
-  collaborators?: string[];
-  auto_save_enabled?: boolean;
-  last_auto_save?: string;
-};
+  user_id?: string;
+  // Добавляем поля для дополнительной информации о книге
+  cover_image?: string;
+  author?: string;
+  language?: string;
+  page_count?: number;
+  is_published?: boolean;
+  visibility?: 'public' | 'private' | 'unlisted';
+  category?: string;
+  tags?: string[];
+}
 
 // Enhanced Canvas Element with grouping, animations, and filters
-export type CanvasElement = {
+export interface CanvasElement {
   id: string;
-  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'arrow' | 'icon' | 'video' | 'audio' | 'group' | 'table' | 'math' | 'chart' | 'assignment';
+  type: 'text' | 'shape' | 'image' | 'line' | 'paragraph' | 'video' | 'audio' | 'math' | 'icon' | 'table' | 'chart' | 'assignment' | 'arrow';
   x: number;
   y: number;
   width: number;
   height: number;
-  content: string;
+  content?: string;
   page: number;
   zIndex: number;
   rotation: number;
@@ -45,6 +51,7 @@ export type CanvasElement = {
   };
   // Enhanced properties
   properties: {
+    // Text properties
     fontSize?: number;
     fontFamily?: string;
     fontWeight?: string;
@@ -52,89 +59,61 @@ export type CanvasElement = {
     textDecoration?: string;
     color?: string;
     backgroundColor?: string;
+    textAlign?: string;
+    verticalAlign?: string;
+    borderRadius?: number;
     borderColor?: string;
     borderWidth?: number;
-    borderRadius?: number;
     borderStyle?: string;
-    textAlign?: 'left' | 'center' | 'right';
-    verticalAlign?: 'top' | 'middle' | 'bottom';
-    shapeType?: 'rectangle' | 'circle' | 'triangle' | 'star' | 'heart';
+
+    // Shape properties
+    shapeType?: string;
+
+    // Media properties
     imageUrl?: string;
     videoUrl?: string;
     audioUrl?: string;
-    lineThickness?: number;
-    arrowType?: 'single' | 'double' | 'none';
-    iconType?: string;
-    shadow?: boolean;
-    shadowColor?: string;
-    shadowBlur?: number;
-    shadowOffsetX?: number;
-    shadowOffsetY?: number;
     autoplay?: boolean;
     muted?: boolean;
     controls?: boolean;
     loop?: boolean;
-    animation?: string;
-    gradient?: {
-      type: 'linear' | 'radial';
-      colors: string[];
-      direction?: number;
-    };
-    // Math formula properties
-    mathFormula?: string;  // MathML content
-    mathDisplay?: 'inline' | 'block';  // Display mode for math formulas
-    mathSize?: 'small' | 'normal' | 'large';  // Size of the formula
-    // Chart properties
-    chartType?: 'bar' | 'line' | 'pie' | 'doughnut' | 'radar' | 'scatter' | 'bubble';
-    chartData?: {
-      labels: string[];
-      datasets: Array<{
-        label: string;
-        data: number[];
-        backgroundColor?: string | string[];
-        borderColor?: string;
-        borderWidth?: number;
-        fill?: boolean;
-        tension?: number;
-      }>;
-    };
-    chartOptions?: {
-      title?: string;
-      showLegend?: boolean;
-      legendPosition?: 'top' | 'right' | 'bottom' | 'left';
-      xAxisTitle?: string;
-      yAxisTitle?: string;
-      stacked?: boolean;
-      beginAtZero?: boolean;
-      aspectRatio?: number;
-    };
+
+    // Media metadata properties
+    caption?: string;
+    altText?: string;
+    sourceInfo?: string;
+    sourceUrl?: string;
+    author?: string;
+    license?: string;
+    isUploading?: boolean;
+    uploadProgress?: number;
+    
+    // Image cropping properties
+    cropX?: number;
+    cropY?: number;
+    cropWidth?: number;
+    cropHeight?: number;
+    originalWidth?: number;
+    originalHeight?: number;
+    aspectRatio?: number;
+    preserveAspectRatio?: boolean;
+
+    // Line properties
+    lineThickness?: number;
+    arrowType?: string;
+
+    // Math properties
+    mathFormula?: string;
+    mathDisplay?: string;
+    mathSize?: string;
+    mathFontSize?: number;
+    mathColor?: string;
+
     // Table properties
     tableData?: {
       rows: number;
       columns: number;
-      cells: {
-        [key: string]: {
-          content: string;
-          rowSpan?: number;
-          colSpan?: number;
-          backgroundColor?: string;
-          textAlign?: 'left' | 'center' | 'right';
-          verticalAlign?: 'top' | 'middle' | 'bottom';
-          borderTop?: boolean;
-          borderRight?: boolean;
-          borderBottom?: boolean;
-          borderLeft?: boolean;
-          borderColor?: string;
-          borderWidth?: number;
-          fontWeight?: string;
-          fontStyle?: string;
-          textDecoration?: string;
-          color?: string;
-          padding?: number;
-          isMerged?: boolean;
-          mergedTo?: string;
-        }
-      };
+      cells: Array<Array<{ content: string; style?: any }>>;
       headerRow?: boolean;
       headerColumn?: boolean;
       borderCollapse?: boolean;
@@ -142,79 +121,29 @@ export type CanvasElement = {
       cellSpacing?: number;
       borderColor?: string;
       borderWidth?: number;
-      alternateRowColors?: boolean;
-      alternateRowColor?: string;
       backgroundColor?: string;
-      borderRadius?: number;
     };
+
+    // Chart properties
+    chartType?: string;
+    chartData?: any;
+    chartOptions?: any;
+
+    // Icon properties
+    iconType?: string;
+
     // Assignment properties
-    assignmentType?: 'multiple-choice' | 'open-question' | 'true-false' | 'matching' | 'quiz';
-    assignmentData?: {
-      question: string;
-      instructions?: string;
-      // Multiple choice specific
-      options?: Array<{
-        id: string;
-        text: string;
-        isCorrect?: boolean;
-      }>;
-      // True/False specific
-      correctAnswer?: boolean;
-      // Matching specific
-      leftItems?: Array<{
-        id: string;
-        content: string;
-      }>;
-      rightItems?: Array<{
-        id: string;
-        content: string;
-        matchWith: string; // id of left item
-      }>;
-      // Open question specific
-      expectedAnswer?: string;
-      answerLength?: 'short' | 'medium' | 'long';
-      // Quiz specific
-      quizQuestions?: Array<{
-        id: string;
-        question: string;
-        type: 'multiple-choice' | 'true-false' | 'open';
-        options?: Array<{
-          id: string;
-          text: string;
-          isCorrect?: boolean;
-        }>;
-        correctAnswer?: boolean | string;
-        points?: number;
-      }>;
-      // General settings
-      points?: number;
-      timeLimit?: number; // in minutes
-      allowRetries?: boolean;
-      showCorrectAnswer?: boolean;
-      shuffleOptions?: boolean;
-      difficultyLevel?: 1 | 2 | 3 | 4 | 5; // Звездная шкала сложности (1-5 звезд)
-    };
-    // Filters and effects
-    filters?: {
-      blur?: number;
-      brightness?: number;
-      contrast?: number;
-      saturate?: number;
-      sepia?: number;
-      hueRotate?: number;
-      invert?: boolean;
-      grayscale?: number;
-    };
-    // Transform properties
-    skewX?: number;
-    skewY?: number;
-    scaleX?: number;
-    scaleY?: number;
-    // Default size for scaling calculations
+    assignmentType?: string;
+    assignmentData?: any;
+
+    // Default properties
     defaultWidth?: number;
     defaultHeight?: number;
+
+    // Additional properties for customization
+    [key: string]: any;
   };
-};
+}
 
 // Enhanced Canvas Settings with guides and performance options
 export type CanvasSettings = {

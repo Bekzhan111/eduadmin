@@ -1,17 +1,14 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import Image from 'next/image';
 import { CanvasElement } from './types';
 import { 
-  ImageIcon, Video, Volume2,
-  // Icons for rendering
-  Home, User, Settings, Search, Mail, Phone, Calendar, Clock, Map, Camera, Music, File, Folder, Download, Upload, Save, Copy, Trash, Plus, X, Check, Menu, Bell, AlertCircle, Info, Shield, Lock, Eye, ThumbsUp, MessageCircle, Share, Link, Zap, Award, Gift, Briefcase, Flag, Sun, Moon, Lightbulb, Battery, Wifi, Globe, Database, Code, Monitor, Smartphone, PlayCircle, Volume, Palette, Bookmark, Filter, RefreshCw, Edit3, Table, ListChecks, CheckSquare, Target, HelpCircle
+  ImageIcon, Video, Volume2, Edit3, X, Crop
 } from 'lucide-react';
 import { TableElement } from './TableElement';
 import { MathElement } from './MathElement';
 import { AssignmentElement } from './AssignmentElement';
+import { ChartElement } from './ChartElement';
 import { renderIcon } from './IconRenderer';
 
 type ResizeDirection = 
@@ -36,6 +33,8 @@ type CanvasElementProps = {
     gridSize: number;
   };
   onDelete?: () => void;
+  onOpenMetadataEditor?: (element: CanvasElement) => void;
+  bookBaseUrl?: string;
   children?: React.ReactNode;
 };
 
@@ -52,6 +51,8 @@ export function CanvasElementComponent({
   onShowSnapLines: _onShowSnapLines,
   canvasSettings = { zoom: 100, snapToGrid: false, gridSize: 10 },
   onDelete,
+  onOpenMetadataEditor,
+  bookBaseUrl,
   children
 }: CanvasElementProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -62,6 +63,36 @@ export function CanvasElementComponent({
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const elementRef = useRef<HTMLDivElement>(null);
+  
+  // Local state for editing text
+  const [editingText, setEditingText] = useState('');
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [showCropMode, setShowCropMode] = useState(false);
+  const [cropSelection, _setCropSelection] = useState({ x: 0, y: 0, width: 100, height: 100 });
+  
+  // Update editing text when element content changes or editing mode changes
+  useEffect(() => {
+    if (isEditing) {
+          setEditingText(element.content || '');
+      // Focus the input after a small delay
+      const timer = setTimeout(() => {
+        if (element.type === 'paragraph' && textareaRef.current) {
+          textareaRef.current.focus();
+          // Move cursor to end instead of selecting all
+          const length = textareaRef.current.value.length;
+          textareaRef.current.setSelectionRange(length, length);
+        } else if (inputRef.current) {
+          inputRef.current.focus();
+          // Move cursor to end instead of selecting all
+          const length = inputRef.current.value.length;
+          inputRef.current.setSelectionRange(length, length);
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isEditing, element.content]);
 
   // Resize state
   const [isResizing, setIsResizing] = useState(false);
@@ -150,7 +181,6 @@ export function CanvasElementComponent({
   const handleClick = (e: React.MouseEvent) => {
     if (!isResizing) {
       e.stopPropagation();
-      console.log('Element clicked:', element.id);
       onSelect();
     }
   };
@@ -158,27 +188,102 @@ export function CanvasElementComponent({
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!isResizing) {
       e.stopPropagation();
-      console.log('Element double clicked:', element.id);
       if (element.type === 'text' || element.type === 'paragraph' || element.type === 'table' || element.type === 'math') {
         onEdit(true);
       }
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (element.type === 'image') {
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenuPosition({ x: e.clientX, y: e.clientY });
+      setShowContextMenu(true);
+    }
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete?.();
+  };
+
+  const handleCropStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowCropMode(true);
+    setShowContextMenu(false);
+  };
+
+  const applyCrop = () => {
+    if (element.type === 'image') {
+      onUpdate({
+        properties: {
+          ...element.properties,
+          cropX: cropSelection.x,
+          cropY: cropSelection.y,
+          cropWidth: cropSelection.width,
+          cropHeight: cropSelection.height,
+        }
+      });
+    }
+    setShowCropMode(false);
+  };
+
+  const resetCrop = () => {
+    if (element.type === 'image') {
+      onUpdate({
+        properties: {
+          ...element.properties,
+          cropX: undefined,
+          cropY: undefined,
+          cropWidth: undefined,
+          cropHeight: undefined,
+        }
+      });
+    }
+    setShowCropMode(false);
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowContextMenu(false);
+    };
+
+    if (showContextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showContextMenu]);
+
   const handleTextSave = () => {
-    const newContent = element.type === 'paragraph' 
-      ? textareaRef.current?.value || element.content
-      : inputRef.current?.value || element.content;
+    // Don't trim, allow spaces at beginning/end
+    const finalText = editingText;
     
-    onUpdate({ content: newContent });
+    // Always update, even if the content appears the same
+    onUpdate({ content: finalText });
     onEdit(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && element.type === 'text') {
-      handleTextSave();
+    if (e.key === 'Enter') {
+      if (element.type === 'text') {
+        // Для обычного текста Enter сохраняет
+        e.preventDefault();
+        handleTextSave();
+      }
+      // Для paragraph Enter создает новую строку - не предотвращаем
     } else if (e.key === 'Escape') {
+      // Escape отменяет редактирование
+      e.preventDefault();
+      setEditingText(element.content || '');
       onEdit(false);
+    } else if (e.ctrlKey && e.key === 'Enter' && element.type === 'paragraph') {
+      // Ctrl+Enter для paragraph сохраняет
+      e.preventDefault();
+      handleTextSave();
     }
   };
 
@@ -437,6 +542,11 @@ export function CanvasElementComponent({
     resizeStateRef.current.currentResize = currentResize;
     resizeStateRef.current.originalAspectRatio = element.width / element.height;
     
+    // Auto-enable aspect ratio preservation for images and videos
+    if (element.type === 'image' || element.type === 'video') {
+      resizeStateRef.current.keepAspectRatio = element.properties.preserveAspectRatio !== false;
+    }
+    
     setCurrentResize(currentResize);
 
     // Add global event listeners
@@ -446,49 +556,78 @@ export function CanvasElementComponent({
 
   // Calculate content scaling based on element size relative to default/initial size
   const calculateContentScale = () => {
-    const defaultWidth = element.properties.defaultWidth || 200;
-    const defaultHeight = element.properties.defaultHeight || 100;
-    const scaleX = element.width / defaultWidth;
-    const scaleY = element.height / defaultHeight;
-    
-    // Use the smaller scale to maintain readability
-    const scale = Math.min(scaleX, scaleY);
-    
-    // Limit scale between 0.3 and 3 for practical purposes
-    return Math.max(0.3, Math.min(3, scale));
+    const zoom = canvasSettings.zoom;
+    return Math.max(0.1, Math.min(2, zoom / 100));
   };
 
   const contentScale = calculateContentScale();
 
   const renderContent = () => {
     if (isEditing && (element.type === 'text' || element.type === 'paragraph')) {
+      const scaledBorderWidth = (element.properties.borderWidth || 0) * contentScale;
+      const borderStyle = scaledBorderWidth > 0 ? {
+        border: `${scaledBorderWidth}px ${element.properties.borderStyle || 'solid'} ${element.properties.borderColor || '#000000'}`
+      } : {};
+
       if (element.type === 'paragraph') {
         return (
           <textarea
             ref={textareaRef}
-            defaultValue={element.content}
-            onBlur={handleTextSave}
-            onKeyDown={handleKeyDown}
-            className="w-full h-full resize-none border-none outline-none bg-transparent"
+            value={editingText}
+            onChange={(e) => {
+              e.stopPropagation();
+              setEditingText(e.target.value);
+            }}
+            onBlur={() => {
+              // Простая задержка перед сохранением для предотвращения конфликтов
+              setTimeout(() => {
+                handleTextSave();
+              }, 100);
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              handleKeyDown(e);
+            }}
+            className="w-full h-full resize-none border-none outline-none bg-transparent overflow-hidden"
             style={{
-              fontSize: (element.properties.fontSize || 16) * contentScale,
+              fontSize: (element.properties.fontSize || 14) * contentScale,
               fontFamily: element.properties.fontFamily || 'Arial',
               fontWeight: element.properties.fontWeight || 'normal',
               fontStyle: element.properties.fontStyle || 'normal',
               textDecoration: element.properties.textDecoration || 'none',
               color: element.properties.color || '#000000',
+              backgroundColor: element.properties.backgroundColor || 'transparent',
               textAlign: element.properties.textAlign || 'left',
+              borderRadius: (element.properties.borderRadius || 0) * contentScale,
+              whiteSpace: 'pre-wrap',
+              padding: `${2 * contentScale}px`,
+              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)', // Синяя обводка при редактировании
+              ...borderStyle,
             }}
+            placeholder="Начните печатать..."
             autoFocus
+            tabIndex={0}
           />
         );
       } else {
         return (
           <input
             ref={inputRef}
-            defaultValue={element.content}
-            onBlur={handleTextSave}
-            onKeyDown={handleKeyDown}
+            value={editingText}
+            onChange={(e) => {
+              e.stopPropagation();
+              setEditingText(e.target.value);
+            }}
+            onBlur={() => {
+              // Простая задержка перед сохранением для предотвращения конфликтов
+              setTimeout(() => {
+                handleTextSave();
+              }, 100);
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              handleKeyDown(e);
+            }}
             className="w-full h-full border-none outline-none bg-transparent"
             style={{
               fontSize: (element.properties.fontSize || 16) * contentScale,
@@ -497,9 +636,15 @@ export function CanvasElementComponent({
               fontStyle: element.properties.fontStyle || 'normal',
               textDecoration: element.properties.textDecoration || 'none',
               color: element.properties.color || '#000000',
+              backgroundColor: element.properties.backgroundColor || 'transparent',
               textAlign: element.properties.textAlign || 'center',
+              borderRadius: (element.properties.borderRadius || 0) * contentScale,
+              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)', // Синяя обводка при редактировании
+              ...borderStyle,
             }}
+            placeholder="Введите текст"
             autoFocus
+            tabIndex={0}
           />
         );
       }
@@ -514,7 +659,7 @@ export function CanvasElementComponent({
       case 'text':
         return (
           <div
-            className="w-full h-full flex items-center justify-center cursor-text"
+            className="w-full h-full flex items-center justify-center cursor-text group-hover:bg-blue-50 group-hover:bg-opacity-30 transition-colors"
             style={{
               fontSize: (element.properties.fontSize || 16) * contentScale,
               fontFamily: element.properties.fontFamily || 'Arial',
@@ -527,14 +672,15 @@ export function CanvasElementComponent({
               borderRadius: (element.properties.borderRadius || 0) * contentScale,
               ...borderStyle,
             }}
+            title="Дважды кликните для редактирования"
           >
-            {element.content || 'Новый текст'}
+            {element.content || 'Дважды кликните для ввода текста'}
           </div>
         );
       case 'paragraph':
         return (
           <div
-            className="w-full h-full cursor-text overflow-hidden"
+            className="w-full h-full cursor-text overflow-hidden group-hover:bg-blue-50 group-hover:bg-opacity-30 transition-colors"
             style={{
               fontSize: (element.properties.fontSize || 14) * contentScale,
               fontFamily: element.properties.fontFamily || 'Arial',
@@ -549,8 +695,9 @@ export function CanvasElementComponent({
               padding: `${2 * contentScale}px`,
               ...borderStyle,
             }}
+            title="Дважды кликните для редактирования. Enter - новая строка, Ctrl+Enter - сохранить"
           >
-            {element.content || 'Новый абзац\nНачните печатать...'}
+            {element.content || 'Дважды кликните для ввода текста...\nМожно создавать несколько строк'}
           </div>
         );
       case 'table':
@@ -653,28 +800,124 @@ export function CanvasElementComponent({
             }}
           />
         );
+      case 'arrow':
+        return (
+          <div
+            className="w-full h-full flex items-center justify-center relative"
+            style={{
+              ...borderStyle,
+            }}
+          >
+            <div
+              className="w-full"
+              style={{
+                height: (element.properties.lineThickness || 2) * contentScale,
+                backgroundColor: element.properties.color || '#000000',
+                position: 'relative',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                width: 0,
+                height: 0,
+                borderTop: `${(element.properties.lineThickness || 2) * 2 * contentScale}px solid transparent`,
+                borderBottom: `${(element.properties.lineThickness || 2) * 2 * contentScale}px solid transparent`,
+                borderLeft: `${(element.properties.lineThickness || 2) * 3 * contentScale}px solid ${element.properties.color || '#000000'}`,
+              }}
+            />
+          </div>
+        );
       case 'image':
         return (
           <div 
-            className="w-full h-full bg-gray-100 flex items-center justify-center overflow-hidden"
+            className="w-full h-full bg-gray-100 flex flex-col overflow-hidden relative"
             style={{
               borderRadius: (element.properties.borderRadius || 0) * contentScale,
               ...borderStyle,
             }}
+            onContextMenu={handleContextMenu}
           >
-            {element.properties.imageUrl ? (
-              <Image 
-                src={element.properties.imageUrl} 
-                alt="Element"
-                width={element.width}
-                height={element.height}
-                className="w-full h-full object-cover"
-                style={{ borderRadius: (element.properties.borderRadius || 0) * contentScale }}
-              />
-            ) : (
-              <div className="text-center text-gray-500">
-                <ImageIcon className="h-8 w-8 mx-auto mb-2" style={{ transform: `scale(${contentScale})` }} />
-                <span className="text-sm" style={{ fontSize: `${12 * contentScale}px` }}>Изображение</span>
+            <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+              {element.properties.imageUrl ? (
+                <div className="relative w-full h-full">
+                  <Image 
+                    src={element.properties.imageUrl} 
+                    alt={element.properties.altText || "Element"}
+                    fill
+                    className={`${element.properties.preserveAspectRatio !== false ? 'object-contain' : 'object-cover'}`}
+                    style={{ 
+                      borderRadius: (element.properties.borderRadius || 0) * contentScale,
+                      objectPosition: element.properties.cropX !== undefined && element.properties.cropY !== undefined 
+                        ? `${element.properties.cropX}% ${element.properties.cropY}%`
+                        : 'center'
+                    }}
+                  />
+                  
+                  {/* Crop overlay when in crop mode */}
+                  {showCropMode && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50">
+                      <div 
+                        className="absolute border-2 border-white bg-transparent"
+                        style={{
+                          left: `${cropSelection.x}%`,
+                          top: `${cropSelection.y}%`,
+                          width: `${cropSelection.width}%`,
+                          height: `${cropSelection.height}%`,
+                          cursor: 'move'
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          // Implement crop selection dragging
+                        }}
+                      >
+                        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+                          {Array.from({ length: 9 }).map((_, i) => (
+                            <div key={i} className="border border-white border-opacity-30" />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Crop controls */}
+                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-2">
+                        <button
+                          onClick={applyCrop}
+                          className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                        >
+                          Применить
+                        </button>
+                        <button
+                          onClick={resetCrop}
+                          className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+                        >
+                          Сбросить
+                        </button>
+                        <button
+                          onClick={() => setShowCropMode(false)}
+                          className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <ImageIcon className="h-8 w-8 mx-auto mb-2" style={{ transform: `scale(${contentScale})` }} />
+                  <span className="text-sm" style={{ fontSize: `${12 * contentScale}px` }}>Изображение</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Caption */}
+            {element.properties.caption && (
+              <div 
+                className="bg-white bg-opacity-90 text-gray-800 px-2 py-1 text-xs border-t"
+                style={{ fontSize: `${10 * contentScale}px` }}
+              >
+                {element.properties.caption}
               </div>
             )}
           </div>
@@ -695,7 +938,7 @@ export function CanvasElementComponent({
                 autoPlay={element.properties.autoplay || false}
                 muted={element.properties.muted !== false}
                 loop={element.properties.loop || false}
-                className="w-full h-full object-cover"
+                className={`w-full h-full ${element.properties.preserveAspectRatio !== false ? 'object-contain' : 'object-cover'}`}
                 style={{ borderRadius: (element.properties.borderRadius || 0) * contentScale }}
                 preload="metadata"
               />
@@ -746,12 +989,33 @@ export function CanvasElementComponent({
           </div>
         );
       case 'assignment':
+        console.log('Rendering assignment element with bookBaseUrl:', bookBaseUrl);
         return (
           <div style={{ transform: `scale(${contentScale})`, transformOrigin: 'top left' }}>
             <AssignmentElement 
               element={element} 
               isEditing={isEditing}
-              _onUpdate={onUpdate}
+              onUpdate={onUpdate}
+              bookBaseUrl={bookBaseUrl}
+            />
+          </div>
+        );
+      case 'chart':
+        return (
+          <div style={{ 
+            transform: `scale(${contentScale})`, 
+            transformOrigin: 'top left',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <ChartElement 
+              element={element} 
+              _isEditing={isEditing}
+              onUpdate={onUpdate}
             />
           </div>
         );
@@ -774,7 +1038,9 @@ export function CanvasElementComponent({
       default:
         return (
           <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-100 border border-gray-300 rounded" style={borderStyle}>
-            <span className="text-sm capitalize" style={{ fontSize: `${12 * contentScale}px` }}>{element.type}</span>
+            <span className="text-sm capitalize" style={{ fontSize: `${12 * contentScale}px` }}>
+              Неподдерживаемый тип: {element.type}
+            </span>
           </div>
         );
     }
@@ -783,11 +1049,8 @@ export function CanvasElementComponent({
   // Resize handles
   const renderResizeHandles = () => {
     if (!isSelected || isDragging) {
-      console.log('❌ No handles:', { isSelected, isDragging });
       return null;
     }
-
-    console.log('✨ Rendering resize handles for element:', element.id);
 
     const handleStyle = "absolute w-3 h-3 bg-blue-500 border-2 border-white rounded-full z-20 shadow-md hover:bg-blue-600 transition-colors";
     
@@ -850,45 +1113,74 @@ export function CanvasElementComponent({
             {element.type === 'icon' ? 'Квадратная иконка' : 'Сохранение пропорций'}
           </div>
         )}
+        
+        {/* Delete button */}
+        <button
+          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-30"
+          onClick={handleDelete}
+          title="Удалить элемент"
+        >
+          <X className="h-3 w-3" />
+        </button>
       </>
     );
   };
 
   return (
-    <div
-      ref={(node) => {
-        setNodeRef(node);
-        elementRef.current = node;
-      }}
-      {...(isResizing ? {} : listeners)}
-      {...(isResizing ? {} : attributes)}
-      style={style}
-      className={`group ${isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-gray-300'} ${isResizing ? 'cursor-auto' : 'cursor-move'} relative`}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      data-x={isResizing ? currentResize.x : element.x}
-      data-y={isResizing ? currentResize.y : element.y}
-      data-width={isResizing ? currentResize.width : element.width}
-      data-height={isResizing ? currentResize.height : element.height}
-    >
-      {children ? children : renderContent()}
-      {renderResizeHandles()}
-      
-      {/* Delete button */}
-      {isSelected && onDelete && (
-        <button
-          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-20"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
+    <>
+      <div
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        className={`absolute cursor-grab group ${isSelected ? 'ring-2 ring-blue-500 ring-opacity-50' : ''} ${isDragging ? 'z-50' : ''}`}
+        style={style}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
+      >
+        {renderContent()}
+        {children}
+        {renderResizeHandles()}
+        
+        {/* Upload progress indicator for media elements */}
+        {element.properties.isUploading && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
+            <div className="text-white text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2" />
+              <div className="text-sm">{element.properties.uploadProgress || 0}%</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Context Menu for Image Metadata */}
+      {showContextMenu && element.type === 'image' && (
+        <div
+          className="fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-2 z-50"
+          style={{
+            left: contextMenuPosition.x,
+            top: contextMenuPosition.y,
           }}
-          title="Удалить элемент"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6L6 18M6 6l12 12"></path>
-          </svg>
-        </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+            onClick={handleCropStart}
+          >
+            <Crop className="h-4 w-4 mr-2" />
+            Обрезать изображение
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+            onClick={() => {
+              setShowContextMenu(false);
+              onOpenMetadataEditor?.(element);
+            }}
+          >
+            <Edit3 className="h-4 w-4 mr-2" />
+            Редактировать метаданные
+          </button>
+        </div>
       )}
-    </div>
+    </>
   );
 } 

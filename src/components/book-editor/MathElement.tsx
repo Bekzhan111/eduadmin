@@ -83,11 +83,20 @@ export function MathElement({ element, isEditing, onUpdate }: MathElementProps) 
   };
   
   const getFontSize = () => {
+    // Use explicit font size if provided, otherwise use size preset
+    if (element.properties.mathFontSize) {
+      return `${element.properties.mathFontSize}px`;
+    }
+    
     switch (element.properties.mathSize) {
       case 'small': return '0.8em';
       case 'large': return '1.5em';
       default: return '1em';
     }
+  };
+  
+  const getMathColor = () => {
+    return element.properties.mathColor || '#000000';
   };
   
   if (isEditing && isEditingFormula) {
@@ -117,6 +126,7 @@ export function MathElement({ element, isEditing, onUpdate }: MathElementProps) 
       onClick={() => isEditing && setIsEditingFormula(true)}
       style={{
         fontSize: getFontSize(),
+        color: getMathColor(),
         backgroundColor: element.properties.backgroundColor || 'transparent',
         padding: 0, // Remove padding from container
         width: 'auto', // Let the container size match the content

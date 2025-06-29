@@ -1,29 +1,20 @@
 import React from 'react';
 import { Star, Check, X, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { CanvasElement } from './types';
+import { saveAssignmentToDatabase, validateAssignmentData } from '../../utils/assignments';
+import { useRouter } from 'next/navigation';
 
 type AssignmentElementProps = {
-  element: {
-    id: string;
-    type: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    content: string;
-    properties: {
-      assignmentType?: string;
-      assignmentData?: any;
-      backgroundColor?: string;
-      borderColor?: string;
-      borderWidth?: number;
-      borderRadius?: number;
-    };
-  };
+  element: CanvasElement;
   isEditing: boolean;
-  _onUpdate: (updates: any) => void;
+  onUpdate: (updates: Partial<CanvasElement>) => void;
+  bookBaseUrl?: string; // Changed from bookId to bookBaseUrl for saving to database
 };
 
-export function AssignmentElement({ element, isEditing: _isEditing, _onUpdate }: AssignmentElementProps) {
+export function AssignmentElement({ element, isEditing: _isEditing, onUpdate: _onUpdate, bookBaseUrl }: AssignmentElementProps) {
+  // Debug logging for bookBaseUrl
+  console.log('AssignmentElement received bookBaseUrl:', bookBaseUrl);
+  
   // Компонент звездной шкалы для уровня сложности
   const StarRating = ({ 
     rating, 
@@ -78,7 +69,7 @@ export function AssignmentElement({ element, isEditing: _isEditing, _onUpdate }:
 
     return (
       <div className="space-y-2">
-        {assignmentData.options.map((option, index) => (
+        {assignmentData.options.map((option, _index) => (
           <div key={option.id} className="flex items-center space-x-2">
             <input
               type="radio"
@@ -401,6 +392,88 @@ export function AssignmentElement({ element, isEditing: _isEditing, _onUpdate }:
     }
   };
 
+  const handleSave = async () => {
+    console.log('handleSave called with bookBaseUrl:', bookBaseUrl);
+    console.log('Element ID:', element.id);
+    console.log('Assignment type:', assignmentType);
+    console.log('Assignment data:', assignmentData);
+    
+    if (!bookBaseUrl) {
+      console.error('Error: bookBaseUrl is missing');
+      alert('Ошибка: Не удалось определить URL книги. Пожалуйста, попробуйте перезагрузить страницу.');
+      return;
+    }
+    
+    if (!assignmentData) {
+      console.error('Error: assignmentData is missing');
+      alert('Ошибка: Данные задания отсутствуют. Пожалуйста, настройте задание в панели свойств.');
+      return;
+    }
+
+    const isValid = validateAssignmentData(assignmentData);
+    if (!isValid) {
+      console.error('Некорректные данные задания');
+      alert('Ошибка: Некорректные данные задания. Пожалуйста, проверьте настройки задания.');
+      return;
+    }
+
+    try {
+      const response = await saveAssignmentToDatabase(
+        bookBaseUrl, 
+        element.id, 
+        assignmentType || 'multiple-choice', 
+        assignmentData
+      );
+      
+      if (response.success) {
+        console.log('Задание успешно сохранено');
+        alert('Задание успешно сохранено!');
+      } else {
+        console.error('Ошибка при сохранении задания:', response.error);
+        alert(`Ошибка при сохранении: ${response.error}`);
+      }
+    } catch (error) {
+      console.error('Exception during assignment save:', error);
+      alert(`Произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    }
+  };
+
+  // Validate user answers and show results
+  const validateAnswers = () => {
+    let isCorrect = false;
+    let feedback = '';
+
+    switch (assignmentType) {
+      case 'multiple-choice':
+        const selectedOption = assignmentData.options?.find(opt => opt.id === studentAnswers[element.id]);
+        isCorrect = selectedOption?.isCorrect || false;
+        feedback = isCorrect ? 'Правильно!' : 'Неправильно. ';
+        if (!isCorrect && assignmentData.showCorrectAnswer) {
+          const correctOption = assignmentData.options?.find(opt => opt.isCorrect);
+          feedback += `Правильный ответ: ${correctOption?.text}`;
+        }
+        break;
+        
+      case 'true-false':
+        isCorrect = studentAnswers[element.id] === assignmentData.correctAnswer;
+        feedback = isCorrect ? 'Правильно!' : `Неправильно. Правильный ответ: ${assignmentData.correctAnswer ? 'Верно' : 'Неверно'}`;
+        break;
+        
+      case 'open-question':
+        // For open questions, we can't automatically validate, but we can show expected answer
+        feedback = 'Ответ отправлен на проверку.';
+        if (assignmentData.expectedAnswer && assignmentData.showCorrectAnswer) {
+          feedback += ` Ожидаемый ответ: ${assignmentData.expectedAnswer}`;
+        }
+        break;
+        
+      default:
+        feedback = 'Ответ отправлен.';
+    }
+
+    return { isCorrect, feedback };
+  };
+
   return (
     <div 
       className={`border rounded-lg bg-white shadow-sm`}
@@ -472,7 +545,18 @@ export function AssignmentElement({ element, isEditing: _isEditing, _onUpdate }:
           {/* Submit button for student mode */}
           {_isEditing && (
             <div className="mt-4 pt-4 border-t">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" 
+                onClick={() => {
+                  const validation = validateAnswers();
+                  alert(validation.feedback);
+                  
+                  // If this is for saving to database (when bookBaseUrl is available), also save
+                  if (bookBaseUrl) {
+                    handleSave();
+                  }
+                }}
+              >
                 Отправить ответ
               </button>
             </div>

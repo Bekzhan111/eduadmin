@@ -7,7 +7,10 @@ export type UploadResult = {
   error?: string;
   fileName?: string;
   fileSize?: number;
+  progress?: number;
 };
+
+export type UploadProgressCallback = (progress: number) => void;
 
 // Supported file types
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -116,7 +119,12 @@ export const validateFile = (file: File, type: MediaType): { valid: boolean; err
   return { valid: true };
 };
 
-export const uploadMedia = async (file: File, type: MediaType): Promise<UploadResult> => {
+// Enhanced upload function with progress tracking
+export const uploadMedia = async (
+  file: File, 
+  type: MediaType, 
+  onProgress?: UploadProgressCallback
+): Promise<UploadResult> => {
   console.log(`Starting ${type} upload:`, {
     fileName: file.name,
     fileSize: file.size,
@@ -124,16 +132,23 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
   });
 
   try {
+    // Initialize progress
+    onProgress?.(0);
+
     // Сжимаем изображение если оно слишком большое
     let processedFile = file;
     if (type === 'image' && file.size > MAX_IMAGE_SIZE && file.type !== 'image/svg+xml') {
       console.log('Compressing image...');
+      onProgress?.(10);
       processedFile = await compressImage(file);
       console.log('Image compressed:', {
         originalSize: file.size,
         compressedSize: processedFile.size,
         reduction: ((file.size - processedFile.size) / file.size * 100).toFixed(1) + '%'
       });
+      onProgress?.(25);
+    } else {
+      onProgress?.(25);
     }
 
     // Validate processed file
@@ -146,6 +161,8 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
       };
     }
 
+    onProgress?.(30);
+
     const supabase = createClient();
     
     // Generate unique filename
@@ -154,6 +171,8 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
     const filePath = `${type}s/${fileName}`;
 
     console.log('Uploading to path:', filePath);
+
+    onProgress?.(40);
 
     // Upload file to Supabase storage (bucket должен уже существовать)
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -175,6 +194,8 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
         const retryFileName = `retry-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const retryFilePath = `${type}s/${retryFileName}`;
         
+        onProgress?.(50);
+        
         const { data: _retryData, error: retryError } = await supabase.storage
           .from('media')
           .upload(retryFilePath, processedFile, {
@@ -190,59 +211,51 @@ export const uploadMedia = async (file: File, type: MediaType): Promise<UploadRe
           };
         }
 
+        onProgress?.(80);
+
         // Get public URL for retry
         const { data: urlData } = supabase.storage
           .from('media')
           .getPublicUrl(retryFilePath);
 
+        onProgress?.(100);
+
         return {
           success: true,
           url: urlData.publicUrl,
           fileName: retryFileName,
-          fileSize: processedFile.size
+          fileSize: processedFile.size,
+          progress: 100
         };
       }
-      
-      // Handle RLS policy errors
-      if (uploadError.message.includes('row-level security policy') || 
-          uploadError.message.includes('policy')) {
-        return {
-          success: false,
-          error: 'Недостаточно прав для загрузки файлов. Обратитесь к администратору.'
-        };
-      }
-      
+
       return {
         success: false,
         error: `Ошибка загрузки: ${uploadError.message}`
       };
     }
 
+    onProgress?.(80);
+
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('media')
       .getPublicUrl(filePath);
 
-    console.log('Public URL data:', urlData);
-
-    if (!urlData?.publicUrl) {
-      return {
-        success: false,
-        error: 'Не удалось получить ссылку на загруженный файл'
-      };
-    }
+    onProgress?.(100);
 
     console.log('Upload successful:', urlData.publicUrl);
 
     return {
       success: true,
       url: urlData.publicUrl,
-      fileName: fileName,
-      fileSize: processedFile.size
+      fileName,
+      fileSize: processedFile.size,
+      progress: 100
     };
 
   } catch (error) {
-    console.error('Media upload error (catch):', error);
+    console.error('Upload error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Неизвестная ошибка загрузки'

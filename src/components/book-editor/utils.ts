@@ -707,6 +707,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
         borderRadius: 0,
         borderColor: 'transparent',
         borderWidth: 0,
+        preserveAspectRatio: true,
         defaultWidth: 200,
         defaultHeight: 150,
       };
@@ -717,6 +718,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
         muted: true,
         controls: true,
         loop: false,
+        preserveAspectRatio: true,
         defaultWidth: 300,
         defaultHeight: 200,
       };
@@ -780,10 +782,10 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           datasets: [
             {
               label: 'Данные 1',
-              data: [12, 19, 3, 5, 2, 3],
+              data: [15, 20, 10, 18, 12, 16],
               backgroundColor: 'rgba(54, 162, 235, 0.8)',
               borderColor: 'rgba(54, 162, 235, 1)',
-              borderWidth: 1,
+              borderWidth: 2,
             },
           ],
         },
@@ -808,12 +810,16 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           datasets: [
             {
               label: 'Данные 1',
-              data: [12, 19, 3, 5, 2, 3],
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              data: [15, 20, 10, 18, 12, 16],
+              backgroundColor: 'rgba(75, 192, 192, 0.4)',
               borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 2,
+              borderWidth: 3,
               tension: 0.4,
               fill: true,
+              pointRadius: 5,
+              pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
             },
           ],
         },
@@ -838,13 +844,13 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           datasets: [
             {
               label: 'Данные',
-              data: [12, 19, 3, 5, 2],
+              data: [15, 20, 10, 18, 12],
               backgroundColor: [
-                'rgba(255, 99, 132, 0.8)',
-                'rgba(54, 162, 235, 0.8)',
-                'rgba(255, 206, 86, 0.8)',
-                'rgba(75, 192, 192, 0.8)',
-                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 99, 132, 0.9)',
+                'rgba(54, 162, 235, 0.9)',
+                'rgba(255, 206, 86, 0.9)',
+                'rgba(75, 192, 192, 0.9)',
+                'rgba(153, 102, 255, 0.9)',
               ],
               borderColor: [
                 'rgba(255, 99, 132, 1)',
@@ -853,7 +859,8 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
                 'rgba(75, 192, 192, 1)',
                 'rgba(153, 102, 255, 1)',
               ],
-              borderWidth: 1,
+              borderWidth: 2,
+              hoverOffset: 15,
             },
           ],
         },

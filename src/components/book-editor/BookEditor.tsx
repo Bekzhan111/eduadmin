@@ -18,7 +18,6 @@ import {
   Menu, PanelLeftClose, PanelLeftOpen, Plus, Trash2, Undo2, Redo2,
   ZoomIn, ZoomOut, Grid3X3, SkipForward, SkipBack,
   Triangle, Star, Heart, Video,
-  FileText,
   Volume2,
   ArrowRight,
   ChevronDown,
@@ -54,13 +53,17 @@ import { MathElement } from './MathElement';
 import { TableElement } from './TableElement';
 import { AssignmentElement } from './AssignmentElement';
 import { renderIcon } from './IconRenderer';
+import { MediaUploadProgress } from './MediaUploadProgress';
+import { MediaMetadataEditor } from './MediaMetadataEditor';
 
 // Enhanced tool definitions with more elements and categories
 const TOOLS = [
   // Content tools
   { id: 'text', name: 'Текст', label: 'Текст', icon: Type, category: 'content', needsFileUpload: false, hotkey: 'T' },
   { id: 'paragraph', name: 'Абзац', label: 'Абзац', icon: AlignLeft, category: 'content', needsFileUpload: false, hotkey: 'P' },
-  { id: 'math', name: 'Формула', label: 'Формула', icon: Sigma, category: 'content', needsFileUpload: false, hotkey: 'M' },
+  
+  // Math tools
+  { id: 'math', name: 'Формула', label: 'Формула', icon: Sigma, category: 'math', needsFileUpload: false, hotkey: 'M' },
   
   // Media tools
   { id: 'image', name: 'Изображение', label: 'Изображение', icon: ImageIcon, category: 'media', needsFileUpload: true, accepts: 'image/*', hotkey: 'I' },
@@ -146,6 +149,7 @@ const TOOLS = [
 
 const TOOL_CATEGORIES = [
   { id: 'content', label: 'Текст', icon: Type },
+  { id: 'math', label: 'Формула', icon: Sigma },
   { id: 'shapes', label: 'Фигуры', icon: Square },
   { id: 'media', label: 'Медиа', icon: ImageIcon },
   { id: 'drawing', label: 'Рисование', icon: Minus },
@@ -159,6 +163,9 @@ export function BookEditor() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { userProfile: _userProfile } = useAuth();
+  
+  // Get the book base URL from params
+  const bookBaseUrl = params?.base_url as string;
   
   // State
   const [book, setBook] = useState<Book | null>(null);
@@ -180,6 +187,92 @@ export function BookEditor() {
     details: string;
     user: string;
   }>>([]);
+  
+  // Media upload state
+  const [uploadProgress, setUploadProgress] = useState({
+    isVisible: false,
+    progress: 0,
+    fileName: '',
+    error: ''
+  });
+
+  // Media metadata editor state
+  const [metadataEditor, setMetadataEditor] = useState({
+    isOpen: false,
+    element: null as CanvasElementType | null
+  });
+
+  // Media upload handlers
+  const handleUploadStart = useCallback(() => {
+    setUploadProgress(prev => ({
+      ...prev,
+      isVisible: true,
+      progress: 0,
+      error: ''
+    }));
+  }, []);
+
+  const handleUploadProgress = useCallback((progress: number, fileName: string) => {
+    setUploadProgress(prev => ({
+      ...prev,
+      progress,
+      fileName
+    }));
+  }, []);
+
+  const handleUploadError = useCallback((error: string) => {
+    setUploadProgress(prev => ({
+      ...prev,
+      error
+    }));
+  }, []);
+
+  const handleUploadComplete = useCallback(() => {
+    // Keep the progress visible for a moment to show completion
+    setTimeout(() => {
+      setUploadProgress(prev => ({
+        ...prev,
+        isVisible: false
+      }));
+    }, 2000);
+  }, []);
+
+  const handleUploadDismiss = useCallback(() => {
+    setUploadProgress(prev => ({
+      ...prev,
+      isVisible: false,
+      error: ''
+    }));
+  }, []);
+
+  // Metadata editor handlers
+  const handleOpenMetadataEditor = useCallback((element: CanvasElementType) => {
+    if (element.type === 'image') {
+      setMetadataEditor({
+        isOpen: true,
+        element
+      });
+    }
+  }, []);
+
+  const handleCloseMetadataEditor = useCallback(() => {
+    setMetadataEditor({
+      isOpen: false,
+      element: null
+    });
+  }, []);
+
+  const handleUpdateElementMetadata = useCallback((updates: Partial<CanvasElementType>) => {
+    if (!metadataEditor.element) return;
+    
+    setElements(prev => 
+      prev.map(el => 
+        el.id === metadataEditor.element!.id 
+          ? { ...el, ...updates }
+          : el
+      )
+    );
+  }, [metadataEditor.element]);
   
   // Table Dialog State
   const [showTableDialog, setShowTableDialog] = useState(false);
@@ -505,6 +598,10 @@ export function BookEditor() {
       
       // Determine the correct element type based on tool category
       const getElementType = (toolId: string): CanvasElementType['type'] => {
+        // Media tools - use their exact IDs as types
+        if (['image', 'video', 'audio'].includes(toolId)) {
+          return toolId as CanvasElementType['type'];
+        }
         // Check if it's a shape tool
         if (['rectangle', 'circle', 'triangle', 'star', 'heart'].includes(toolId)) {
           return 'shape';
@@ -562,7 +659,7 @@ export function BookEditor() {
       // Create the new element
       const newElement: CanvasElementType = {
         id: generateId(),
-        type: getElementType(toolId),
+        type: elementType,
         x,
         y,
         width,
@@ -760,7 +857,8 @@ export function BookEditor() {
     setElements(prev => {
       const newElements = prev.map(el => {
         if (el.id === elementId) {
-          return { ...el, ...updates };
+          const updatedElement = { ...el, ...updates };
+          return updatedElement;
         }
         return el;
       });
@@ -1372,7 +1470,7 @@ export function BookEditor() {
     if (!showZoomPresets) return;
     
     const handleClickOutside = (event: MouseEvent) => {
-      if (zoomDropdownRef.current && !zoomDropdownRef.current.contains(event.target as Node)) {
+      if (zoomDropdownRef.current && event.target && !zoomDropdownRef.current.contains(event.target as Node)) {
         setShowZoomPresets(false);
       }
     };
@@ -1386,172 +1484,7 @@ export function BookEditor() {
     setZoom(100);
   }, [setZoom]);
 
-  // Render content based on element type
-  const renderCanvasElement = useCallback((element: CanvasElementType) => {
-    switch (element.type) {
-      case 'text':
-      case 'paragraph':
-        return (
-          <div
-            style={{
-              fontSize: element.properties.fontSize || 16,
-              fontFamily: element.properties.fontFamily || 'Arial',
-              fontWeight: element.properties.fontWeight || 'normal',
-              fontStyle: element.properties.fontStyle || 'normal',
-              textDecoration: element.properties.textDecoration || 'none',
-              color: element.properties.color || '#000000',
-              backgroundColor: element.properties.backgroundColor || 'transparent',
-              textAlign: element.properties.textAlign || (element.type === 'text' ? 'center' : 'left'),
-              padding: element.type === 'paragraph' ? '8px' : '0',
-              width: '100%',
-              height: '100%',
-              overflow: 'hidden',
-              whiteSpace: element.type === 'text' ? 'nowrap' : 'pre-wrap',
-              display: 'flex',
-              alignItems: element.properties.verticalAlign === 'middle' ? 'center' : (element.properties.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start'),
-              justifyContent: element.properties.textAlign === 'center' ? 'center' : (element.properties.textAlign === 'right' ? 'flex-end' : 'flex-start'),
-            }}
-          >
-            {element.content}
-          </div>
-        );
-      case 'shape':
-        const shapeType = element.properties.shapeType || 'rectangle';
-        return (
-          <div
-            style={{
-              backgroundColor: element.properties.backgroundColor || '#e0e0e0',
-              borderRadius: shapeType === 'circle' ? '50%' : (element.properties.borderRadius || 0),
-              width: '100%',
-              height: '100%',
-              border: element.properties.borderWidth ? `${element.properties.borderWidth}px solid ${element.properties.borderColor || '#000000'}` : 'none',
-            }}
-          />
-        );
-      case 'image':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              backgroundImage: element.properties.imageUrl ? `url(${element.properties.imageUrl})` : 'none',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              border: element.properties.borderWidth ? `${element.properties.borderWidth}px solid ${element.properties.borderColor || '#000000'}` : 'none',
-              borderRadius: element.properties.borderRadius || 0,
-            }}
-          />
-        );
-      case 'line':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: '100%',
-                height: element.properties.lineThickness || 2,
-                backgroundColor: element.properties.color || '#000000',
-              }}
-            />
-          </div>
-        );
-      case 'arrow':
-        // Simple arrow representation
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
-            <div
-              style={{
-                width: '100%',
-                height: element.properties.lineThickness || 2,
-                backgroundColor: element.properties.color || '#000000',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                right: 0,
-                width: 0,
-                height: 0,
-                borderTop: `${(element.properties.lineThickness || 2) * 2}px solid transparent`,
-                borderBottom: `${(element.properties.lineThickness || 2) * 2}px solid transparent`,
-                borderLeft: `${(element.properties.lineThickness || 2) * 3}px solid ${element.properties.color || '#000000'}`,
-              }}
-            />
-          </div>
-        );
-      case 'table':
-        return (
-          <TableElement
-            element={element}
-            isEditing={editingElementId === element.id}
-            onUpdate={(updates) => updateElement(element.id, updates)}
-          />
-        );
-      case 'math':
-        return (
-          <MathElement
-            element={element}
-            isEditing={editingElementId === element.id}
-            onUpdate={(updates) => updateElement(element.id, updates)}
-          />
-        );
-      case 'chart':
-        return (
-          <ChartElement
-            element={element}
-            isEditing={editingElementId === element.id}
-            onUpdate={(updates) => updateElement(element.id, updates)}
-          />
-        );
-      case 'assignment':
-        return (
-          <AssignmentElement
-            element={element}
-            _onUpdate={(updates: Partial<CanvasElementType>) => updateElement(element.id, updates)}
-            isEditing={editingElementId === element.id}
-          />
-        );
-      case 'icon':
-        return (
-          <div 
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: element.properties.backgroundColor || 'transparent',
-              borderRadius: element.properties.borderRadius || 0,
-              border: element.properties.borderWidth ? `${element.properties.borderWidth}px solid ${element.properties.borderColor || 'transparent'}` : 'none',
-            }}
-          >
-            {element.properties.iconType && renderIcon(element.properties.iconType, {
-              size: Math.min(element.width, element.height) * 0.7,
-              color: element.properties.color || '#000000',
-            })}
-          </div>
-        );
-      default:
-        return <div>Неподдерживаемый тип элемента</div>;
-    }
-  }, [editingElementId, updateElement]);
+
 
   // If loading, show skeleton
   if (isLoading) {
@@ -1814,6 +1747,10 @@ export function BookEditor() {
                         // Handle media upload callback
                         console.log('Media uploaded:', url, type);
                       }}
+                      onUploadProgress={handleUploadProgress}
+                      onUploadError={handleUploadError}
+                      onUploadStart={handleUploadStart}
+                      onUploadComplete={handleUploadComplete}
                     />
                   ))}
                 </div>
@@ -1894,9 +1831,9 @@ export function BookEditor() {
                     }}
                       canvasSettings={canvasSettings}
                       onDelete={() => deleteElement(element.id)}
-                    >
-                      {renderCanvasElement(element)}
-                    </CanvasElementComponent>
+                      onOpenMetadataEditor={handleOpenMetadataEditor}
+                      bookBaseUrl={bookBaseUrl} // Pass the book's base_url to CanvasElementComponent
+                  />
                   ))}
                 </div>
               </CanvasDropZone>
@@ -2010,6 +1947,24 @@ export function BookEditor() {
           onCreateTable={handleCreateTable}
         />
       )}
+
+      {/* Media Upload Progress */}
+      <MediaUploadProgress
+        isVisible={uploadProgress.isVisible}
+        progress={uploadProgress.progress}
+        fileName={uploadProgress.fileName}
+        error={uploadProgress.error}
+        onDismiss={handleUploadDismiss}
+        onCancel={handleUploadDismiss}
+      />
+
+      {/* Media Metadata Editor */}
+      <MediaMetadataEditor
+        isOpen={metadataEditor.isOpen}
+        onClose={handleCloseMetadataEditor}
+        element={metadataEditor.element}
+        onUpdate={handleUpdateElementMetadata}
+      />
     </div>
   );
 } 

@@ -33,7 +33,9 @@ const TOOLS: Tool[] = [
   // Content tools
   { id: 'text', name: 'Текст', label: 'Текст', icon: Type, category: 'content', needsFileUpload: false, hotkey: 'T' },
   { id: 'paragraph', name: 'Абзац', label: 'Абзац', icon: AlignLeft, category: 'content', needsFileUpload: false, hotkey: 'P' },
-  { id: 'math', name: 'Формула', label: 'Формула', icon: Sigma, category: 'content', needsFileUpload: false, hotkey: 'M' },
+  
+  // Math tools
+  { id: 'math', name: 'Формула', label: 'Формула', icon: Sigma, category: 'math', needsFileUpload: false, hotkey: 'M' },
   
   // Media tools
   { id: 'image', name: 'Изображение', label: 'Изображение', icon: ImageIcon, category: 'media', needsFileUpload: true, accepts: 'image/*', hotkey: 'I' },
@@ -125,6 +127,7 @@ const TOOLS: Tool[] = [
 
 const TOOL_CATEGORIES: Category[] = [
   { id: 'content', label: 'Текст', icon: Type },
+  { id: 'math', label: 'Формула', icon: Sigma },
   { id: 'shapes', label: 'Фигуры', icon: Square },
   { id: 'media', label: 'Медиа', icon: ImageIcon },
   { id: 'drawing', label: 'Рисование', icon: Minus },
@@ -143,6 +146,10 @@ interface ToolPanelProps {
   onDragOver: (event: DragOverEvent) => void;
   activeElement: CanvasElement | null;
   onMediaUploaded?: (url: string, type: string) => void;
+  onUploadProgress?: (progress: number, fileName: string) => void;
+  onUploadError?: (error: string) => void;
+  onUploadStart?: () => void;
+  onUploadComplete?: () => void;
 }
 
 export function ToolPanel({
@@ -154,6 +161,10 @@ export function ToolPanel({
   onDragOver,
   activeElement,
   onMediaUploaded,
+  onUploadProgress,
+  onUploadError,
+  onUploadStart,
+  onUploadComplete,
 }: ToolPanelProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -203,6 +214,10 @@ export function ToolPanel({
                   tool={tool} 
                   canvasSettings={canvasSettings}
                   onMediaUploaded={onMediaUploaded}
+                  onUploadProgress={onUploadProgress}
+                  onUploadError={onUploadError}
+                  onUploadStart={onUploadStart}
+                  onUploadComplete={onUploadComplete}
                 />
               ))}
             </div>
