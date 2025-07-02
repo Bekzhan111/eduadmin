@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Shield,
   X,
-  Star
+  Star,
+  Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton';
@@ -46,6 +47,9 @@ const navigationItems: NavItem[] = [
   
   // My Books for students and teachers
   { name: 'Мои Книги', path: '/dashboard/my-books', icon: Star, roles: ['teacher', 'student'] },
+  
+  // Invitations for authors and editors
+  { name: 'Приглашения', path: '/dashboard/invitations', icon: Mail, roles: ['author', 'editor', 'reviewer'] },
   
   // Key Management - specific roles only
   { name: 'Управление ключами', path: '/dashboard/keys', icon: Key, roles: ['super_admin', 'school', 'teacher'] },

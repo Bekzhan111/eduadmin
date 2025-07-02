@@ -2,7 +2,17 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase';
+import { fetchBooksWithCorrectClient } from '@/utils/supabase-admin';
 import { Button } from '@/components/ui/button';
+import { BookExportImport } from './BookExportImport';
+import { CollaborationPanel } from '@/components/collaboration/CollaborationPanel';
+import { CollaborationErrorBoundary } from '@/components/collaboration/CollaborationErrorBoundary';
+import { PresenceIndicator } from '@/components/collaboration/PresenceIndicator';
+import { EditingLockIndicator } from '@/components/collaboration/EditingLockIndicator';
+import { usePresence } from '@/hooks/usePresence';
+import { useEditingSessions } from '@/hooks/useEditingSessions';
+import { useCollaboration } from '@/hooks/useCollaboration';
+import { formatUserName } from '@/utils/collaboration';
 import { 
   DndContext,
   DragOverlay,
@@ -33,6 +43,8 @@ import {
   Target,
   Table,
   X,
+  History,
+  Users,
   // Icon imports
   Home, User, Settings, Search, Mail, Phone, Calendar, Clock, Map, Camera, Music,
   File, Folder, Download, Upload, Copy, Check, Bell, AlertCircle, Info,
@@ -45,7 +57,7 @@ import { DraggableTool } from './DraggableTool';
 import { CanvasElementComponent } from './CanvasElement';
 import { CanvasDropZone } from './CanvasDropZone';
 import { PropertiesPanel } from './PropertiesPanel';
-import { Book, CanvasElement as CanvasElementType, CanvasSettings } from './types';
+import { Book, CanvasElement as CanvasElementType, CanvasSettings, BookVersion } from './types';
 import { getDefaultWidth, getDefaultHeight, getDefaultContent, getEnhancedPropertiesForTool, createDefaultTableCells } from './utils';
 import { TableDialog } from './TableDialog';
 import { ChartElement } from './ChartElement';
@@ -55,6 +67,8 @@ import { AssignmentElement } from './AssignmentElement';
 import { renderIcon } from './IconRenderer';
 import { MediaUploadProgress } from './MediaUploadProgress';
 import { MediaMetadataEditor } from './MediaMetadataEditor';
+import { VersionHistoryPanel } from './VersionHistoryPanel';
+import { Input } from '@/components/ui/input';
 
 // Enhanced tool definitions with more elements and categories
 const TOOLS = [
@@ -162,7 +176,7 @@ const TOOL_CATEGORIES = [
 export function BookEditor() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const { userProfile: _userProfile } = useAuth();
+  const { userProfile } = useAuth();
   
   // Get the book base URL from params
   const bookBaseUrl = params?.base_url as string;
@@ -179,6 +193,8 @@ export function BookEditor() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [history, setHistory] = useState<CanvasElementType[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [bookVersions, setBookVersions] = useState<BookVersion[]>([]);
+  const [isVersionHistoryPanelOpen, setIsVersionHistoryPanelOpen] = useState(false);
   const [_uploadedMediaUrls, _setUploadedMediaUrls] = useState<Record<string, string>>({});
   const [_changeLog, _setChangeLog] = useState<Array<{
     id: string;
@@ -282,8 +298,37 @@ export function BookEditor() {
   const [mainSidebarHidden, setMainSidebarHidden] = useState(searchParams?.get('hideSidebar') === 'true');
   const [toolsPanelOpen, setToolsPanelOpen] = useState(true);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true);
+  const [collaborationPanelOpen, setCollaborationPanelOpen] = useState(false);
   const [_pagesPanelOpen, _setPagesPanelOpen] = useState(true);
   const [activeCategory, setActiveCategory] = useState('content');
+
+  // Collaboration hooks
+  const {
+    currentUserRole,
+    currentUserPermissions
+  } = useCollaboration({
+    bookId: book?.id || '',
+    autoLoad: !!book?.id
+  });
+
+  const { 
+    presence, 
+    updatePresence 
+  } = usePresence({ 
+    bookId: book?.id || '', 
+    enabled: !!book?.id 
+  });
+
+  const {
+    editingSessions,
+    isSessionLocked,
+    startEditingSession,
+    endEditingSession,
+    updateSessionActivity
+  } = useEditingSessions({
+    bookId: book?.id || '',
+    enabled: !!book?.id
+  });
 
   // Canvas settings
   const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>({
@@ -436,7 +481,7 @@ export function BookEditor() {
   const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
   const selectedElement = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
 
-  // Load book data - removed addToHistory dependency to avoid re-renders
+  // Load book data - modified to also load edit history
   useEffect(() => {
     const loadBook = async () => {
       if (!params?.base_url) return;
@@ -444,13 +489,38 @@ export function BookEditor() {
       try {
         setIsLoading(true);
         const supabase = createClient();
-        const { data: bookData, error } = await supabase
-          .from('books')
-          .select('*')
-          .eq('base_url', params.base_url)
-          .single();
         
-        if (error) throw error;
+        // Check if the base_url looks like a UUID (book ID) or an actual base_url
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.base_url);
+        
+        let bookData = null;
+        
+        if (isUUID) {
+          // For UUID (book ID), use fetchBooksWithCorrectClient to handle collaborative access
+          const { data: booksData, error } = await fetchBooksWithCorrectClient(
+            userProfile?.role,
+            userProfile?.id,
+            supabase
+          );
+          
+          if (error) throw error;
+          
+          // Find the specific book by ID
+          bookData = booksData?.find(book => book.id === params.base_url);
+          if (!bookData) {
+            throw new Error('Book not found or you do not have access to this book');
+          }
+        } else {
+          // For base_url, use direct query (original behavior)
+          const { data, error } = await supabase
+            .from('books')
+            .select('*')
+            .eq('base_url', params.base_url)
+            .single();
+          
+          if (error) throw error;
+          bookData = data;
+        }
         
         setBook(bookData);
         
@@ -489,14 +559,60 @@ export function BookEditor() {
             console.error('Error parsing canvas settings:', e);
           }
         }
+
+        // Load versions from localStorage
+        try {
+          const storedVersions = localStorage.getItem(`book-versions-${bookData.id}`);
+          if (storedVersions) {
+            const parsedVersions = JSON.parse(storedVersions);
+            setBookVersions(Array.isArray(parsedVersions) ? parsedVersions : []);
+          } else {
+            setBookVersions([]);
+          }
+        } catch (e) {
+          console.error('Error loading versions from localStorage:', e);
+          setBookVersions([]);
+        }
         
         setIsInitialized(true);
       } catch (error) {
-        console.error('Error loading book:', error);
+        console.error('Error loading book:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          details: error,
+          bookUrl: params?.base_url,
+          errorType: typeof error,
+          errorKeys: error && typeof error === 'object' ? Object.keys(error) : 'No keys'
+        });
         // Initialize empty state on error
         setElements([]);
         setHistory([[]]);
         setHistoryIndex(0);
+        
+        // Try to load versions from localStorage if we have a book ID from the URL
+        if (params?.base_url) {
+          try {
+            const client = createClient();
+            const { data } = await client
+              .from('books')
+              .select('id')
+              .eq('base_url', params.base_url)
+              .single();
+              
+            if (data?.id) {
+              const storedVersions = localStorage.getItem(`book-versions-${data.id}`);
+              if (storedVersions) {
+                const parsedVersions = JSON.parse(storedVersions);
+                setBookVersions(Array.isArray(parsedVersions) ? parsedVersions : []);
+                return;
+              }
+            }
+          } catch (e) {
+            console.error('Error getting book ID for versions:', e);
+          }
+        }
+        
+        // Default to empty versions if we couldn't load from localStorage
+        setBookVersions([]);
         setIsInitialized(true);
       } finally {
         setIsLoading(false);
@@ -545,7 +661,7 @@ export function BookEditor() {
         }
       }, 3000);
     } catch (error) {
-      console.error('Error saving book title:', error);
+      console.error('Error saving book title:', error instanceof Error ? error.message : error);
       
       // Show error notification
       const notification = document.createElement('div');
@@ -713,7 +829,7 @@ export function BookEditor() {
     };
   }, [elements, canvasSettings, generateId, isInitialized]);
 
-  // Save functionality
+  // Save functionality - modified to handle edit history
   const handleSave = useCallback(async () => {
     if (!book) return;
     
@@ -725,16 +841,20 @@ export function BookEditor() {
       loadingNotification.textContent = 'Сохранение...';
       document.body.appendChild(loadingNotification);
 
+      // Basic update data
+      const updateData = {
+        canvas_elements: JSON.stringify(elements),
+        canvas_settings: JSON.stringify(canvasSettings),
+        updated_at: new Date().toISOString(),
+        // Set Draft status if undefined
+        ...(book.status === undefined && { status: 'Draft' })
+      };
+
+      // First save the book without requesting edit_history to avoid any potential issues
       const supabase = createClient();
-      const { error } = await supabase
+      const { error: saveError } = await supabase
         .from('books')
-        .update({
-          canvas_elements: JSON.stringify(elements),
-          canvas_settings: JSON.stringify(canvasSettings),
-          updated_at: new Date().toISOString(),
-          // Устанавливаем статус 'Draft' если он не определен
-          ...(book.status === undefined && { status: 'Draft' })
-        })
+        .update(updateData)
         .eq('id', book.id);
       
       // Remove loading notification
@@ -743,7 +863,23 @@ export function BookEditor() {
         document.body.removeChild(existingLoading);
       }
       
-      if (error) throw error;
+      if (saveError) throw saveError;
+      
+      // Get updated edit history in a separate request to avoid transaction issues
+      try {
+        const { data: historyData, error: historyError } = await supabase
+          .from('books')
+          .select('edit_history')
+          .eq('id', book.id)
+          .single();
+        
+        if (!historyError && historyData && historyData.edit_history) {
+          setEditHistory(historyData.edit_history);
+        }
+      } catch (historyError) {
+        // Log but don't throw - this is non-critical
+        console.warn('Error fetching edit history:', historyError);
+      }
       
       // Show success notification
       const notification = document.createElement('div');
@@ -756,12 +892,12 @@ export function BookEditor() {
         document.body.removeChild(notification);
       }, 3000);
     } catch (error) {
-      console.error('Error saving book:', error);
+      console.error('Error saving book:', error instanceof Error ? error.message : error);
       
       // Show error notification
       const notification = document.createElement('div');
       notification.className = 'fixed top-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50';
-      notification.textContent = 'Ошибка при сохранении книги';
+      notification.textContent = `Ошибка при сохранении книги: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`;
       document.body.appendChild(notification);
       
       // Hide notification after 3 seconds
@@ -1210,7 +1346,13 @@ export function BookEditor() {
       ...prev,
       currentPage: pageNumber,
     }));
-  }, [isInitialized]);
+    
+    // Update presence to show current page
+    updatePresence(`page-${pageNumber}`, { 
+      pageNumber,
+      action: 'viewing'
+    });
+  }, [isInitialized, updatePresence]);
 
   // Handle zoom
   const setZoom = useCallback((newZoom: number) => {
@@ -1395,7 +1537,7 @@ export function BookEditor() {
         return result.url;
       }
     } catch (error) {
-      console.error('Error uploading media:', error);
+      console.error('Error uploading media:', error instanceof Error ? error.message : error);
     }
     
     return null;
@@ -1484,7 +1626,197 @@ export function BookEditor() {
     setZoom(100);
   }, [setZoom]);
 
+  // Handle loading a previous version
+  const handleLoadVersion = useCallback((versionElements: CanvasElementType[]) => {
+    // Ensure elements are properly typed
+    const typedElements = Array.isArray(versionElements) 
+      ? versionElements as CanvasElementType[]
+      : [];
+    
+    setElements(typedElements);
+    addToHistory(typedElements);
+    
+    // Save the book with the restored elements
+    if (book?.id) {
+      const saveRestoredVersion = async () => {
+        try {
+          const client = createClient();
+          const { error } = await client
+            .from('books')
+            .update({ 
+              canvas_elements: JSON.stringify(typedElements),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', book.id);
+            
+          if (error) {
+            console.error('Error saving restored version:', error instanceof Error ? error.message : error);
+          }
+        } catch (e) {
+          console.error('Exception saving restored version:', e);
+        }
+      };
+      
+      saveRestoredVersion();
+    }
+  }, [addToHistory, book]);
 
+  // Handle saving a version
+  const handleSaveVersion = useCallback(async (name: string, description: string) => {
+    if (!book || !userProfile) {
+      console.error('Cannot save version: book or user profile is null');
+      return false;
+    }
+    
+    try {
+      // Generate a unique ID for the version
+      const versionId = crypto.randomUUID();
+      
+      // Create the new version object
+      const newVersion: BookVersion = {
+        id: versionId,
+        name,
+        description: description || undefined,
+        timestamp: new Date().toISOString(),
+        elements: [...elements], // Make a copy of the current elements
+        userName: userProfile.display_name || 'Unknown User',
+        userId: userProfile.id
+      };
+      
+      // Add the new version to the versions array
+      const updatedVersions = [newVersion, ...bookVersions];
+      setBookVersions(updatedVersions);
+      
+      // Store versions in localStorage
+      if (book.id) {
+        localStorage.setItem(`book-versions-${book.id}`, JSON.stringify(updatedVersions));
+      }
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Версия успешно сохранена';
+      document.body.appendChild(notification);
+      
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 3000);
+      
+      return true;
+    } catch (error) {
+      // Log the error
+      console.error('Error saving version:', error instanceof Error ? error.message : error);
+      
+      // Get a meaningful error message
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : (error && typeof error === 'object' && 'message' in error 
+            ? String(error.message) 
+            : 'Неизвестная ошибка');
+      
+      // Show error notification
+      const errorNotification = document.createElement('div');
+      errorNotification.className = 'fixed top-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50';
+      errorNotification.textContent = `Ошибка сохранения версии: ${errorMessage}`;
+      document.body.appendChild(errorNotification);
+      
+      // Hide notification after 5 seconds
+      setTimeout(() => {
+        document.body.removeChild(errorNotification);
+      }, 5000);
+      
+      return false;
+    }
+  }, [book, elements, userProfile, bookVersions]);
+
+  // Toggle version history panel
+  const toggleVersionHistoryPanel = useCallback(() => {
+    setIsVersionHistoryPanelOpen(prev => !prev);
+  }, []);
+  
+  // Handle importing a book from JSON
+  const handleImportBook = useCallback(async (importData: BookExportData) => {
+    if (!book) return;
+    
+    try {
+      // Set the imported elements
+      setElements(importData.elements);
+      addToHistory(importData.elements);
+      
+      // Set the imported settings
+      setCanvasSettings(prev => ({
+        ...prev,
+        canvasWidth: importData.settings.canvasWidth,
+        canvasHeight: importData.settings.canvasHeight,
+        totalPages: importData.settings.totalPages,
+        backgroundColor: importData.settings.backgroundColor,
+        gridSize: importData.settings.gridSize || prev.gridSize,
+        showGrid: importData.settings.showGrid !== undefined ? importData.settings.showGrid : prev.showGrid,
+      }));
+      
+      // Save the changes to the database
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('books')
+        .update({
+          canvas_elements: JSON.stringify(importData.elements),
+          canvas_settings: JSON.stringify({
+            ...canvasSettings,
+            canvasWidth: importData.settings.canvasWidth,
+            canvasHeight: importData.settings.canvasHeight,
+            totalPages: importData.settings.totalPages,
+            backgroundColor: importData.settings.backgroundColor,
+            gridSize: importData.settings.gridSize || canvasSettings.gridSize,
+            showGrid: importData.settings.showGrid !== undefined ? importData.settings.showGrid : canvasSettings.showGrid,
+          }),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', book.id);
+        
+      if (error) {
+        console.error('Error saving imported book:', error instanceof Error ? error.message : error);
+        
+        // Show error notification
+        const errorNotification = document.createElement('div');
+        errorNotification.className = 'fixed top-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50';
+        errorNotification.textContent = `Ошибка при импорте книги: ${error.message}`;
+        document.body.appendChild(errorNotification);
+        
+        // Hide notification after 5 seconds
+        setTimeout(() => {
+          document.body.removeChild(errorNotification);
+        }, 5000);
+        
+        return;
+      }
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Книга успешно импортирована';
+      document.body.appendChild(notification);
+      
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error importing book:', error instanceof Error ? error.message : error);
+      
+      // Show error notification
+      const errorNotification = document.createElement('div');
+      errorNotification.className = 'fixed top-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50';
+      errorNotification.textContent = `Ошибка при импорте книги: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`;
+      document.body.appendChild(errorNotification);
+      
+      // Hide notification after 5 seconds
+      setTimeout(() => {
+        document.body.removeChild(errorNotification);
+      }, 5000);
+    }
+  }, [book, canvasSettings, addToHistory]);
 
   // If loading, show skeleton
   if (isLoading) {
@@ -1584,6 +1916,16 @@ export function BookEditor() {
             <Redo2 className="h-4 w-4" />
           </Button>
           
+          {/* Export/Import component */}
+          {book && (
+            <BookExportImport 
+              book={book} 
+              elements={elements} 
+              settings={canvasSettings} 
+              onImport={handleImportBook}
+            />
+          )}
+          
           <Button
             variant="outline"
             size="sm"
@@ -1679,13 +2021,25 @@ export function BookEditor() {
           </Button>
           
           <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleVersionHistoryPanel}
+            title="История версий"
+            className="ml-1 flex items-center gap-1"
+          >
+            <History className="h-4 w-4" />
+            <span>История</span>
+          </Button>
+          
+          <Button
             variant="default"
             size="sm"
             onClick={handleSave}
-            title="Сохранить книгу"
-            className="bg-blue-600 text-white hover:bg-blue-700 ml-4"
+            title="Сохранить книгу (Ctrl/Cmd + S)"
+            className="ml-1"
           >
-            <Save className="h-4 w-4 mr-2" /> Сохранить
+            <Save className="h-4 w-4 mr-1" />
+            Сохранить
           </Button>
 
           {selectedElementId && (
@@ -1807,10 +2161,12 @@ export function BookEditor() {
                     }
                   }}
                 >
-                {currentPageElements.map(element => (
-                  <CanvasElementComponent
-                    key={element.id}
-                    element={element}
+                {currentPageElements.map(element => {
+                  const elementLock = isSessionLocked(element.id);
+                  return (
+                    <div key={element.id} className="relative">
+                      <CanvasElementComponent
+                        element={element}
                     isSelected={selectedElementId === element.id}
                       onSelect={() => {
                         // Завершаем редактирование предыдущего элемента
@@ -1822,19 +2178,53 @@ export function BookEditor() {
                       }}
                     onUpdate={(updates: Partial<CanvasElementType>) => updateElement(element.id, updates)}
                     isEditing={editingElementId === element.id}
-                    onEdit={(editing: boolean) => {
+                    onEdit={async (editing: boolean) => {
                       if (editing) {
-                        setEditingElementId(element.id);
+                        // Check if element is locked by another user
+                        const lock = isSessionLocked(element.id);
+                        if (lock) {
+                          alert(`Этот элемент редактируется пользователем ${formatUserName(lock.user)}. Подождите, пока они закончат.`);
+                          return;
+                        }
+                        
+                        // Start editing session
+                        const success = await startEditingSession(element.id, 'element');
+                        if (success) {
+                          setEditingElementId(element.id);
+                          updatePresence(`element-${element.id}`, { 
+                            elementId: element.id,
+                            action: 'editing',
+                            elementType: element.type
+                          });
+                        } else {
+                          alert('Не удалось начать редактирование. Элемент может быть заблокирован.');
+                        }
                       } else {
                         setEditingElementId(null);
+                        await endEditingSession(element.id);
+                        updatePresence(`page-${canvasSettings.currentPage}`, { 
+                          pageNumber: canvasSettings.currentPage,
+                          action: 'viewing'
+                        });
                       }
                     }}
                       canvasSettings={canvasSettings}
                       onDelete={() => deleteElement(element.id)}
                       onOpenMetadataEditor={handleOpenMetadataEditor}
                       bookBaseUrl={bookBaseUrl} // Pass the book's base_url to CanvasElementComponent
-                  />
-                  ))}
+                      />
+                      
+                      {/* Show lock indicator if element is locked by another user */}
+                      {elementLock && (
+                        <div className="absolute inset-0 bg-yellow-100 bg-opacity-60 border-2 border-yellow-400 rounded pointer-events-none flex items-center justify-center">
+                          <div className="bg-white rounded px-2 py-1 shadow-lg text-sm">
+                            🔒 {formatUserName(elementLock.user)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 </div>
               </CanvasDropZone>
             </DndContext>
@@ -1913,6 +2303,57 @@ export function BookEditor() {
               >
                 <PanelLeftOpen className="h-4 w-4" />
               </Button>
+              
+              <Button
+                variant={collaborationPanelOpen ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCollaborationPanelOpen(!collaborationPanelOpen)}
+                title={collaborationPanelOpen ? 'Скрыть панель совместной работы' : 'Показать панель совместной работы'}
+                className={collaborationPanelOpen ? 'bg-blue-600 text-white border-blue-600' : ''}
+              >
+                <Users className="h-4 w-4" />
+                <span className="ml-1 text-xs">Соавторы</span>
+              </Button>
+              
+              {/* Add Collaborator Button - Show for authors */}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  console.log('Collaboration button clicked!');
+                  console.log('userProfile:', userProfile);
+                  console.log('book:', book);
+                  console.log('currentUserRole:', currentUserRole);
+                  setCollaborationPanelOpen(true);
+                  // Add a small delay to ensure panel opens, then focus on invite button
+                  setTimeout(() => {
+                    const inviteButton = document.querySelector('[data-invite-button]') as HTMLButtonElement;
+                    if (inviteButton) {
+                      console.log('Found invite button, clicking it');
+                      inviteButton.click();
+                    } else {
+                      console.log('Invite button not found');
+                    }
+                  }, 100);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg border-2 border-blue-500"
+                title="Добавить соавтора"
+              >
+                <Users className="h-4 w-4 mr-1" />
+                Добавить соавтора
+              </Button>
+              
+
+              {/* Presence Indicator */}
+              {presence.length > 0 && (
+                <PresenceIndicator
+                  presence={presence}
+                  currentUserId={userProfile?.id}
+                  showDetails={true}
+                  maxVisible={3}
+                  className="ml-2"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -1931,6 +2372,23 @@ export function BookEditor() {
                 }}
                 onClose={() => setPropertiesPanelOpen(false)}
               />
+            </div>
+          </div>
+        )}
+
+        {/* Right sidebar - Collaboration */}
+        {collaborationPanelOpen && book && (
+          <div className="border-l w-80 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
+            {/* Collaboration panel - Scrollable content */}
+            <div className="flex-1 overflow-y-auto">
+              <CollaborationErrorBoundary>
+                <CollaborationPanel
+                  bookId={book.id}
+                  className="h-full border-none"
+                  userRole={userProfile?.role}
+                  isBookAuthor={book.user_id === userProfile?.id}
+                />
+              </CollaborationErrorBoundary>
             </div>
           </div>
         )}
@@ -1965,6 +2423,18 @@ export function BookEditor() {
         element={metadataEditor.element}
         onUpdate={handleUpdateElementMetadata}
       />
+
+      {/* Version history panel */}
+      {isInitialized && (
+        <VersionHistoryPanel
+          bookId={book?.id || ''}
+          versions={bookVersions}
+          onLoadVersion={handleLoadVersion}
+          onSaveVersion={handleSaveVersion}
+          isOpen={isVersionHistoryPanelOpen}
+          onClose={() => setIsVersionHistoryPanelOpen(false)}
+        />
+      )}
     </div>
   );
 } 

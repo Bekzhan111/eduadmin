@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LucideMenu, LucideX } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import InvitationsBell from './InvitationsBell';
 
 interface AppBarProps {
   onToggleSidebar: () => void;
@@ -97,6 +98,7 @@ export default function AppBar({
           </div>
           
           <div className="flex items-center space-x-4">
+            <InvitationsBell />
             {userProfile && (
               <div className="text-sm text-gray-600">
                 <span className="font-medium">

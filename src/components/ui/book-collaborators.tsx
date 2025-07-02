@@ -1,18 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Users, Trash2, Edit, Crown,
-  Eye, EyeOff, Clock, CheckCircle, XCircle
+  Users, Trash2, Edit, Crown, UserPlus,
+  Eye, EyeOff, Clock, CheckCircle, XCircle, Search, AlertCircle
 } from 'lucide-react';
-import { createClient } from '@/utils/supabase';
-
-export type CollaboratorRole = 'owner' | 'editor' | 'reviewer' | 'viewer';
+import { 
+  CollaboratorRole, 
+  BookCollaborator,
+  CollaborationInvitation
+} from '@/components/book-editor/types';
+import { useCollaboration } from '@/hooks/useCollaboration';
+import { 
+  ROLE_CONFIGS, 
+  hasPermission, 
+  canManageCollaborator, 
+  canChangeRole,
+  getAssignableRoles,
+  isValidEmail,
+  getUserDisplayName,
+  getUserInitials,
+  sortCollaborators
+} from '@/utils/collaboration';
 
 type UserSearchResult = {
   id: string;
@@ -21,107 +35,49 @@ type UserSearchResult = {
   role: string;
 };
 
-export type BookCollaborator = {
-  id: string;
-  user_id: string;
-  book_id: string;
-  role: CollaboratorRole;
-  permissions: {
-    canEdit: boolean;
-    canReview: boolean;
-    canInvite: boolean;
-    canDelete: boolean;
-    canPublish: boolean;
-  };
-  status: 'pending' | 'accepted' | 'declined';
-  invited_at: string;
-  accepted_at?: string;
-  invited_by: string;
-  user?: {
-    id: string;
-    email: string;
-    display_name?: string;
-  };
-};
-
 interface BookCollaboratorsProps {
   bookId: string;
-  currentUserId: string;
-  collaborators: BookCollaborator[];
-  onCollaboratorsChange: (collaborators: BookCollaborator[]) => void;
-  isOwner?: boolean;
+  className?: string;
 }
 
 export function BookCollaborators({ 
   bookId, 
-  currentUserId, 
-  collaborators, 
-  onCollaboratorsChange,
-  isOwner = false 
+  className = '' 
 }: BookCollaboratorsProps) {
+  // Use the collaboration hook
+  const {
+    collaborators,
+    invitations,
+    currentUser,
+    isLoading,
+    error: collaborationError,
+    inviteCollaborator,
+    removeCollaborator,
+    changeCollaboratorRole
+  } = useCollaboration({ bookId });
+
+  // Local state
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<CollaboratorRole>('editor');
   const [isInviting, setIsInviting] = useState(false);
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const supabase = createClient();
+  // Combined error state
+  const error = collaborationError || localError;
 
-  // Role configurations
-  const roleConfigs = {
-    owner: {
-      label: 'Владелец',
-      description: 'Полный доступ ко всем функциям',
-      color: 'bg-yellow-500',
-      permissions: {
-        canEdit: true,
-        canReview: true,
-        canInvite: true,
-        canDelete: true,
-        canPublish: true,
-      }
-    },
-    editor: {
-      label: 'Редактор',
-      description: 'Может редактировать содержимое',
-      color: 'bg-blue-500',
-      permissions: {
-        canEdit: true,
-        canReview: true,
-        canInvite: false,
-        canDelete: false,
-        canPublish: false,
-      }
-    },
-    reviewer: {
-      label: 'Рецензент',
-      description: 'Может оставлять комментарии и предложения',
-      color: 'bg-green-500',
-      permissions: {
-        canEdit: false,
-        canReview: true,
-        canInvite: false,
-        canDelete: false,
-        canPublish: false,
-      }
-    },
-    viewer: {
-      label: 'Наблюдатель',
-      description: 'Только просмотр',
-      color: 'bg-gray-500',
-      permissions: {
-        canEdit: false,
-        canReview: false,
-        canInvite: false,
-        canDelete: false,
-        canPublish: false,
-      }
-    }
-  };
+  // Check if current user can invite
+  const canInvite = currentUser && hasPermission(currentUser, 'canInvite');
+  
+  // Get sorted collaborators
+  const sortedCollaborators = sortCollaborators(collaborators);
+  
+  // Get assignable roles for current user
+  const assignableRoles = getAssignableRoles(currentUser);
 
-  // Search users by email
+  // Search users by email (simplified version for now)
   const searchUsers = async (email: string) => {
     if (!email || email.length < 3) {
       setSearchResults([]);
@@ -130,149 +86,96 @@ export function BookCollaborators({
 
     setIsSearching(true);
     try {
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('id, email, display_name, role')
-        .ilike('email', `%${email}%`)
-        .neq('id', currentUserId) // Exclude current user
-        .limit(5);
-
-      if (error) throw error;
-
-      // Filter out users who are already collaborators
-      const existingUserIds = collaborators.map(c => c.user_id);
-      const filteredUsers = users?.filter(user => !existingUserIds.includes(user.id)) || [];
-      
-      setSearchResults(filteredUsers);
-    } catch {
-      console.error('Error searching users');
+      // For now, just validate email format
+      if (isValidEmail(email)) {
+        // Check if user is already a collaborator
+        const existingCollaborator = collaborators.find(c => 
+          c.user?.email?.toLowerCase() === email.toLowerCase()
+        );
+        
+        if (!existingCollaborator) {
+          setSearchResults([{
+            id: 'temp',
+            email: email,
+            display_name: email.split('@')[0],
+            role: 'user'
+          }]);
+        } else {
+          setSearchResults([]);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    } catch (err) {
+      console.error('Error searching users:', err);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Invite collaborator
-  const inviteCollaborator = async (userEmail: string, role: CollaboratorRole) => {
+  // Handle invite collaborator
+  const handleInviteCollaborator = async (userEmail: string, role: CollaboratorRole) => {
     setIsInviting(true);
-    setError('');
+    setLocalError('');
     setSuccess('');
 
     try {
-      // First, find the user by email
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('id, email, display_name')
-        .eq('email', userEmail)
-        .single();
-
-      if (userError || !user) {
-        throw new Error('Пользователь с таким email не найден');
+      // Validate email
+      if (!isValidEmail(userEmail)) {
+        throw new Error('Неверный формат email');
       }
 
-      // Check if already a collaborator
-      const existingCollaborator = collaborators.find(c => c.user_id === user.id);
+      // Check if user is already a collaborator
+      const existingCollaborator = collaborators.find(c => 
+        c.user?.email?.toLowerCase() === userEmail.toLowerCase()
+      );
+      
       if (existingCollaborator) {
         throw new Error('Этот пользователь уже является соавтором');
       }
 
-      // Create collaboration invitation
-      const newCollaborator: BookCollaborator = {
-        id: `temp_${Date.now()}`,
-        user_id: user.id,
-        book_id: bookId,
-        role,
-        permissions: roleConfigs[role].permissions,
-        status: 'pending',
-        invited_at: new Date().toISOString(),
-        invited_by: currentUserId,
-        user: {
-          id: user.id,
-          email: user.email,
-          display_name: user.display_name,
-        }
-      };
-
-      // TODO: Save to database
-      // const { error: insertError } = await supabase
-      //   .from('book_collaborators')
-      //   .insert([newCollaborator]);
-
-      // For now, just update local state
-      onCollaboratorsChange([...collaborators, newCollaborator]);
+      // Use the hook to invite collaborator
+      await inviteCollaborator(userEmail, role);
       
       setSuccess(`Приглашение отправлено пользователю ${userEmail}`);
       setInviteEmail('');
       setSearchResults([]);
       
-    } catch {
-      setError('Ошибка при отправке приглашения');
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Ошибка при отправке приглашения');
     } finally {
       setIsInviting(false);
     }
   };
 
-  // Remove collaborator
-  const removeCollaborator = async (collaboratorId: string) => {
+  // Handle remove collaborator
+  const handleRemoveCollaborator = async (collaboratorId: string) => {
     if (!confirm('Вы уверены, что хотите удалить этого соавтора?')) {
       return;
     }
 
     try {
-      // TODO: Remove from database
-      // await supabase
-      //   .from('book_collaborators')
-      //   .delete()
-      //   .eq('id', collaboratorId);
-
-      // Update local state
-      const updatedCollaborators = collaborators.filter(c => c.id !== collaboratorId);
-      onCollaboratorsChange(updatedCollaborators);
-      
+      await removeCollaborator(collaboratorId);
       setSuccess('Соавтор удален');
-    } catch {
-      setError('Ошибка при удалении соавтора');
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Ошибка при удалении соавтора');
     }
   };
 
-  // Change collaborator role
-  const changeCollaboratorRole = async (collaboratorId: string, newRole: CollaboratorRole) => {
+  // Handle change collaborator role
+  const handleChangeCollaboratorRole = async (collaboratorId: string, newRole: CollaboratorRole) => {
     try {
-      const updatedCollaborators = collaborators.map(c => {
-        if (c.id === collaboratorId) {
-          return {
-            ...c,
-            role: newRole,
-            permissions: roleConfigs[newRole].permissions
-          };
-        }
-        return c;
-      });
-
-      onCollaboratorsChange(updatedCollaborators);
+      await changeCollaboratorRole(collaboratorId, newRole);
       setSuccess('Роль соавтора изменена');
-    } catch {
-      setError('Ошибка при изменении роли');
-    }
-  };
-
-  // Get status badge
-  const getStatusBadge = (status: BookCollaborator['status']) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="text-yellow-600"><Clock className="h-3 w-3 mr-1" />Ожидает</Badge>;
-      case 'accepted':
-        return <Badge variant="outline" className="text-green-600"><CheckCircle className="h-3 w-3 mr-1" />Принято</Badge>;
-      case 'declined':
-        return <Badge variant="outline" className="text-red-600"><XCircle className="h-3 w-3 mr-1" />Отклонено</Badge>;
-      default:
-        return null;
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Ошибка при изменении роли');
     }
   };
 
   // Get role badge
   const getRoleBadge = (role: CollaboratorRole) => {
-    const config = roleConfigs[role];
+    const config = ROLE_CONFIGS[role];
     return (
       <Badge className={`${config.color} text-white`}>
         {role === 'owner' && <Crown className="h-3 w-3 mr-1" />}
@@ -284,8 +187,36 @@ export function BookCollaborators({
     );
   };
 
+  // Auto-clear messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setLocalError(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            <span className="ml-2">Загрузка...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center">
           <Users className="h-5 w-5 mr-2" />
@@ -297,7 +228,7 @@ export function BookCollaborators({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Invite new collaborator */}
-        {isOwner && (
+        {canInvite && (
           <div className="space-y-4">
             <div>
               <Label htmlFor="invite-email">Пригласить соавтора</Label>
@@ -347,15 +278,18 @@ export function BookCollaborators({
                   onChange={(e) => setInviteRole(e.target.value as CollaboratorRole)}
                   className="px-3 py-2 border rounded-lg"
                 >
-                  <option value="editor">Редактор</option>
-                  <option value="reviewer">Рецензент</option>
-                  <option value="viewer">Наблюдатель</option>
+                  {assignableRoles.map(role => (
+                    <option key={role} value={role}>
+                      {ROLE_CONFIGS[role].label}
+                    </option>
+                  ))}
                 </select>
                 
                 <Button
-                  onClick={() => inviteCollaborator(inviteEmail, inviteRole)}
+                  onClick={() => handleInviteCollaborator(inviteEmail, inviteRole)}
                   disabled={!inviteEmail || isInviting}
                 >
+                  <UserPlus className="h-4 w-4 mr-2" />
                   {isInviting ? 'Отправка...' : 'Пригласить'}
                 </Button>
               </div>
@@ -363,14 +297,17 @@ export function BookCollaborators({
 
             {/* Role descriptions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-              {Object.entries(roleConfigs).filter(([key]) => key !== 'owner').map(([key, config]) => (
-                <div key={key} className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium flex items-center">
-                    {getRoleBadge(key as CollaboratorRole)}
+              {assignableRoles.map((role) => {
+                const config = ROLE_CONFIGS[role];
+                return (
+                  <div key={role} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="font-medium flex items-center">
+                      {getRoleBadge(role)}
+                    </div>
+                    <div className="text-gray-600 mt-1">{config.description}</div>
                   </div>
-                  <div className="text-gray-600 mt-1">{config.description}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -390,44 +327,54 @@ export function BookCollaborators({
 
         {/* Collaborators list */}
         <div className="space-y-3">
-          {collaborators.length > 0 ? (
-            collaborators.map((collaborator) => (
+          {sortedCollaborators.length > 0 ? (
+            sortedCollaborators.map((collaborator) => (
               <div key={collaborator.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    <Users className="h-5 w-5 text-gray-600" />
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium">
+                    {collaborator.user ? (
+                      getUserInitials(collaborator.user.display_name, collaborator.user.email)
+                    ) : (
+                      <Users className="h-5 w-5 text-gray-600" />
+                    )}
                   </div>
                   <div>
                     <div className="font-medium">
-                      {collaborator.user?.display_name || collaborator.user?.email || 'Неизвестный пользователь'}
+                      {collaborator.user ? 
+                        getUserDisplayName(collaborator.user) : 
+                        'Неизвестный пользователь'
+                      }
                     </div>
                     <div className="text-sm text-gray-500">{collaborator.user?.email}</div>
                     <div className="flex items-center space-x-2 mt-1">
                       {getRoleBadge(collaborator.role)}
-                      {getStatusBadge(collaborator.status)}
                     </div>
                   </div>
                 </div>
 
                 {/* Actions */}
-                {isOwner && collaborator.role !== 'owner' && (
+                {currentUser && canManageCollaborator(currentUser, collaborator) && (
                   <div className="flex items-center space-x-2">
                     {/* Change role */}
-                    <select
-                      value={collaborator.role}
-                      onChange={(e) => changeCollaboratorRole(collaborator.id, e.target.value as CollaboratorRole)}
-                      className="text-sm px-2 py-1 border rounded"
-                    >
-                      <option value="editor">Редактор</option>
-                      <option value="reviewer">Рецензент</option>
-                      <option value="viewer">Наблюдатель</option>
-                    </select>
+                    {canChangeRole(currentUser, collaborator, inviteRole) && (
+                      <select
+                        value={collaborator.role}
+                        onChange={(e) => handleChangeCollaboratorRole(collaborator.id, e.target.value as CollaboratorRole)}
+                        className="text-sm px-2 py-1 border rounded"
+                      >
+                        {assignableRoles.map(role => (
+                          <option key={role} value={role}>
+                            {ROLE_CONFIGS[role].label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
                     {/* Remove */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeCollaborator(collaborator.id)}
+                      onClick={() => handleRemoveCollaborator(collaborator.id)}
                       className="text-red-600 hover:text-red-700"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -445,8 +392,34 @@ export function BookCollaborators({
           )}
         </div>
 
+        {/* Pending invitations */}
+        {invitations.length > 0 && (
+          <div className="border-t pt-4">
+            <h4 className="font-medium mb-3 flex items-center">
+              <Clock className="h-4 w-4 mr-2" />
+              Ожидающие приглашения ({invitations.length})
+            </h4>
+            <div className="space-y-2">
+              {invitations.map((invitation) => (
+                <div key={invitation.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div>
+                    <div className="font-medium">{invitation.invitee_email}</div>
+                    <div className="text-sm text-gray-500">
+                      Приглашен как {ROLE_CONFIGS[invitation.role].label.toLowerCase()}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-yellow-600">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Ожидает
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Permissions summary */}
-        {collaborators.length > 0 && (
+        {sortedCollaborators.length > 0 && (
           <div className="border-t pt-4">
             <h4 className="font-medium mb-3">Права доступа</h4>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
@@ -456,7 +429,7 @@ export function BookCollaborators({
               <div className="font-medium">Приглашения</div>
               <div className="font-medium">Публикация</div>
               
-              {Object.entries(roleConfigs).map(([role, config]) => (
+              {Object.entries(ROLE_CONFIGS).map(([role, config]) => (
                 <React.Fragment key={role}>
                   <div>{config.label}</div>
                   <div>{config.permissions.canEdit ? '✅' : '❌'}</div>

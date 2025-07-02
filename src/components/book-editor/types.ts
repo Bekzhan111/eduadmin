@@ -22,6 +22,42 @@ export interface Book {
   tags?: string[];
 }
 
+// Book version for version history
+export interface BookVersion {
+  id: string;
+  name: string;
+  description?: string;
+  timestamp: string;
+  elements: CanvasElement[];
+  userName: string;
+  userId: string;
+}
+
+// Book export data structure
+export interface BookExportData {
+  version: string;
+  exportDate: string;
+  book: {
+    title: string;
+    description: string;
+    language: string;
+    author: string;
+    cover_image: string;
+    tags: string[];
+    category: string;
+  };
+  settings: {
+    canvasWidth: number;
+    canvasHeight: number;
+    totalPages: number;
+    zoom: number;
+    backgroundColor: string;
+    gridSize: number;
+    showGrid: boolean;
+  };
+  elements: CanvasElement[];
+}
+
 // Enhanced Canvas Element with grouping, animations, and filters
 export interface CanvasElement {
   id: string;
@@ -145,31 +181,16 @@ export interface CanvasElement {
   };
 }
 
-// Enhanced Canvas Settings with guides and performance options
-export type CanvasSettings = {
-  zoom: number;
-  currentPage: number;
-  totalPages: number;
+// Canvas settings type
+export interface CanvasSettings {
   canvasWidth: number;
   canvasHeight: number;
-  showGrid: boolean;
-  twoPageView: boolean;
-  snapToGrid: boolean;
-  gridSize: number;
-  showRulers: boolean;
-  showGuides: boolean;
-  // Smart guides
-  smartGuides: boolean;
-  snapToElements: boolean;
-  snapDistance: number;
-  // Performance settings
-  renderQuality: 'draft' | 'normal' | 'high';
-  enableAnimations: boolean;
-  maxUndoSteps: number;
-  // Auto-save settings
-  autoSave: boolean;
-  autoSaveInterval: number; // in seconds
-};
+  totalPages: number;
+  zoom: number;
+  backgroundColor?: string;
+  gridSize?: number;
+  showGrid?: boolean;
+}
 
 // Template system
 export type Template = {
@@ -184,7 +205,123 @@ export type Template = {
   premium: boolean;
 };
 
-// Collaboration types
+// Enhanced Collaboration types for the new system
+export type CollaboratorRole = 'owner' | 'editor' | 'reviewer' | 'viewer';
+
+export type CollaboratorPermissions = {
+  canEdit: boolean;
+  canReview: boolean;
+  canInvite: boolean;
+  canDelete: boolean;
+  canPublish: boolean;
+};
+
+export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+
+export type BookCollaborator = {
+  id: string;
+  book_id: string;
+  user_id: string;
+  role: CollaboratorRole;
+  permissions: CollaboratorPermissions;
+  invited_by: string;
+  joined_at: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    email: string;
+    display_name?: string;
+    role?: string;
+  };
+};
+
+export type CollaborationInvitation = {
+  id: string;
+  book_id: string;
+  inviter_id: string;
+  invitee_email: string;
+  invitee_id?: string;
+  role: CollaboratorRole;
+  permissions: CollaboratorPermissions;
+  status: InvitationStatus;
+  message?: string;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+  inviter?: {
+    id: string;
+    email: string;
+    display_name?: string;
+  };
+  book?: {
+    id: string;
+    title: string;
+    base_url: string;
+  };
+};
+
+export type EditingSession = {
+  id: string;
+  book_id: string;
+  user_id: string;
+  section_id: string; // page number, element id, or section identifier
+  section_type: 'page' | 'element' | 'chapter';
+  locked_at: string;
+  last_activity: string;
+  cursor_position?: {
+    x?: number;
+    y?: number;
+    selection?: any;
+  };
+  user?: {
+    id: string;
+    email: string;
+    display_name?: string;
+  };
+};
+
+export type UserPresence = {
+  id: string;
+  book_id: string;
+  user_id: string;
+  last_seen: string;
+  is_online: boolean;
+  current_section?: string;
+  metadata?: {
+    viewport?: any;
+    cursor?: any;
+    [key: string]: any;
+  };
+  user?: {
+    id: string;
+    email: string;
+    display_name?: string;
+  };
+};
+
+export type BookComment = {
+  id: string;
+  book_id: string;
+  user_id: string;
+  section_id: string;
+  content: string;
+  position_start?: number;
+  position_end?: number;
+  comment_type: 'comment' | 'suggestion' | 'question' | 'approval';
+  status: 'open' | 'resolved' | 'closed';
+  parent_id?: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    email: string;
+    display_name?: string;
+  };
+  replies?: BookComment[];
+};
+
+// Legacy comment type for backward compatibility
 export type _Comment = {
   id: string;
   elementId?: string;
@@ -196,6 +333,41 @@ export type _Comment = {
   timestamp: Date;
   resolved: boolean;
   replies?: _Comment[];
+};
+
+// Real-time collaboration events
+export type CollaborationEvent = {
+  type: 'presence_update' | 'editing_session_start' | 'editing_session_end' | 
+        'comment_added' | 'comment_updated' | 'collaborator_joined' | 'collaborator_left';
+  userId: string;
+  bookId: string;
+  data: any;
+  timestamp: string;
+};
+
+// Collaboration context types
+export type CollaborationContextType = {
+  collaborators: BookCollaborator[];
+  invitations: CollaborationInvitation[];
+  presence: UserPresence[];
+  editingSessions: EditingSession[];
+  comments: BookComment[];
+  currentUser: BookCollaborator | null;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Actions
+  inviteCollaborator: (email: string, role: CollaboratorRole, message?: string) => Promise<void>;
+  removeCollaborator: (collaboratorId: string) => Promise<void>;
+  changeCollaboratorRole: (collaboratorId: string, newRole: CollaboratorRole) => Promise<void>;
+  acceptInvitation: (invitationId: string) => Promise<void>;
+  rejectInvitation: (invitationId: string) => Promise<void>;
+  startEditingSession: (sectionId: string, sectionType: EditingSession['section_type']) => Promise<void>;
+  endEditingSession: (sectionId: string) => Promise<void>;
+  updatePresence: (currentSection?: string, metadata?: any) => Promise<void>;
+  addComment: (sectionId: string, content: string, commentType?: BookComment['comment_type'], positionStart?: number, positionEnd?: number) => Promise<void>;
+  updateComment: (commentId: string, content: string, status?: BookComment['status']) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
 };
 
 // Enhanced tool definitions with more elements and categories

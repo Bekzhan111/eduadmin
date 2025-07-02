@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { fetchBooksWithCorrectClient } from '@/utils/supabase-admin';
+import { fetchBooksWithCorrectClient, clearBooksCache } from '@/utils/supabase-admin';
 import { useRouter } from 'next/navigation';
 import BookViewStatsComponent from '@/components/ui/book-view-stats';
 
@@ -59,6 +59,9 @@ type Book = {
   teachers_added: number;
   students_added: number;
   downloads_count?: number;
+  // Collaboration fields
+  user_role?: 'owner' | 'editor' | 'reviewer' | 'viewer';
+  is_collaborator?: boolean;
 };
 
 type RawBookData = {
@@ -161,7 +164,7 @@ export default function BooksPage() {
         setError('Превышено время ожидания загрузки книг. Пожалуйста, обновите страницу.');
         setIsLoading(false);
       }
-    }, 15000); // 15 секунд таймаут
+    }, 10000); // 10 секунд таймаут
     
     try {
       const supabase = createClient();
@@ -177,7 +180,18 @@ export default function BooksPage() {
       clearTimeout(fetchTimeout);
       
       if (booksError) {
-        console.error('❌ Database error:', booksError);
+        console.error('❌ Database error:', booksError instanceof Error ? booksError.message : booksError);
+        console.error('Error details:', {
+          message: booksError?.message || 'Unknown error',
+          details: booksError?.details || 'No details',
+          hint: booksError?.hint || 'No hint',
+          code: booksError?.code || 'No code',
+          userRole: userProfile?.role,
+          userId: userProfile?.id,
+          fullError: booksError,
+          errorType: typeof booksError,
+          errorKeys: booksError && typeof booksError === 'object' ? Object.keys(booksError) : 'No keys'
+        });
         
         // Проверяем, является ли ошибка сетевой
         if (booksError.message && (
@@ -194,7 +208,7 @@ export default function BooksPage() {
             }
           }, 5000);
         } else {
-          setError(`Ошибка загрузки книг: ${booksError.message}. Проверьте подключение к базе данных.`);
+          setError(`Ошибка загрузки книг: ${booksError.message}. Роль: ${userProfile?.role}. ${booksError.details ? 'Детали: ' + booksError.details : ''}`);
         }
         
         setIsLoading(false);
@@ -231,6 +245,22 @@ export default function BooksPage() {
         }
       }
 
+      // Get collaboration data for current user
+      const bookIds = booksData.map((book: RawBookData) => book.id);
+      let collaborationsData: Array<{ book_id: string; role: string }> = [];
+      
+      if (bookIds.length > 0 && userProfile?.id) {
+        const { data: collaborations } = await supabase
+          .from('book_collaborators')
+          .select('book_id, role')
+          .eq('user_id', userProfile.id)
+          .in('book_id', bookIds);
+        
+        if (collaborations) {
+          collaborationsData = collaborations;
+        }
+      }
+
       // Process books in batches to avoid blocking the main thread
       const batchSize = 100;
       const formattedBooks = [];
@@ -239,6 +269,10 @@ export default function BooksPage() {
         const batch = booksData.slice(i, i + batchSize);
         const formattedBatch = batch.map((book: RawBookData) => {
         const authorData = authorsData.find(author => author.id === book.author_id);
+        const collaborationData = collaborationsData.find(collab => collab.book_id === book.id);
+        const isOwner = book.author_id === userProfile?.id;
+        const isCollaborator = !!collaborationData;
+        
         return {
           id: book.id,
           base_url: book.base_url,
@@ -258,6 +292,9 @@ export default function BooksPage() {
           schools_added: 0,
           teachers_added: 0,
           students_added: 0,
+          // Collaboration fields
+          user_role: isOwner ? 'owner' : (collaborationData?.role as 'owner' | 'editor' | 'reviewer' | 'viewer'),
+          is_collaborator: isCollaborator,
         };
       });
       
@@ -709,6 +746,7 @@ export default function BooksPage() {
   // Добавляем функцию для повторной загрузки данных
   const handleRetryFetch = () => {
     setError(null);
+    clearBooksCache(); // Clear cache to ensure fresh data
     fetchBooks();
   };
 
@@ -1066,7 +1104,18 @@ export default function BooksPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{book.author_name}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div>{book.author_name}</div>
+                        {book.is_collaborator && (
+                          <div className="text-xs text-blue-600 font-medium">
+                            {book.user_role === 'owner' ? '👑 Владелец' : 
+                             book.user_role === 'editor' ? '✏️ Редактор' :
+                             book.user_role === 'reviewer' ? '👁️ Рецензент' : '👀 Наблюдатель'}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <BookViewStatsComponent bookId={book.id} showDetailedStats={false} className="justify-center" />
                     </TableCell>
@@ -1087,8 +1136,8 @@ export default function BooksPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2 flex-wrap">
-                        {/* Автор */}
-                        {userProfile?.role === 'author' && book.author_id === userProfile.id && (
+                        {/* Автор и редакторы */}
+                        {userProfile?.role === 'author' && (book.author_id === userProfile.id || (book.is_collaborator && (book.user_role === 'editor' || book.user_role === 'owner'))) && (
                           <>
                             {book.status === 'Draft' && (
                               <div className="flex gap-1">
@@ -1123,7 +1172,10 @@ export default function BooksPage() {
                             )}
                             {book.status !== 'Draft' && (
                               <div className="text-xs text-gray-500 italic">
-                                {getWorkflowStatus(book, 'author')}
+                                {book.author_id === userProfile.id 
+                                  ? getWorkflowStatus(book, 'author')
+                                  : `Совместная работа: ${getWorkflowStatus(book, 'author')}`
+                                }
                               </div>
                             )}
                           </>

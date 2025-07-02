@@ -10,9 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { BookOpen, Send, Loader2, AlertCircle } from 'lucide-react';
+import { BookOpen, Send, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BookImport } from '@/components/book-editor/BookImport';
+import { BookExportData } from '@/components/book-editor/types';
 
 function CreateBookPage() {
   const { userProfile, isLoading: authLoading } = useAuth();
@@ -32,6 +34,7 @@ function CreateBookPage() {
     cover_image: '',
     base_url: ''
   });
+  const [importedBookData, setImportedBookData] = useState<BookExportData | null>(null);
 
   // Available options
   const gradeOptions = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -98,6 +101,24 @@ function CreateBookPage() {
     return null
   };
 
+  const handleBookImport = (data: BookExportData) => {
+    setImportedBookData(data);
+    
+    // Fill the form with imported data
+    setFormData({
+      title: data.book.title || '',
+      description: data.book.description || '',
+      grade_level: '', // Not stored in export data
+      course: '', // Not stored in export data
+      category: data.book.category || '',
+      language: data.book.language || 'Русский',
+      pages_count: data.settings.totalPages.toString() || '',
+      price: '0', // Default price
+      cover_image: data.book.cover_image || '',
+      base_url: generateBaseUrl(data.book.title)
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -147,13 +168,28 @@ function CreateBookPage() {
           cover_image: formData.cover_image.trim() || null,
           base_url: formData.base_url,
           author_id: userProfile.id,
-          status: 'Draft' // Set status to Draft so author can edit before sending to moderation
+          status: 'Draft', // Set status to Draft so author can edit before sending to moderation
+          // If we have imported data, store the canvas elements and settings
+          canvas_elements: importedBookData ? JSON.stringify(importedBookData.elements) : null,
+          canvas_settings: importedBookData ? JSON.stringify(importedBookData.settings) : null
         })
         .select()
         .single();
 
       if (bookError) {
         throw new Error(bookError.message);
+      }
+
+      // Add the user as the owner of the book in the collaboration table
+      const { error: collaboratorError } = await supabase.rpc('add_book_owner', {
+        book_uuid: createdBook.id,
+        user_uuid: userProfile.id
+      });
+
+      if (collaboratorError) {
+        console.error('Error adding book owner:', collaboratorError);
+        // Don't throw an error here - the book was created successfully
+        // Just log the error as this is not critical for book creation
       }
 
       setSuccess('Книга успешно создана как черновик! Переходим к редактору книги.');
@@ -171,6 +207,8 @@ function CreateBookPage() {
         cover_image: '',
         base_url: ''
       });
+      
+      setImportedBookData(null);
 
       // Redirect to book editor after a short delay
       setTimeout(() => {
@@ -240,7 +278,7 @@ function CreateBookPage() {
             Создание новой книги
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Заполните форму для создания новой книги и отправки на модерацию
+            Заполните форму для создания новой книги или импортируйте существующую
           </p>
         </div>
 
@@ -255,18 +293,23 @@ function CreateBookPage() {
 
         {success && (
           <Alert className="mb-6 border-green-200 bg-green-50 dark:bg-green-900/20">
-            <AlertCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800 dark:text-green-200">
               {success}
             </AlertDescription>
           </Alert>
         )}
 
-        <Card>
+        {/* Book Import Component */}
+        <BookImport onImport={handleBookImport} />
+
+        <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Информация о книге</CardTitle>
             <CardDescription>
-              Заполните основную информацию о книге. После создания вы перейдете в редактор для работы с содержимым.
+              {importedBookData 
+                ? 'Данные заполнены из импортированного файла. Вы можете внести изменения перед созданием книги.' 
+                : 'Введите основную информацию о книге'}
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -1,4 +1,4 @@
-import { Book, CanvasElement, CanvasSettings } from './types';
+import { Book, CanvasElement, CanvasSettings, BookExportData } from './types';
 
 /**
  * Generates HTML from canvas elements
@@ -347,4 +347,111 @@ export const generateEditableSourceCode = (
   `;
   
   return html;
+};
+
+/**
+ * Export book data as JSON
+ */
+export const exportBookAsJSON = (
+  elements: CanvasElement[],
+  settings: CanvasSettings,
+  book: Book
+): BookExportData => {
+  // Create a clean export object with only the necessary data
+  const exportData: BookExportData = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    book: {
+      title: book.title,
+      description: book.description || '',
+      language: book.language || 'ru',
+      author: book.author || '',
+      cover_image: book.cover_image || '',
+      tags: book.tags || [],
+      category: book.category || '',
+    },
+    settings: {
+      canvasWidth: settings.canvasWidth,
+      canvasHeight: settings.canvasHeight,
+      totalPages: settings.totalPages,
+      zoom: 100, // Reset zoom to default for import
+      backgroundColor: settings.backgroundColor || '#ffffff',
+      gridSize: settings.gridSize || 10,
+      showGrid: settings.showGrid || false,
+    },
+    elements: elements.map(element => ({
+      ...element,
+      // Ensure we don't include any temporary or runtime-specific properties
+      id: element.id,
+      type: element.type,
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height,
+      rotation: element.rotation,
+      opacity: element.opacity,
+      zIndex: element.zIndex,
+      page: element.page,
+      content: element.content,
+      visible: element.visible !== false, // Default to visible
+      properties: { ...element.properties },
+    })),
+  };
+
+  return exportData;
+};
+
+/**
+ * Download book export data as a JSON file
+ */
+export const downloadBookJSON = (exportData: BookExportData, filename?: string): void => {
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || `${exportData.book.title.replace(/\s+/g, '_')}_export.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+/**
+ * Import book data from JSON
+ * Returns parsed book export data or throws an error if invalid
+ */
+export const importBookFromJSON = async (file: File): Promise<BookExportData> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        
+        // Validate the imported data structure
+        if (!data.version || !data.book || !data.settings || !Array.isArray(data.elements)) {
+          throw new Error('Некорректный формат файла импорта книги');
+        }
+        
+        // Ensure all elements have required properties
+        data.elements.forEach((element: any, index: number) => {
+          if (!element.id || !element.type || typeof element.x !== 'number' || 
+              typeof element.y !== 'number' || typeof element.width !== 'number' || 
+              typeof element.height !== 'number') {
+            throw new Error(`Некорректный элемент #${index + 1} в импортируемом файле`);
+          }
+        });
+        
+        resolve(data as BookExportData);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Ошибка чтения файла'));
+    };
+    
+    reader.readAsText(file);
+  });
 }; 

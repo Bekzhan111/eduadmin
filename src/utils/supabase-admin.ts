@@ -19,8 +19,16 @@ const booksCache = new Map<string, {
   data: any[];
 }>();
 
-// Cache expiration time (5 minutes)
-const CACHE_EXPIRATION = 5 * 60 * 1000;
+// Cache expiration time (2 minutes for faster debugging)
+const CACHE_EXPIRATION = 2 * 60 * 1000;
+
+/**
+ * Clear the books cache - useful for testing
+ */
+export function clearBooksCache() {
+  booksCache.clear();
+  console.log('Books cache cleared');
+}
 
 /**
  * Создание административного клиента Supabase с правами SERVICE_ROLE
@@ -37,9 +45,8 @@ export function createAdminClient() {
  * Проверяет, нужно ли использовать административный клиент для данной роли
  */
 export function shouldUseAdminClient(role?: string): boolean {
-  // Временное решение: используем админ клиент для модераторов
-  // чтобы обойти проблемы с RLS политиками
-  return role === 'moderator';
+  // Используем админ клиент для ролей, которым может понадобиться обход RLS
+  return role === 'moderator' || role === 'super_admin';
 }
 
 /**
@@ -80,6 +87,8 @@ export async function fetchBooksWithCorrectClient(
   
   while (attempts < maxAttempts) {
     try {
+      console.log(`Fetching books for role: ${role}, userId: ${userId}, attempt: ${attempts + 1}`);
+      
       let query = client
         .from('books')
         .select(`
@@ -109,33 +118,68 @@ export async function fetchBooksWithCorrectClient(
       // Применяем фильтры в зависимости от роли
       switch (role) {
         case 'author':
-          query = query.eq('author_id', userId);
+          if (!userId) {
+            throw new Error('User ID is required for author role');
+          }
+          // Get books where user is author OR collaborator
+          const { data: collaboratorBooks } = await client
+            .from('book_collaborators')
+            .select('book_id')
+            .eq('user_id', userId);
+          
+          const collaboratorBookIds = collaboratorBooks?.map(c => c.book_id) || [];
+          const allBookIds = [...collaboratorBookIds];
+          
+          if (allBookIds.length > 0) {
+            // Show books where user is author OR collaborator
+            query = query.or(`author_id.eq.${userId},id.in.(${allBookIds.join(',')})`);
+          } else {
+            // No collaborative books, just show authored books
+            query = query.eq('author_id', userId);
+          }
+          console.log(`Filtering books for author: ${userId}, including ${collaboratorBookIds.length} collaborative books`);
           break;
         case 'moderator':
           query = query.eq('status', 'Moderation');
+          console.log('Filtering books for moderation');
           break;
         case 'school':
         case 'teacher':
         case 'student':
           query = query.eq('status', 'Active');
+          console.log('Filtering active books for school users');
           break;
         case 'super_admin':
           // No filters for super admin
+          console.log('Fetching all books for super admin');
           break;
         default:
           query = query.eq('status', 'Active');
+          console.log('Default filter: active books only');
           break;
       }
 
       const result = await query.order('created_at', { ascending: false });
       
+      console.log(`Query result:`, { 
+        dataLength: result.data?.length || 0, 
+        error: result.error?.message || 'none',
+        role,
+        userId 
+      });
+      
+      // If there's an error, log it and let the retry logic handle it
+      if (result.error) {
+        throw new Error(`Database query failed: ${result.error.message}`);
+      }
+      
       // Cache the result if successful
-      if (result.data && !result.error) {
+      if (result.data) {
         booksCache.set(cacheKey, {
           timestamp: Date.now(),
           data: result.data
         });
-        console.log(`Cached ${result.data.length} books for ${role || 'guest'}`);
+        console.log(`Successfully cached ${result.data.length} books for ${role || 'guest'}`);
       }
       
       return result;
