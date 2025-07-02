@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -42,6 +42,7 @@ export const useCollaboration = ({
   const [invitations, setInvitations] = useState<CollaborationInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const channelsRef = useRef<{ collaborators?: any; invitations?: any }>({});
 
   const supabase = createClient();
 
@@ -367,9 +368,17 @@ export const useCollaboration = ({
   useEffect(() => {
     if (!bookId) return;
 
+    // Cleanup existing channels first
+    if (channelsRef.current.collaborators) {
+      supabase.removeChannel(channelsRef.current.collaborators);
+    }
+    if (channelsRef.current.invitations) {
+      supabase.removeChannel(channelsRef.current.invitations);
+    }
+
     // Subscribe to book_collaborators changes
     const collaboratorsChannel = supabase
-      .channel(`collaborators_${bookId}`)
+      .channel(`collaborators_${bookId}_${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -387,7 +396,7 @@ export const useCollaboration = ({
 
     // Subscribe to collaboration_invitations changes
     const invitationsChannel = supabase
-      .channel(`invitations_${bookId}`)
+      .channel(`invitations_${bookId}_${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -403,9 +412,20 @@ export const useCollaboration = ({
       )
       .subscribe();
 
+    // Store channel references
+    channelsRef.current = {
+      collaborators: collaboratorsChannel,
+      invitations: invitationsChannel
+    };
+
     return () => {
-      supabase.removeChannel(collaboratorsChannel);
-      supabase.removeChannel(invitationsChannel);
+      if (channelsRef.current.collaborators) {
+        supabase.removeChannel(channelsRef.current.collaborators);
+      }
+      if (channelsRef.current.invitations) {
+        supabase.removeChannel(channelsRef.current.invitations);
+      }
+      channelsRef.current = {};
     };
   }, [bookId, supabase, loadCollaborators, loadInvitations]);
 
