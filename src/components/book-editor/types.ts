@@ -11,6 +11,7 @@ export interface Book {
   canvas_elements?: string;
   canvas_settings?: string;
   user_id?: string;
+  author_id?: string;
   // Добавляем поля для дополнительной информации о книге
   cover_image?: string;
   author?: string;

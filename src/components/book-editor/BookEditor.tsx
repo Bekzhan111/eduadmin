@@ -2386,7 +2386,7 @@ export function BookEditor() {
                   bookId={book.id}
                   className="h-full border-none"
                   userRole={userProfile?.role}
-                  isBookAuthor={book.user_id === userProfile?.id}
+                  isBookAuthor={book.author_id === userProfile?.id}
                 />
               </CollaborationErrorBoundary>
             </div>
