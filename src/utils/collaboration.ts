@@ -1,4 +1,5 @@
 import { CollaboratorRole, CollaboratorPermissions, BookCollaborator, CollaborationInvitation, EditingSession, UserPresence, BookComment } from '@/components/book-editor/types';
+import { Crown, Edit, Eye, EyeOff } from 'lucide-react';
 
 // Permission utilities
 export const getDefaultPermissions = (role: CollaboratorRole): CollaboratorPermissions => {
@@ -136,4 +137,83 @@ export const getAvatarColor = (userId: string): string => {
   }
   
   return colors[Math.abs(hash) % colors.length];
+};
+
+// Role configuration
+export const ROLE_CONFIGS = {
+  owner: {
+    label: 'Владелец',
+    description: 'Полный доступ ко всем функциям',
+    icon: Crown,
+    color: 'destructive' as const,
+  },
+  editor: {
+    label: 'Редактор', 
+    description: 'Может редактировать и приглашать других',
+    icon: Edit,
+    color: 'default' as const,
+  },
+  reviewer: {
+    label: 'Рецензент',
+    description: 'Может оставлять комментарии и предложения', 
+    icon: Eye,
+    color: 'secondary' as const,
+  },
+  viewer: {
+    label: 'Читатель',
+    description: 'Только просмотр книги',
+    icon: EyeOff,
+    color: 'outline' as const,
+  }
+};
+
+// User display utilities
+export const getUserDisplayName = (user: { email: string; display_name?: string } | undefined): string => {
+  if (!user) return 'Unknown User';
+  return user.display_name || user.email.split('@')[0];
+};
+
+export const getUserInitials = (user: { email: string; display_name?: string } | undefined): string => {
+  if (!user) return '?';
+  const name = user.display_name || user.email.split('@')[0];
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
+
+// Collaboration management utilities
+export const sortCollaborators = (collaborators: BookCollaborator[]): BookCollaborator[] => {
+  return [...collaborators].sort((a, b) => {
+    // Sort by role hierarchy first
+    const roleA = getRoleHierarchy(a.role);
+    const roleB = getRoleHierarchy(b.role);
+    if (roleA !== roleB) return roleB - roleA;
+    
+    // Then by name
+    const nameA = getUserDisplayName(a.user);
+    const nameB = getUserDisplayName(b.user);
+    return nameA.localeCompare(nameB);
+  });
+};
+
+export const getAssignableRoles = (currentUserRole: CollaboratorRole): CollaboratorRole[] => {
+  const allRoles: CollaboratorRole[] = ['owner', 'editor', 'reviewer', 'viewer'];
+  return allRoles.filter(role => canManageRole(currentUserRole, role));
+};
+
+export const canManageCollaborator = (
+  managerRole: CollaboratorRole,
+  targetRole: CollaboratorRole
+): boolean => {
+  return getRoleHierarchy(managerRole) > getRoleHierarchy(targetRole);
+};
+
+export const canChangeRole = (
+  currentUserRole: CollaboratorRole,
+  targetRole: CollaboratorRole,
+  newRole: CollaboratorRole
+): boolean => {
+  // Can't change own role
+  if (currentUserRole === targetRole) return false;
+  
+  // Must be able to manage both current and new role
+  return canManageRole(currentUserRole, targetRole) && canManageRole(currentUserRole, newRole);
 };
