@@ -2378,7 +2378,7 @@ export function BookEditor() {
 
         {/* Right sidebar - Collaboration */}
         {collaborationPanelOpen && book && (
-          <div className="border-l w-80 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
+          <div className="border-l w-96 lg:w-80 xl:w-96 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
             {/* Collaboration panel - Scrollable content */}
             <div className="flex-1 overflow-y-auto">
               <CollaborationErrorBoundary>

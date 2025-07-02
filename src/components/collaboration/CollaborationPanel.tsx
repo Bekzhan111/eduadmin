@@ -185,7 +185,7 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-4 overflow-y-auto flex-1">
+      <div className="p-3 sm:p-4 overflow-y-auto flex-1">
           {/* Error Display */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -215,7 +215,7 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
 
           {/* Invite Form */}
           {showInviteForm && (
-            <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="mb-6 p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
               <h3 className="font-medium mb-3">Пригласить нового соавтора</h3>
               
               <div className="space-y-3">
@@ -262,12 +262,12 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <Button onClick={handleInvite} disabled={isLoading || !inviteEmail.trim()}>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={handleInvite} disabled={isLoading || !inviteEmail.trim()} className="flex-1">
                     <Mail className="w-4 h-4 mr-2" />
                     Отправить приглашение
                   </Button>
-                  <Button variant="outline" onClick={handleHideInviteForm}>
+                  <Button variant="outline" onClick={handleHideInviteForm} className="flex-1">
                     Отмена
                   </Button>
                 </div>
@@ -298,7 +298,7 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                   
                   return (
                   <div key={collaborator.id} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         {/* Avatar */}
                         <div 
@@ -309,15 +309,15 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                         </div>
                         
                         {/* User Info */}
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">{userName}</span>
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <span className="font-medium text-gray-900 truncate">{userName}</span>
+                            <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
                               <RoleIcon className="w-3 h-3" />
                               {formatRole(collaborator.role)}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-500">{collaborator.user?.email}</p>
+                          <p className="text-sm text-gray-500 truncate">{collaborator.user?.email}</p>
                         </div>
                       </div>
 
