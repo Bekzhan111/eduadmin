@@ -45,6 +45,7 @@ import {
   X,
   History,
   Users,
+  Calculator,
   // Icon imports
   Home, User, Settings, Search, Mail, Phone, Calendar, Clock, Map, Camera, Music,
   File, Folder, Download, Upload, Copy, Check, Bell, AlertCircle, Info,
@@ -68,6 +69,7 @@ import { renderIcon } from './IconRenderer';
 import { MediaUploadProgress } from './MediaUploadProgress';
 import { MediaMetadataEditor } from './MediaMetadataEditor';
 import { VersionHistoryPanel } from './VersionHistoryPanel';
+import { EnhancedCalculator } from './EnhancedCalculator';
 import { Input } from '@/components/ui/input';
 
 // Enhanced tool definitions with more elements and categories
@@ -195,6 +197,7 @@ export function BookEditor() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [bookVersions, setBookVersions] = useState<BookVersion[]>([]);
   const [isVersionHistoryPanelOpen, setIsVersionHistoryPanelOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [_uploadedMediaUrls, _setUploadedMediaUrls] = useState<Record<string, string>>({});
   const [_changeLog, _setChangeLog] = useState<Array<{
     id: string;
@@ -2042,6 +2045,17 @@ export function BookEditor() {
             Сохранить
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCalculatorOpen(true)}
+            title="Открыть калькулятор"
+            className="ml-1"
+          >
+            <Calculator className="h-4 w-4 mr-1" />
+            Калькулятор
+          </Button>
+
           {selectedElementId && (
             <Button
               variant="destructive"
@@ -2435,6 +2449,12 @@ export function BookEditor() {
           onClose={() => setIsVersionHistoryPanelOpen(false)}
         />
       )}
+
+      {/* Enhanced Calculator */}
+      <EnhancedCalculator
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+      />
     </div>
   );
 } 
