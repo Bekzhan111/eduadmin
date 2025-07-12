@@ -600,7 +600,10 @@ export function CanvasElementComponent({
               textAlign: element.properties.textAlign || 'left',
               borderRadius: (element.properties.borderRadius || 0) * contentScale,
               whiteSpace: 'pre-wrap',
-              padding: `${2 * contentScale}px`,
+              paddingTop: `${2 * contentScale}px`,
+              paddingBottom: `${2 * contentScale}px`,
+              paddingLeft: `${(element.properties.paddingLeft || 8) * contentScale}px`,
+              paddingRight: `${(element.properties.paddingRight || 8) * contentScale}px`,
               boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)', // Синяя обводка при редактировании
               ...borderStyle,
             }}
@@ -692,7 +695,10 @@ export function CanvasElementComponent({
               textAlign: element.properties.textAlign || 'left',
               borderRadius: (element.properties.borderRadius || 0) * contentScale,
               whiteSpace: 'pre-wrap',
-              padding: `${2 * contentScale}px`,
+              paddingTop: `${2 * contentScale}px`,
+              paddingBottom: `${2 * contentScale}px`,
+              paddingLeft: `${(element.properties.paddingLeft || 8) * contentScale}px`,
+              paddingRight: `${(element.properties.paddingRight || 8) * contentScale}px`,
               ...borderStyle,
             }}
             title="Дважды кликните для редактирования. Enter - новая строка, Ctrl+Enter - сохранить"

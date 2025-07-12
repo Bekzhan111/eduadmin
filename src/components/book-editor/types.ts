@@ -4,19 +4,18 @@ export interface Book {
   title: string;
   base_url: string;
   description?: string;
-  price?: number;
   status?: string;
   created_at?: string;
   updated_at?: string;
   canvas_elements?: string;
   canvas_settings?: string;
+  structure?: string;
   user_id?: string;
   author_id?: string;
   // Добавляем поля для дополнительной информации о книге
   cover_image?: string;
   author?: string;
   language?: string;
-  page_count?: number;
   is_published?: boolean;
   visibility?: 'public' | 'private' | 'unlisted';
   category?: string;
@@ -172,6 +171,12 @@ export interface CanvasElement {
     // Assignment properties
     assignmentType?: string;
     assignmentData?: any;
+
+    // Padding properties
+    paddingLeft?: number;
+    paddingRight?: number;
+    paddingTop?: number;
+    paddingBottom?: number;
 
     // Default properties
     defaultWidth?: number;

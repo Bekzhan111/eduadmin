@@ -25,10 +25,7 @@ export interface BookSearchResult {
   views: number;
   downloads: number;
   language: string;
-  pages: number;
   format: string[];
-  price: number;
-  isFree: boolean;
   thumbnail: string;
   isBookmarked: boolean;
   readingTime: number; // in minutes
@@ -41,14 +38,12 @@ export interface SearchFilters {
   author: string;
   language: string;
   rating: number;
-  priceRange: [number, number];
   publicationYear: string;
   difficulty: string;
   format: string;
   tags: string[];
-  sortBy: 'relevance' | 'rating' | 'views' | 'date' | 'title' | 'price';
+  sortBy: 'relevance' | 'rating' | 'views' | 'date' | 'title';
   sortOrder: 'asc' | 'desc';
-  showFreeOnly: boolean;
   showBookmarkedOnly: boolean;
 }
 
@@ -69,14 +64,12 @@ export function BookSearch({
     author: '',
     language: '',
     rating: 0,
-    priceRange: [0, 1000],
     publicationYear: '',
     difficulty: '',
     format: '',
     tags: [],
     sortBy: 'relevance',
     sortOrder: 'desc',
-    showFreeOnly: false,
     showBookmarkedOnly: false,
     ...initialFilters
   });
@@ -104,10 +97,7 @@ export function BookSearch({
       views: 15847,
       downloads: 3456,
       language: 'Русский',
-      pages: 456,
       format: ['PDF', 'EPUB', 'HTML'],
-      price: 599,
-      isFree: false,
       thumbnail: '/books/js-basics.jpg',
       isBookmarked: true,
       readingTime: 480,
@@ -126,10 +116,7 @@ export function BookSearch({
       views: 12456,
       downloads: 2789,
       language: 'Русский',
-      pages: 324,
       format: ['PDF', 'EPUB'],
-      price: 0,
-      isFree: true,
       thumbnail: '/books/ux-design.jpg',
       isBookmarked: false,
       readingTime: 360,
@@ -148,10 +135,7 @@ export function BookSearch({
       views: 18923,
       downloads: 4123,
       language: 'Русский',
-      pages: 567,
       format: ['PDF', 'EPUB', 'HTML'],
-      price: 799,
-      isFree: false,
       thumbnail: '/books/ml-basics.jpg',
       isBookmarked: true,
       readingTime: 600,
@@ -172,8 +156,6 @@ export function BookSearch({
       language: 'Русский',
       pages: 389,
       format: ['PDF', 'HTML'],
-      price: 699,
-      isFree: false,
       thumbnail: '/books/react-nextjs.jpg',
       isBookmarked: false,
       readingTime: 420,
@@ -227,11 +209,6 @@ export function BookSearch({
       filtered = filtered.filter(book => book.rating >= filters.rating);
     }
 
-    // Price range filter
-    filtered = filtered.filter(book => 
-      book.price >= filters.priceRange[0] && book.price <= filters.priceRange[1]
-    );
-
     // Publication year filter
     if (filters.publicationYear) {
       filtered = filtered.filter(book => 
@@ -247,11 +224,6 @@ export function BookSearch({
     // Format filter
     if (filters.format) {
       filtered = filtered.filter(book => book.format.includes(filters.format));
-    }
-
-    // Free only filter
-    if (filters.showFreeOnly) {
-      filtered = filtered.filter(book => book.isFree);
     }
 
     // Bookmarked only filter
@@ -275,9 +247,6 @@ export function BookSearch({
           break;
         case 'date':
           comparison = new Date(a.publicationDate).getTime() - new Date(b.publicationDate).getTime();
-          break;
-        case 'price':
-          comparison = a.price - b.price;
           break;
         default: // relevance
           comparison = 0;
@@ -321,14 +290,12 @@ export function BookSearch({
       author: '',
       language: '',
       rating: 0,
-      priceRange: [0, 1000],
       publicationYear: '',
       difficulty: '',
       format: '',
       tags: [],
       sortBy: 'relevance',
       sortOrder: 'desc',
-      showFreeOnly: false,
       showBookmarkedOnly: false
     });
   };
@@ -337,10 +304,6 @@ export function BookSearch({
     setResults(prev => prev.map(book => 
       book.id === bookId ? { ...book, isBookmarked: !book.isBookmarked } : book
     ));
-  };
-
-  const formatPrice = (price: number) => {
-    return price === 0 ? 'Бесплатно' : `${price} ₽`;
   };
 
   const formatReadingTime = (minutes: number) => {
@@ -491,31 +454,6 @@ export function BookSearch({
               </div>
             </div>
 
-            {/* Price Range */}
-            <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                Цена: {formatPrice(filters.priceRange[0])} - {formatPrice(filters.priceRange[1])}
-              </Label>
-              <div className="flex space-x-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="1000"
-                  value={filters.priceRange[0]}
-                  onChange={(e) => handleFilterChange('priceRange', [Number(e.target.value), filters.priceRange[1]])}
-                  className="flex-1"
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="1000"
-                  value={filters.priceRange[1]}
-                  onChange={(e) => handleFilterChange('priceRange', [filters.priceRange[0], Number(e.target.value)])}
-                  className="flex-1"
-                />
-              </div>
-            </div>
-
             {/* Difficulty */}
             <div>
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Сложность</Label>
@@ -549,15 +487,6 @@ export function BookSearch({
 
           {/* Additional Filters */}
           <div className="mt-4 flex flex-wrap gap-4">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={filters.showFreeOnly}
-                onChange={(e) => handleFilterChange('showFreeOnly', e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Только бесплатные</span>
-            </label>
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -607,7 +536,6 @@ export function BookSearch({
                 <option value="views">Популярность</option>
                 <option value="date">Дата публикации</option>
                 <option value="title">Название</option>
-                <option value="price">Цена</option>
               </select>
               <button
                 onClick={() => handleFilterChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
@@ -750,20 +678,15 @@ export function BookSearch({
                     )}
                   </div>
 
-                  {/* Price and Actions */}
-                  <div className="flex items-center justify-between">
-                    <div className="text-lg font-bold text-blue-600">
-                      {formatPrice(book.price)}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline" className="text-xs">
-                        <Share2 className="h-3 w-3 mr-1" />
-                        Поделиться
-                      </Button>
-                      <Button size="sm" className="text-xs bg-blue-600 hover:bg-blue-700">
-                        {book.isFree ? 'Читать' : 'Купить'}
-                      </Button>
-                    </div>
+                  {/* Actions */}
+                  <div className="flex items-center justify-end space-x-2">
+                    <Button size="sm" variant="outline" className="text-xs">
+                      <Share2 className="h-3 w-3 mr-1" />
+                      Поделиться
+                    </Button>
+                    <Button size="sm" className="text-xs bg-blue-600 hover:bg-blue-700">
+                      Подробнее
+                    </Button>
                   </div>
                 </div>
               </div>

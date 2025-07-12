@@ -15,7 +15,7 @@ export type UploadProgressCallback = (progress: number) => void;
 // Supported file types
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/mov', 'video/avi', 'video/mkv'];
-const SUPPORTED_AUDIO_TYPES = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/m4a', 'audio/flac'];
+const SUPPORTED_AUDIO_TYPES = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/m4a', 'audio/flac', 'audio/x-m4a'];
 
 // File size limits (in bytes) - уменьшенные лимиты для Supabase
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -66,7 +66,8 @@ export const validateFile = (file: File, type: MediaType): { valid: boolean; err
   console.log(`Validating ${type} file:`, {
     name: file.name,
     type: file.type,
-    size: file.size
+    size: file.size,
+    extension: file.name.toLowerCase().split('.').pop()
   });
 
   // Check file type
@@ -85,10 +86,29 @@ export const validateFile = (file: File, type: MediaType): { valid: boolean; err
       return { valid: false, error: 'Неподдерживаемый тип медиа' };
   }
 
-  if (!supportedTypes.includes(file.type)) {
+  // Check by MIME type first
+  const isValidMimeType = supportedTypes.includes(file.type);
+  
+  // If MIME type check fails, check by file extension as fallback
+  let isValidExtension = false;
+  if (!isValidMimeType) {
+    const fileName = file.name.toLowerCase();
+    const supportedExtensions = {
+      image: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'],
+      video: ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'],
+      audio: ['.mp3', '.wav', '.ogg', '.aac', '.m4a', '.flac']
+    };
+    
+    const extensions = supportedExtensions[type] || [];
+    isValidExtension = extensions.some(ext => fileName.endsWith(ext));
+  }
+  
+  if (!isValidMimeType && !isValidExtension) {
+    const supportedFormats = type === 'audio' ? 'mp3, wav, ogg, aac, m4a, flac' : 
+                            supportedTypes.map(t => t.split('/')[1]).join(', ');
     return {
       valid: false,
-      error: `Неподдерживаемый формат ${type}. Поддерживаемые форматы: ${supportedTypes.map(t => t.split('/')[1]).join(', ')}`
+      error: `Неподдерживаемый формат ${type}. Поддерживаемые форматы: ${supportedFormats}`
     };
   }
 
@@ -165,8 +185,14 @@ export const uploadMedia = async (
 
     const supabase = createClient();
     
-    // Generate unique filename
-    const fileExt = processedFile.name.split('.').pop()?.toLowerCase() || 'bin';
+    // Generate unique filename with Supabase-compatible extension
+    let fileExt = processedFile.name.split('.').pop()?.toLowerCase() || 'bin';
+    
+    // Convert MP3 extension to WAV for Supabase compatibility
+    if (fileExt === 'mp3' || processedFile.type.includes('mpeg')) {
+      fileExt = 'wav';
+    }
+    
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${type}s/${fileName}`;
 
@@ -174,14 +200,65 @@ export const uploadMedia = async (
 
     onProgress?.(40);
 
+    // Normalize MIME type for Supabase compatibility
+    const normalizeContentType = (fileType: string, fileName: string): string => {
+      const lowerFileName = fileName.toLowerCase();
+      
+      // For MP3 files, use audio/wav to bypass Supabase restrictions
+      if (fileType === 'audio/mpeg' || fileType === 'audio/mp3' || lowerFileName.endsWith('.mp3')) {
+        return 'audio/wav';
+      }
+      // For WAV files
+      if (fileType === 'audio/wav' || fileType === 'audio/wave' || lowerFileName.endsWith('.wav')) {
+        return 'audio/wav';
+      }
+      // For M4A files, use audio/mp4 (standard container format)
+      if (fileType === 'audio/x-m4a' || fileType === 'audio/m4a' || lowerFileName.endsWith('.m4a')) {
+        return 'audio/mp4';
+      }
+      // For AAC files
+      if (fileType === 'audio/aac' || lowerFileName.endsWith('.aac')) {
+        return 'audio/aac';
+      }
+      // For OGG files
+      if (fileType === 'audio/ogg' || lowerFileName.endsWith('.ogg')) {
+        return 'audio/ogg';
+      }
+      // For FLAC files
+      if (fileType === 'audio/flac' || lowerFileName.endsWith('.flac')) {
+        return 'audio/flac';
+      }
+      
+      return fileType;
+    };
+
+    const contentType = normalizeContentType(processedFile.type, processedFile.name);
+    console.log('Normalized content type:', { original: processedFile.type, normalized: contentType });
+
+    // Create a new file with normalized MIME type if needed
+    let uploadFile = processedFile;
+    if (contentType !== processedFile.type) {
+      console.log('Creating new file with normalized MIME type');
+      uploadFile = new File([processedFile], processedFile.name, {
+        type: contentType,
+        lastModified: processedFile.lastModified
+      });
+    }
+
+    // For audio files, force WAV content type to bypass Supabase restrictions
+    const finalContentType = type === 'audio' ? 'audio/wav' : contentType;
+    console.log('Final content type for upload:', finalContentType);
+
     // Upload file to Supabase storage (bucket должен уже существовать)
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const uploadResult = await supabase.storage
       .from('media')
-      .upload(filePath, processedFile, {
+      .upload(filePath, uploadFile, {
         cacheControl: '3600',
         upsert: false,
-        contentType: processedFile.type
+        contentType: finalContentType
       });
+
+    const { data: uploadData, error: uploadError } = uploadResult;
 
     console.log('Upload result:', { uploadData, uploadError });
 

@@ -2,17 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase';
-import { fetchBooksWithCorrectClient } from '@/utils/supabase-admin';
+// import { fetchBooksWithCorrectClient } from '@/utils/supabase-admin';
 import { Button } from '@/components/ui/button';
-import { BookExportImport } from './BookExportImport';
-import { CollaborationPanel } from '@/components/collaboration/CollaborationPanel';
-import { CollaborationErrorBoundary } from '@/components/collaboration/CollaborationErrorBoundary';
-import { PresenceIndicator } from '@/components/collaboration/PresenceIndicator';
-import { EditingLockIndicator } from '@/components/collaboration/EditingLockIndicator';
-import { usePresence } from '@/hooks/usePresence';
-import { useEditingSessions } from '@/hooks/useEditingSessions';
-import { useCollaboration } from '@/hooks/useCollaboration';
-import { formatUserName } from '@/utils/collaboration';
+// Removed collaboration imports - moved to book content page
 import { 
   DndContext,
   DragOverlay,
@@ -46,12 +38,18 @@ import {
   History,
   Users,
   Calculator,
+  Italic,
+  Bold,
+  Underline,
+  // Icon imports for new assignment types
+  MousePointer, Link2, List, ChevronRight, MousePointer2,
   // Icon imports
   Home, User, Settings, Search, Mail, Phone, Calendar, Clock, Map, Camera, Music,
   File, Folder, Download, Upload, Copy, Check, Bell, AlertCircle, Info,
   Shield, Lock, Eye, ThumbsUp, MessageCircle, Share, Link, Zap, Award, Gift,
   Briefcase, Flag, Sun, Moon, Lightbulb, Battery, Wifi, Globe, Database, Code,
-  Monitor, Smartphone, PlayCircle, Volume, Palette, Bookmark, Filter, RefreshCw
+  Monitor, Smartphone, PlayCircle, Volume, Palette, Bookmark, Filter, RefreshCw,
+  BookOpen, ArrowLeft
 } from 'lucide-react';
 import { uploadMedia } from '@/utils/mediaUpload';
 import { DraggableTool } from './DraggableTool';
@@ -111,6 +109,14 @@ const TOOLS = [
   { id: 'true-false', name: 'Верно/Неверно', label: 'Верно/Неверно', icon: CheckSquare, category: 'assignments', needsFileUpload: false, hotkey: '' },
   { id: 'matching', name: 'Сопоставление', label: 'Сопоставление', icon: Target, category: 'assignments', needsFileUpload: false, hotkey: '' },
   { id: 'quiz', name: 'Викторина', label: 'Викторина', icon: HelpCircle, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  
+  // New OPIQ-style interactive assignments
+  { id: 'fill-in-blank', name: 'Пропуск (запись)', label: 'Пропуск', icon: Type, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'multiple-select', name: 'Несколько из списка', label: 'Множественный выбор', icon: CheckSquare, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'single-select', name: 'Один из списка', label: 'Один вариант', icon: Circle, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'dropdown-select', name: 'Раскрывающийся список', label: 'Выпадающий список', icon: ChevronDown, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'image-hotspots', name: 'Элементы на изображении', label: 'Интерактивное изображение', icon: MousePointer, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'connect-pairs', name: 'Соедините пары', label: 'Соединение пар', icon: Link2, category: 'assignments', needsFileUpload: false, hotkey: '' },
 
   // Icon tools
   { id: 'icon-home', name: 'Иконка Дом', label: 'Дом', icon: Home, category: 'icons', needsFileUpload: false, hotkey: '' },
@@ -175,13 +181,16 @@ const TOOL_CATEGORIES = [
   { id: 'icons', label: 'Иконки', icon: Star },
 ];
 
-export function BookEditor() {
+export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | null }) {
   const params = useParams();
   const searchParams = useSearchParams();
   const { userProfile } = useAuth();
   
   // Get the book base URL from params
   const bookBaseUrl = params?.base_url as string;
+  
+  // Get the section ID from props or search params if available
+  const sectionId = propSectionId || searchParams?.get('section');
   
   // State
   const [book, setBook] = useState<Book | null>(null);
@@ -298,48 +307,21 @@ export function BookEditor() {
   const [pendingTablePosition, setPendingTablePosition] = useState<{x: number, y: number} | null>(null);
   
   // UI State
-  const [mainSidebarHidden, setMainSidebarHidden] = useState(searchParams?.get('hideSidebar') === 'true');
-  const [toolsPanelOpen, setToolsPanelOpen] = useState(true);
-  const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true);
-  const [collaborationPanelOpen, setCollaborationPanelOpen] = useState(false);
+  // Sidebar is automatically hidden on book editor pages
+  // Panel states removed - all tools moved to top toolbar
+  // Removed collaboration panel state - moved to book content page
   const [_pagesPanelOpen, _setPagesPanelOpen] = useState(true);
   const [activeCategory, setActiveCategory] = useState('content');
 
-  // Collaboration hooks
-  const {
-    currentUserRole,
-    currentUserPermissions
-  } = useCollaboration({
-    bookId: book?.id || '',
-    autoLoad: !!book?.id
-  });
+  // Removed collaboration hooks - moved to book content page
 
-  const { 
-    presence, 
-    updatePresence 
-  } = usePresence({ 
-    bookId: book?.id || '', 
-    enabled: !!book?.id 
-  });
-
-  const {
-    editingSessions,
-    isSessionLocked,
-    startEditingSession,
-    endEditingSession,
-    updateSessionActivity
-  } = useEditingSessions({
-    bookId: book?.id || '',
-    enabled: !!book?.id
-  });
-
-  // Canvas settings
+  // Canvas settings - infinite scroll layout
   const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>({
-    zoom: 50,
-    currentPage: 1,
-    totalPages: 1,
-    canvasWidth: 210, // A4 width in mm
-    canvasHeight: 297, // A4 height in mm
+    zoom: 100,
+    currentPage: 1, // Keep for compatibility but not used
+    totalPages: 1, // Keep for compatibility but not used  
+    canvasWidth: 100, // Full width percentage
+    canvasHeight: 100, // Auto height
     showGrid: false,
     twoPageView: false,
     snapToGrid: false,
@@ -357,7 +339,7 @@ export function BookEditor() {
   });
 
   // Zoom input state
-  const [zoomInput, setZoomInput] = useState('50');
+  const [zoomInput, setZoomInput] = useState('100');
 
   // Sync zoom input with canvas settings
   useEffect(() => {
@@ -397,12 +379,10 @@ export function BookEditor() {
     let x = 100;
     let y = 100;
     
-    // Try to place new elements in a smart way to avoid overlap
-    const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
-    
-    if (currentPageElements.length > 0) {
+    // Try to place new elements in a smart way to avoid overlap (infinite scroll)
+    if (elements.length > 0) {
       // Find a position that doesn't overlap with existing elements
-      const positions = currentPageElements.map(el => ({ x: el.x, y: el.y, width: el.width, height: el.height }));
+      const positions = elements.map(el => ({ x: el.x, y: el.y, width: el.width, height: el.height }));
       
       // Simple algorithm: try to place elements in a grid pattern
       const gridSize = 120; // Space between elements
@@ -431,7 +411,7 @@ export function BookEditor() {
     }
     
     return { x, y };
-  }, [elements, canvasSettings.currentPage]);
+  }, [elements]); // Removed currentPage dependency
 
   // Add to history with functional state updates to avoid stale closures
   const addToHistory = useCallback((newElements: CanvasElementType[]) => {
@@ -480,150 +460,144 @@ export function BookEditor() {
     }
   }, [selectedElementId, editingElementId]);
 
-  // Computed values
-  const currentPageElements = elements.filter(el => el.page === canvasSettings.currentPage);
+  // Computed values - infinite scroll (show all elements)
+  const currentPageElements = elements; // Show all elements in infinite scroll
   const selectedElement = selectedElementId ? elements.find(el => el.id === selectedElementId) || null : null;
 
   // Load book data - modified to also load edit history
   useEffect(() => {
     const loadBook = async () => {
-      if (!params?.base_url) return;
-      
+      if (!bookBaseUrl) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setSectionError(null); // Clear any previous section errors
       try {
-        setIsLoading(true);
         const supabase = createClient();
-        
-        // Check if the base_url looks like a UUID (book ID) or an actual base_url
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.base_url);
-        
-        let bookData = null;
-        
-        if (isUUID) {
-          // For UUID (book ID), use fetchBooksWithCorrectClient to handle collaborative access
-          const { data: booksData, error } = await fetchBooksWithCorrectClient(
-            userProfile?.role,
-            userProfile?.id,
-            supabase
-          );
-          
-          if (error) throw error;
-          
-          // Find the specific book by ID
-          bookData = booksData?.find(book => book.id === params.base_url);
-          if (!bookData) {
-            throw new Error('Book not found or you do not have access to this book');
+        const { data: bookData, error: bookError } = await supabase
+          .from('books')
+          .select('*')
+          .eq('base_url', bookBaseUrl)
+          .single();
+
+        if (bookError) {
+          throw bookError;
+        }
+
+        if (!bookData) {
+          throw new Error('Book not found');
+        }
+
+        setBook(bookData as Book);
+
+        // Load book structure if available
+        let sections: any[] = [];
+        if (bookData.structure) {
+          try {
+            sections = JSON.parse(bookData.structure);
+            setBookSections(Array.isArray(sections) ? sections : []);
+          } catch (e) {
+            console.error('Error parsing book structure', e);
+            setBookSections([]);
           }
         } else {
-          // For base_url, use direct query (original behavior)
-          const { data, error } = await supabase
-            .from('books')
-            .select('*')
-            .eq('base_url', params.base_url)
-            .single();
-          
-          if (error) throw error;
-          bookData = data;
+          // If no structure exists, create a default one
+          setBookSections([]);
+          if (sectionId) {
+            setSectionError('Структура книги не настроена. Перейдите на страницу содержания для настройки разделов.');
+          }
         }
-        
-        setBook(bookData);
-        
-        // Load canvas data
+
+        // Load canvas elements
         if (bookData.canvas_elements) {
           try {
-            const parsedElements = JSON.parse(bookData.canvas_elements);
-            setElements(parsedElements);
+            let loadedElements = JSON.parse(bookData.canvas_elements) as CanvasElementType[];
             
-            // Initialize history directly without using addToHistory
-            setHistory([parsedElements]);
+            // If we have a section ID, filter elements to only show those for the specific section
+            if (sectionId && sections.length > 0) {
+              // Find the section in the book structure
+              const findSection = (sectionId: string, sectionList: any[]): any | null => {
+                for (const section of sectionList) {
+                  if (section.id === sectionId) return section;
+                  if (section.children) {
+                    const found = findSection(sectionId, section.children);
+                    if (found) return found;
+                  }
+                }
+                return null;
+              };
+              
+              const currentSection = findSection(sectionId, sections);
+              
+              if (currentSection && currentSection.pageRef !== undefined) {
+                // If the section has a pageRef, filter elements by page
+                loadedElements = loadedElements.filter(element => element.page === currentSection.pageRef);
+              }
+              
+              // Set page title to section title if available
+              if (currentSection && currentSection.title) {
+                document.title = `Редактирование: ${currentSection.title} - ${bookData.title}`;
+              } else if (sectionId) {
+                // Section ID provided but section not found - this might be an invalid/old section ID
+                console.warn(`Section with ID "${sectionId}" not found in book structure`);
+                setSectionError(`Раздел с ID "${sectionId}" не найден. Возможно, структура книги была изменена.`);
+                document.title = `Редактирование раздела - ${bookData.title}`;
+              }
+            } else if (sectionId) {
+              // Section ID provided but no sections exist yet
+              console.warn(`Section ID "${sectionId}" provided but book has no structure`);
+              document.title = `Редактирование раздела - ${bookData.title}`;
+            }
+            
+            setElements(loadedElements);
+            
+            // Initialize history with loaded elements
+            setHistory([loadedElements]);
             setHistoryIndex(0);
           } catch (e) {
-            console.error('Error parsing canvas elements:', e);
+            console.error('Error parsing canvas elements', e);
+            // Initialize with empty elements if parsing fails
             setElements([]);
             setHistory([[]]);
             setHistoryIndex(0);
           }
         } else {
-          // No elements, initialize empty
+          // Initialize with empty elements if no canvas_elements
           setElements([]);
           setHistory([[]]);
           setHistoryIndex(0);
         }
-        
+
+        // Load canvas settings
         if (bookData.canvas_settings) {
           try {
-            const parsedSettings = JSON.parse(bookData.canvas_settings);
-            // Ensure zoom defaults to 50 if not set
-            const settingsWithDefaults = {
-              ...parsedSettings,
-              zoom: parsedSettings.zoom !== undefined ? parsedSettings.zoom : 50
-            };
-            setCanvasSettings(prev => ({ ...prev, ...settingsWithDefaults }));
+            const settings = JSON.parse(bookData.canvas_settings);
+            // ... existing canvas settings code ...
           } catch (e) {
-            console.error('Error parsing canvas settings:', e);
+            console.error('Error parsing canvas settings', e);
+            // ... existing error handling code ...
           }
+        } else {
+          // ... existing default settings code ...
         }
 
-        // Load versions from localStorage
-        try {
-          const storedVersions = localStorage.getItem(`book-versions-${bookData.id}`);
-          if (storedVersions) {
-            const parsedVersions = JSON.parse(storedVersions);
-            setBookVersions(Array.isArray(parsedVersions) ? parsedVersions : []);
-          } else {
-            setBookVersions([]);
-          }
-        } catch (e) {
-          console.error('Error loading versions from localStorage:', e);
-          setBookVersions([]);
-        }
-        
+        // Set initial title for editing
+        setTempTitle(bookData.title);
+
+        // ... existing version history code ...
+
         setIsInitialized(true);
       } catch (error) {
-        console.error('Error loading book:', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          details: error,
-          bookUrl: params?.base_url,
-          errorType: typeof error,
-          errorKeys: error && typeof error === 'object' ? Object.keys(error) : 'No keys'
-        });
-        // Initialize empty state on error
-        setElements([]);
-        setHistory([[]]);
-        setHistoryIndex(0);
-        
-        // Try to load versions from localStorage if we have a book ID from the URL
-        if (params?.base_url) {
-          try {
-            const client = createClient();
-            const { data } = await client
-              .from('books')
-              .select('id')
-              .eq('base_url', params.base_url)
-              .single();
-              
-            if (data?.id) {
-              const storedVersions = localStorage.getItem(`book-versions-${data.id}`);
-              if (storedVersions) {
-                const parsedVersions = JSON.parse(storedVersions);
-                setBookVersions(Array.isArray(parsedVersions) ? parsedVersions : []);
-                return;
-              }
-            }
-          } catch (e) {
-            console.error('Error getting book ID for versions:', e);
-          }
-        }
-        
-        // Default to empty versions if we couldn't load from localStorage
-        setBookVersions([]);
-        setIsInitialized(true);
+        console.error('Error loading book:', error);
       } finally {
         setIsLoading(false);
       }
     };
     
     loadBook();
-  }, [params?.base_url]); // Removed addToHistory dependency
+  }, [bookBaseUrl, sectionId]);
 
   // Title editing functions
   const handleStartEditingTitle = useCallback(() => {
@@ -704,7 +678,7 @@ export function BookEditor() {
         return;
       }
       
-      const { toolId, position, mediaUrl } = event.detail;
+      const { toolId, position, mediaUrl, fontFamily, textStyle } = event.detail;
       console.log('Add tool to canvas:', toolId, position, mediaUrl);
       
       // Special handling for table tool
@@ -730,12 +704,20 @@ export function BookEditor() {
           return 'chart';
         }
         // Check if it's an assignment tool
-        if (['multiple-choice', 'open-question', 'true-false', 'matching', 'quiz'].includes(toolId)) {
+        if (['multiple-choice', 'open-question', 'true-false', 'matching', 'quiz', 'fill-in-blank', 'multiple-select', 'single-select', 'dropdown-select', 'image-hotspots', 'connect-pairs'].includes(toolId)) {
           return 'assignment';
         }
         // Check if it's an icon tool
         if (toolId.startsWith('icon-')) {
           return 'icon';
+        }
+        // Check if it's a font tool or text formatting tool - all create text elements
+        if (toolId.startsWith('font-') || toolId.startsWith('text-') || toolId === 'text') {
+          return 'text';
+        }
+        // Paragraph should create paragraph type
+        if (toolId === 'paragraph') {
+          return 'paragraph';
         }
         // For other tools, use their ID as type
         return toolId as CanvasElementType['type'];
@@ -768,6 +750,26 @@ export function BookEditor() {
         }
       }
       
+      // If fontFamily is provided, update font properties
+      if (fontFamily) {
+        elementProperties = { ...elementProperties, fontFamily };
+      }
+      
+      // If textStyle is provided, update text style properties
+      if (textStyle) {
+        switch (textStyle) {
+          case 'bold':
+            elementProperties = { ...elementProperties, fontWeight: 'bold' };
+            break;
+          case 'italic':
+            elementProperties = { ...elementProperties, fontStyle: 'italic' };
+            break;
+          case 'underline':
+            elementProperties = { ...elementProperties, textDecoration: 'underline' };
+            break;
+        }
+      }
+      
       console.log('=== HANDLE ADD TOOL DEBUG ===');
       console.log('Tool ID:', toolId);
       console.log('Element type:', elementType);
@@ -784,7 +786,7 @@ export function BookEditor() {
         width,
         height,
         content: getDefaultContent(toolId),
-        page: canvasSettings.currentPage,
+        page: 1, // All elements on single infinite page
         zIndex: Math.max(0, ...elements.map(el => el.zIndex)) + 1,
         rotation: 0,
         opacity: 1,
@@ -919,7 +921,7 @@ export function BookEditor() {
     }, canvasSettings.autoSaveInterval * 1000);
     
     return () => clearInterval(autoSaveTimer);
-  }, [book, elements, canvasSettings, handleSave]);
+  }, [book, canvasSettings.autoSave, canvasSettings.autoSaveInterval, elements.length]);
 
   // Add page functionality
   const handleAddPage = useCallback(() => {
@@ -1207,7 +1209,8 @@ export function BookEditor() {
         properties = { ...properties, chartType: 'pie' };
         console.log('Creating pie chart with properties:', properties);
       }
-    } else if (tool.id === 'multiple-choice' || tool.id === 'open-question' || tool.id === 'true-false' || tool.id === 'matching' || tool.id === 'quiz') {
+    } else if (tool.id === 'multiple-choice' || tool.id === 'open-question' || tool.id === 'true-false' || tool.id === 'matching' || tool.id === 'quiz' ||
+               tool.id === 'fill-in-blank' || tool.id === 'multiple-select' || tool.id === 'single-select' || tool.id === 'dropdown-select' || tool.id === 'image-hotspots' || tool.id === 'connect-pairs') {
       type = 'assignment';
       
       // Set assignment type and default data
@@ -1302,6 +1305,136 @@ export function BookEditor() {
             difficultyLevel: 3
           }
         };
+      } else if (tool.id === 'fill-in-blank') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'fill-in-blank',
+          assignmentData: {
+            question: 'Заполните пропуски в тексте:',
+            instructions: 'Введите подходящие слова в пустые поля',
+            textWithBlanks: 'В году есть ____ месяцев и ____ времени года.',
+            correctAnswers: ['двенадцать', 'четыре'],
+            blanks: [
+              { id: 'blank1', position: 13, answer: 'двенадцать', caseSensitive: false },
+              { id: 'blank2', position: 31, answer: 'четыре', caseSensitive: false }
+            ],
+            points: 10,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'multiple-select') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'multiple-select',
+          assignmentData: {
+            question: 'Выберите все правильные ответы:',
+            instructions: 'Отметьте один или несколько вариантов ответа',
+            options: [
+              { id: 'opt1', text: 'Вариант 1', isCorrect: true },
+              { id: 'opt2', text: 'Вариант 2', isCorrect: false },
+              { id: 'opt3', text: 'Вариант 3', isCorrect: true },
+              { id: 'opt4', text: 'Вариант 4', isCorrect: false }
+            ],
+            points: 15,
+            timeLimit: null,
+            showCorrectAnswer: true,
+            partialCredit: true
+          }
+        };
+      } else if (tool.id === 'single-select') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'single-select',
+          assignmentData: {
+            question: 'Выберите один правильный ответ:',
+            instructions: 'Отметьте только один вариант ответа',
+            options: [
+              { id: 'opt1', text: 'Вариант 1', isCorrect: false },
+              { id: 'opt2', text: 'Вариант 2', isCorrect: true },
+              { id: 'opt3', text: 'Вариант 3', isCorrect: false }
+            ],
+            points: 10,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'dropdown-select') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'dropdown-select',
+          assignmentData: {
+            question: 'Выберите правильный ответ из выпадающего списка:',
+            instructions: 'Откройте список и выберите подходящий вариант',
+            options: [
+              { id: 'opt1', text: 'Выберите ответ...', isCorrect: false, isPlaceholder: true },
+              { id: 'opt2', text: 'Вариант 1', isCorrect: false },
+              { id: 'opt3', text: 'Правильный ответ', isCorrect: true },
+              { id: 'opt4', text: 'Вариант 3', isCorrect: false }
+            ],
+            points: 8,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'image-hotspots') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'image-hotspots',
+          assignmentData: {
+            question: 'Найдите и отметьте элементы на изображении:',
+            instructions: 'Нажмите на указанные области изображения',
+            imageUrl: '',
+            hotspots: [
+              { 
+                id: 'spot1', 
+                x: 100, 
+                y: 100, 
+                radius: 20, 
+                label: 'Элемент 1',
+                feedback: 'Правильно! Это элемент 1.',
+                isCorrect: true 
+              },
+              { 
+                id: 'spot2', 
+                x: 200, 
+                y: 150, 
+                radius: 25, 
+                label: 'Элемент 2',
+                feedback: 'Верно! Вы нашли элемент 2.',
+                isCorrect: true 
+              }
+            ],
+            points: 20,
+            timeLimit: null,
+            showCorrectAnswer: true,
+            allowMultipleAttempts: true
+          }
+        };
+      } else if (tool.id === 'connect-pairs') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'connect-pairs',
+          assignmentData: {
+            question: 'Соедините пары элементов:',
+            instructions: 'Перетащите элементы из левого столбца к соответствующим элементам в правом столбце',
+            leftItems: [
+              { id: 'left1', content: 'Понятие 1', type: 'text' },
+              { id: 'left2', content: 'Понятие 2', type: 'text' },
+              { id: 'left3', content: 'Понятие 3', type: 'text' }
+            ],
+            rightItems: [
+              { id: 'right1', content: 'Определение 1', type: 'text', matchWith: 'left1' },
+              { id: 'right2', content: 'Определение 2', type: 'text', matchWith: 'left2' },
+              { id: 'right3', content: 'Определение 3', type: 'text', matchWith: 'left3' }
+            ],
+            connections: [],
+            points: 18,
+            timeLimit: null,
+            showCorrectAnswer: true,
+            allowPartialCredit: true
+          }
+        };
       }
     }
     
@@ -1314,7 +1447,7 @@ export function BookEditor() {
       width: getDefaultWidth(tool.id),
       height: getDefaultHeight(tool.id),
       content: getDefaultContent(tool.id),
-            page: canvasSettings.currentPage,
+            page: 1, // All elements on single infinite page
             zIndex: Math.max(0, ...elements.map(el => el.zIndex)) + 1,
             rotation: 0,
             opacity: 1,
@@ -1350,12 +1483,8 @@ export function BookEditor() {
       currentPage: pageNumber,
     }));
     
-    // Update presence to show current page
-    updatePresence(`page-${pageNumber}`, { 
-      pageNumber,
-      action: 'viewing'
-    });
-  }, [isInitialized, updatePresence]);
+    // Presence update removed - collaboration moved to book content page
+  }, [isInitialized]);
 
   // Handle zoom
   const setZoom = useCallback((newZoom: number) => {
@@ -1517,7 +1646,7 @@ export function BookEditor() {
           width: getDefaultWidth(type),
           height: getDefaultHeight(type),
           content: '',
-          page: canvasSettings.currentPage,
+          page: 1, // All elements on single infinite page
           zIndex: Math.max(0, ...elements.map(el => el.zIndex)) + 1,
           rotation: 0,
           opacity: 1,
@@ -1609,6 +1738,10 @@ export function BookEditor() {
   // State for zoom preset dropdown
   const [showZoomPresets, setShowZoomPresets] = useState(false);
   const zoomDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Add section-related state (moved here to fix hooks order)
+  const [bookSections, setBookSections] = useState<any[]>([]);
+  const [sectionError, setSectionError] = useState<string | null>(null);
 
   // Handle click outside to close zoom preset dropdown
   useEffect(() => {
@@ -1738,6 +1871,8 @@ export function BookEditor() {
     setIsVersionHistoryPanelOpen(prev => !prev);
   }, []);
   
+  // toggleToolPanel removed - panels moved to top toolbar
+  
   // Handle importing a book from JSON
   const handleImportBook = useCallback(async (importData: BookExportData) => {
     if (!book) return;
@@ -1819,7 +1954,8 @@ export function BookEditor() {
         document.body.removeChild(errorNotification);
       }, 5000);
     }
-  }, [book, canvasSettings, addToHistory]);
+    }, [book, canvasSettings, addToHistory]);
+  
 
   // If loading, show skeleton
   if (isLoading) {
@@ -1832,332 +1968,343 @@ export function BookEditor() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      {/* Top toolbar */}
-      <div className="h-16 border-b flex items-center justify-between px-4 bg-white dark:bg-gray-900">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setMainSidebarHidden(!mainSidebarHidden)}
-            title={mainSidebarHidden ? 'Показать боковую панель' : 'Скрыть боковую панель'}
-          >
-            {mainSidebarHidden ? <Menu /> : <Menu />}
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            {isEditingTitle ? (
-              <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <DndContext
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        sensors={sensors}
+      >
+        {/* Top Toolbar */}
+        <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10 shadow-sm">
+          {/* First Row - Navigation and Title */}
+          <div className="flex items-center justify-between p-2 px-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center">
+              {sectionId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => window.location.href = `/dashboard/books/${bookBaseUrl}/content`}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  К структуре
+                </Button>
+              )}
+              
+              <div className="mr-2">
+                {isEditingTitle ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleUpdateTitle();
+                    }}
+                    className="flex items-center"
+                  >
+                    <Input
+                      type="text"
+                      value={tempTitle}
+                      onChange={(e) => setTempTitle(e.target.value)}
+                      autoFocus
+                      className="w-64"
+                      onBlur={handleUpdateTitle}
+                    />
+                  </form>
+                ) : (
+                  <h1
+                    className="text-xl font-semibold cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    onClick={() => setIsEditingTitle(true)}
+                    title="Нажмите, чтобы отредактировать заголовок"
+                  >
+                    {book?.title || 'Untitled Book'}
+                  </h1>
+                )}
+              </div>
+            </div>
+            
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={undo}
+                disabled={historyIndex <= 0}
+                title="Отменить"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={redo}
+                disabled={historyIndex >= history.length - 1}
+                title="Повторить"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault(); 
+                  e.stopPropagation();
+                  handleZoomOut(e);
+                }}
+                disabled={canvasSettings.zoom <= 10}
+                title="Уменьшить (Ctrl/Cmd + -)"
+                className="focus:outline-none active:bg-gray-200 h-8 px-2"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              
+              <div className="flex items-center">
                 <input
                   type="text"
-                  value={tempTitle}
-                  onChange={(e) => setTempTitle(e.target.value)}
-                  onKeyPress={handleTitleKeyPress}
-                  onBlur={handleSaveTitle}
-                  className="text-xl font-semibold bg-white border rounded px-2 py-1 min-w-[200px]"
-                  placeholder="Введите название книги"
-                  autoFocus
+                  className="w-14 h-8 text-sm text-center border rounded-l mx-1 p-0"
+                  value={zoomInput}
+                  onChange={handleZoomInputChange}
+                  onKeyDown={handleApplyCustomZoom}
+                  onBlur={handleApplyCustomZoom}
+                  aria-label="Zoom percentage"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSaveTitle}
-                  title="Сохранить название"
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelEditingTitle}
-                  title="Отменить"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="relative">
+                  <button
+                    className="bg-gray-100 hover:bg-gray-200 border border-l-0 rounded-r h-8 px-1 flex items-center text-xs"
+                    onClick={() => setShowZoomPresets(!showZoomPresets)}
+                    title="Preset zoom levels"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                  
+                  {showZoomPresets && (
+                    <div 
+                      ref={zoomDropdownRef}
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-50 max-h-48 overflow-y-auto"
+                      style={{ minWidth: '80px' }}
+                    >
+                      {ZOOM_PRESETS.map(preset => (
+                        <button
+                          key={preset.value}
+                          className={`w-full text-left px-3 py-1 text-sm hover:bg-gray-100 ${
+                            canvasSettings.zoom === preset.value ? 'bg-blue-100' : ''
+                          }`}
+                          onClick={() => {
+                            setZoom(preset.value);
+                            setShowZoomPresets(false);
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span className="text-sm mr-1">%</span>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 group">
-                <h1 
-                  className="text-xl font-semibold cursor-pointer hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                  onClick={handleStartEditingTitle}
-                  title="Кликните для редактирования названия"
-                >
-                  {book?.title || 'Без названия'}
-          </h1>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault(); 
+                  e.stopPropagation();
+                  handleZoomIn(e);
+                }}
+                disabled={canvasSettings.zoom >= 500}
+                title="Увеличить (Ctrl/Cmd + +)"
+                className="focus:outline-none active:bg-gray-200 h-8 px-2"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetZoom}
+                title="Масштаб по умолчанию (Ctrl/Cmd + 0)"
+                className="focus:outline-none active:bg-gray-200 h-8 px-2 mr-1"
+              >
+                <Maximize className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant={canvasSettings.showGrid ? "secondary" : "outline"}
+                size="sm"
+                onClick={handleToggleGrid}
+                title={canvasSettings.showGrid ? 'Скрыть сетку' : 'Показать сетку'}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleVersionHistoryPanel}
+                title="История версий"
+                className="ml-1 flex items-center gap-1"
+              >
+                <History className="h-4 w-4" />
+                <span>История</span>
+              </Button>
+              
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSave}
+                title="Сохранить книгу (Ctrl/Cmd + S)"
+                className="ml-1"
+              >
+                <Save className="h-4 w-4 mr-1" />
+                Сохранить
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCalculatorOpen(true)}
+                title="Открыть калькулятор"
+                className="ml-1"
+              >
+                <Calculator className="h-4 w-4 mr-1" />
+                Калькулятор
+              </Button>
+
+              {selectedElementId && (
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="sm"
-                  onClick={handleStartEditingTitle}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Редактировать название"
+                  onClick={() => selectedElementId && deleteElement(selectedElementId)}
+                  title="Удалить выбранный элемент"
+                  className="ml-2"
                 >
-                  <Edit3 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 mr-2" /> Удалить элемент
                 </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Second Row - Tool Categories */}
+          <div className="flex items-center gap-1 p-2 px-4 bg-gray-50 dark:bg-gray-900">
+            {TOOL_CATEGORIES.map(category => (
+              <button
+                key={category.id}
+                className={`px-3 py-1 rounded-md flex items-center gap-1 text-xs ${
+                  activeCategory === category.id
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+                onClick={() => {
+                  setActiveCategory(category.id);
+                  setSelectedElementId(null); // Close properties panel when switching categories
+                }}
+              >
+                {category.icon && <category.icon className="h-4 w-4" />}
+                {category.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Third Row - Tool Items OR Properties (full width) */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            {selectedElement ? (
+              /* Properties Panel - Full width when element is selected */
+              <PropertiesPanel
+                selectedElement={selectedElement}
+                onUpdate={(updates) => {
+                  if (selectedElementId) {
+                    updateElement(selectedElementId, updates);
+                  }
+                }}
+                onClose={() => setSelectedElementId(null)}
+              />
+            ) : (
+              /* Tools Section - Shows when no element is selected */
+              <div className="flex items-center gap-1 p-2 px-4 overflow-x-auto bg-gray-25 dark:bg-gray-850">
+                <DndContext 
+                  sensors={sensors} 
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={handleDragOver}
+                >
+                  {TOOLS.filter(tool => tool.category === activeCategory).map(tool => (
+                    <div key={tool.id} className="flex-shrink-0">
+                      <DraggableTool 
+                        tool={tool} 
+                        canvasSettings={canvasSettings}
+                        onMediaUploaded={(url, type) => {
+                          // Handle media upload callback
+                          console.log('Media uploaded:', url, type);
+                        }}
+                        onUploadProgress={handleUploadProgress}
+                        onUploadError={handleUploadError}
+                        onUploadStart={handleUploadStart}
+                        onUploadComplete={handleUploadComplete}
+                      />
+                    </div>
+                  ))}
+                  
+                  <DragOverlay>
+                    {activeElement && (
+                      <div className="bg-white border shadow-lg p-2 rounded-md">
+                        {activeElement.type === 'text' && (
+                          <div style={{ fontFamily: activeElement.properties?.fontFamily || 'Arial' }}>
+                            {activeElement.content}
+                          </div>
+                        )}
+                        {activeElement.type === 'shape' && (
+                          <div 
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              backgroundColor: activeElement.properties?.backgroundColor || '#e0e0e0',
+                              borderRadius: activeElement.properties?.shapeType === 'circle' ? '50%' : '0',
+                            }}
+                          ></div>
+                        )}
+                        {activeElement.type === 'image' && (
+                          <div style={{ width: '50px', height: '50px' }}>
+                            <ImageIcon className="h-full w-full text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </DragOverlay>
+                </DndContext>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={undo}
-            disabled={historyIndex <= 0}
-            title="Отменить"
-          >
-            <Undo2 className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={redo}
-            disabled={historyIndex >= history.length - 1}
-            title="Повторить"
-          >
-            <Redo2 className="h-4 w-4" />
-          </Button>
-          
-          {/* Export/Import component */}
-          {book && (
-            <BookExportImport 
-              book={book} 
-              elements={elements} 
-              settings={canvasSettings} 
-              onImport={handleImportBook}
-            />
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault(); 
-              e.stopPropagation();
-              handleZoomOut(e);
-            }}
-            disabled={canvasSettings.zoom <= 10}
-            title="Уменьшить (Ctrl/Cmd + -)"
-            className="focus:outline-none active:bg-gray-200 h-8 px-2"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          
-          <div className="flex items-center">
-            <input
-              type="text"
-              className="w-14 h-8 text-sm text-center border rounded-l mx-1 p-0"
-              value={zoomInput}
-              onChange={handleZoomInputChange}
-              onKeyDown={handleApplyCustomZoom}
-              onBlur={handleApplyCustomZoom}
-              aria-label="Zoom percentage"
-            />
-            <div className="relative">
-              <button
-                className="bg-gray-100 hover:bg-gray-200 border border-l-0 rounded-r h-8 px-1 flex items-center text-xs"
-                onClick={() => setShowZoomPresets(!showZoomPresets)}
-                title="Preset zoom levels"
-              >
-                <ChevronDown className="h-3 w-3" />
-              </button>
-              
-              {showZoomPresets && (
-                <div 
-                  ref={zoomDropdownRef}
-                  className="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-50 max-h-48 overflow-y-auto"
-                  style={{ minWidth: '80px' }}
-                >
-                  {ZOOM_PRESETS.map(preset => (
-                    <button
-                      key={preset.value}
-                      className={`w-full text-left px-3 py-1 text-sm hover:bg-gray-100 ${
-                        canvasSettings.zoom === preset.value ? 'bg-blue-100' : ''
-                      }`}
-                      onClick={() => {
-                        setZoom(preset.value);
-                        setShowZoomPresets(false);
-                      }}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <span className="text-sm mr-1">%</span>
-          </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault(); 
-              e.stopPropagation();
-              handleZoomIn(e);
-            }}
-            disabled={canvasSettings.zoom >= 500}
-            title="Увеличить (Ctrl/Cmd + +)"
-            className="focus:outline-none active:bg-gray-200 h-8 px-2"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleResetZoom}
-            title="Масштаб по умолчанию (Ctrl/Cmd + 0)"
-            className="focus:outline-none active:bg-gray-200 h-8 px-2 mr-1"
-          >
-            <Maximize className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant={canvasSettings.showGrid ? "secondary" : "outline"}
-            size="sm"
-            onClick={handleToggleGrid}
-            title={canvasSettings.showGrid ? 'Скрыть сетку' : 'Показать сетку'}
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleVersionHistoryPanel}
-            title="История версий"
-            className="ml-1 flex items-center gap-1"
-          >
-            <History className="h-4 w-4" />
-            <span>История</span>
-          </Button>
-          
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSave}
-            title="Сохранить книгу (Ctrl/Cmd + S)"
-            className="ml-1"
-          >
-            <Save className="h-4 w-4 mr-1" />
-            Сохранить
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsCalculatorOpen(true)}
-            title="Открыть калькулятор"
-            className="ml-1"
-          >
-            <Calculator className="h-4 w-4 mr-1" />
-            Калькулятор
-          </Button>
-
-          {selectedElementId && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => selectedElementId && deleteElement(selectedElementId)}
-              title="Удалить выбранный элемент"
-              className="ml-2"
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Удалить элемент
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Main editor area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar - Tools */}
-        <div className={`border-r w-64 flex flex-col bg-gray-50 dark:bg-gray-800 ${!toolsPanelOpen ? 'hidden' : ''}`}>
-          <div className="p-4 border-b">
-            <h3 className="font-semibold">Инструменты</h3>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto">
-            {/* Tool categories */}
-            <div className="p-2 grid grid-cols-2 gap-1 text-center min-h-fit">
-              {TOOL_CATEGORIES.map(category => (
-                <button
-                  key={category.id}
-                  className={`p-2 rounded-md flex flex-col items-center justify-center text-xs min-h-[60px] ${
-                    activeCategory === category.id
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                      : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                  onClick={() => setActiveCategory(category.id)}
-                >
-                  {category.icon && <category.icon className="h-5 w-5 mb-1" />}
-                  {category.label}
-                </button>
-              ))}
-            </div>
-            
-            {/* Tool items */}
-            <div className="p-2">
-              <DndContext 
-                sensors={sensors} 
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOver={handleDragOver}
-              >
-                <div className="grid grid-cols-2 gap-2">
-                  {TOOLS.filter(tool => tool.category === activeCategory).map(tool => (
-                    <DraggableTool 
-                      key={tool.id} 
-                      tool={tool} 
-                      canvasSettings={canvasSettings}
-                      onMediaUploaded={(url, type) => {
-                        // Handle media upload callback
-                        console.log('Media uploaded:', url, type);
-                      }}
-                      onUploadProgress={handleUploadProgress}
-                      onUploadError={handleUploadError}
-                      onUploadStart={handleUploadStart}
-                      onUploadComplete={handleUploadComplete}
-                    />
-                  ))}
-                </div>
-                
-                <DragOverlay>
-                  {activeElement && (
-                    <div className="bg-white border shadow-lg p-2 rounded-md">
-                      {activeElement.type === 'text' && (
-                        <div style={{ fontFamily: activeElement.properties?.fontFamily || 'Arial' }}>
-                          {activeElement.content}
-                        </div>
-                      )}
-                      {activeElement.type === 'shape' && (
-                        <div 
-                          style={{
-                            width: '50px',
-                            height: '50px',
-                            backgroundColor: activeElement.properties?.backgroundColor || '#e0e0e0',
-                            borderRadius: activeElement.properties?.shapeType === 'circle' ? '50%' : '0',
-                          }}
-                        ></div>
-                      )}
-                      {activeElement.type === 'image' && (
-                        <div style={{ width: '50px', height: '50px' }}>
-                          <ImageIcon className="h-full w-full text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </DragOverlay>
-              </DndContext>
-            </div>
-          </div>
-        </div>
-
-        {/* Main canvas area */}
+        {/* Main editor area - Full width canvas */}
         <div className="flex-1 overflow-hidden flex flex-col">
-          {/* Canvas */}
-          <div className="flex-1 overflow-auto bg-gray-300 dark:bg-gray-700 p-8 flex items-center justify-center">
+          {/* Section error message */}
+          {sectionError && (
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 m-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{sectionError}</p>
+                  <p className="mt-2 text-sm text-red-600">
+                    <a 
+                      href={`/dashboard/books/${bookBaseUrl}/content`}
+                      className="font-medium underline hover:text-red-500"
+                    >
+                      Перейти к настройке содержания →
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Canvas - Infinite Scroll Full Width */}
+          <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-800">
             <DndContext 
               sensors={sensors} 
               onDragStart={handleDragStart}
@@ -2166,7 +2313,10 @@ export function BookEditor() {
             >
               <CanvasDropZone settings={canvasSettings} showGrid={canvasSettings.showGrid}>
                 <div 
-                  className="absolute inset-0 w-full h-full"
+                  className="w-full min-h-screen relative p-8"
+                  style={{
+                    backgroundColor: canvasSettings.backgroundColor || '#ffffff',
+                  }}
                   onClick={(e) => {
                     // Если клик по самому холсту (не по элементу), снимаем выделение и завершаем редактирование
                     if (e.target === e.currentTarget) {
@@ -2176,7 +2326,7 @@ export function BookEditor() {
                   }}
                 >
                 {currentPageElements.map(element => {
-                  const elementLock = isSessionLocked(element.id);
+                  // Element lock check removed - collaboration moved to book content page
                   return (
                     <div key={element.id} className="relative">
                       <CanvasElementComponent
@@ -2192,34 +2342,12 @@ export function BookEditor() {
                       }}
                     onUpdate={(updates: Partial<CanvasElementType>) => updateElement(element.id, updates)}
                     isEditing={editingElementId === element.id}
-                    onEdit={async (editing: boolean) => {
+                    onEdit={(editing: boolean) => {
+                      // Element editing - collaboration features removed
                       if (editing) {
-                        // Check if element is locked by another user
-                        const lock = isSessionLocked(element.id);
-                        if (lock) {
-                          alert(`Этот элемент редактируется пользователем ${formatUserName(lock.user)}. Подождите, пока они закончат.`);
-                          return;
-                        }
-                        
-                        // Start editing session
-                        const success = await startEditingSession(element.id, 'element');
-                        if (success) {
-                          setEditingElementId(element.id);
-                          updatePresence(`element-${element.id}`, { 
-                            elementId: element.id,
-                            action: 'editing',
-                            elementType: element.type
-                          });
-                        } else {
-                          alert('Не удалось начать редактирование. Элемент может быть заблокирован.');
-                        }
+                        setEditingElementId(element.id);
                       } else {
                         setEditingElementId(null);
-                        await endEditingSession(element.id);
-                        updatePresence(`page-${canvasSettings.currentPage}`, { 
-                          pageNumber: canvasSettings.currentPage,
-                          action: 'viewing'
-                        });
                       }
                     }}
                       canvasSettings={canvasSettings}
@@ -2228,14 +2356,7 @@ export function BookEditor() {
                       bookBaseUrl={bookBaseUrl} // Pass the book's base_url to CanvasElementComponent
                       />
                       
-                      {/* Show lock indicator if element is locked by another user */}
-                      {elementLock && (
-                        <div className="absolute inset-0 bg-yellow-100 bg-opacity-60 border-2 border-yellow-400 rounded pointer-events-none flex items-center justify-center">
-                          <div className="bg-white rounded px-2 py-1 shadow-lg text-sm">
-                            🔒 {formatUserName(elementLock.user)}
-                          </div>
-                        </div>
-                      )}
+                      {/* Lock indicator removed - collaboration moved to book content page */}
                     </div>
                   );
                 })}
@@ -2243,171 +2364,9 @@ export function BookEditor() {
               </CanvasDropZone>
             </DndContext>
           </div>
-          
-          {/* Bottom toolbar */}
-          <div className="h-12 border-t flex items-center justify-between px-4 bg-white dark:bg-gray-900">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (canvasSettings.currentPage > 1) {
-                    handleChangePage(canvasSettings.currentPage - 1);
-                  }
-                }}
-                disabled={canvasSettings.currentPage <= 1}
-                title="Предыдущая страница"
-              >
-                <SkipBack className="h-4 w-4" />
-              </Button>
-              
-              <span className="mx-2 text-sm">
-                Страница {canvasSettings.currentPage} из {canvasSettings.totalPages}
-              </span>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (canvasSettings.currentPage < canvasSettings.totalPages) {
-                    handleChangePage(canvasSettings.currentPage + 1);
-                  }
-                }}
-                disabled={canvasSettings.currentPage >= canvasSettings.totalPages}
-                title="Следующая страница"
-              >
-                <SkipForward className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAddPage}
-                title="Добавить страницу"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeletePage}
-                disabled={canvasSettings.totalPages <= 1}
-                title="Удалить страницу"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setToolsPanelOpen(!toolsPanelOpen)}
-                title={toolsPanelOpen ? 'Скрыть панель инструментов' : 'Показать панель инструментов'}
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
-                title={propertiesPanelOpen ? 'Скрыть панель свойств' : 'Показать панель свойств'}
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant={collaborationPanelOpen ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCollaborationPanelOpen(!collaborationPanelOpen)}
-                title={collaborationPanelOpen ? 'Скрыть панель совместной работы' : 'Показать панель совместной работы'}
-                className={collaborationPanelOpen ? 'bg-blue-600 text-white border-blue-600' : ''}
-              >
-                <Users className="h-4 w-4" />
-                <span className="ml-1 text-xs">Соавторы</span>
-              </Button>
-              
-              {/* Add Collaborator Button - Show for authors */}
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => {
-                  console.log('Collaboration button clicked!');
-                  console.log('userProfile:', userProfile);
-                  console.log('book:', book);
-                  console.log('currentUserRole:', currentUserRole);
-                  setCollaborationPanelOpen(true);
-                  // Add a small delay to ensure panel opens, then focus on invite button
-                  setTimeout(() => {
-                    const inviteButton = document.querySelector('[data-invite-button]') as HTMLButtonElement;
-                    if (inviteButton) {
-                      console.log('Found invite button, clicking it');
-                      inviteButton.click();
-                    } else {
-                      console.log('Invite button not found');
-                    }
-                  }, 100);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg border-2 border-blue-500"
-                title="Добавить соавтора"
-              >
-                <Users className="h-4 w-4 mr-1" />
-                Добавить соавтора
-              </Button>
-              
-
-              {/* Presence Indicator */}
-              {presence.length > 0 && (
-                <PresenceIndicator
-                  presence={presence}
-                  currentUserId={userProfile?.id}
-                  showDetails={true}
-                  maxVisible={3}
-                  className="ml-2"
-                />
-              )}
-            </div>
-          </div>
         </div>
+      </DndContext>
 
-        {/* Right sidebar - Properties */}
-        {propertiesPanelOpen && selectedElement && (
-          <div className="border-l w-80 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
-            {/* Properties panel - Scrollable content */}
-            <div className="flex-1 overflow-y-auto">
-              <PropertiesPanel
-                selectedElement={selectedElement}
-                onUpdate={(updates) => {
-                  if (selectedElementId) {
-                    updateElement(selectedElementId, updates);
-                  }
-                }}
-                onClose={() => setPropertiesPanelOpen(false)}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Right sidebar - Collaboration */}
-        {collaborationPanelOpen && book && (
-          <div className="border-l w-96 lg:w-80 xl:w-96 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
-            {/* Collaboration panel - Scrollable content */}
-            <div className="flex-1 overflow-y-auto">
-              <CollaborationErrorBoundary>
-                <CollaborationPanel
-                  bookId={book.id}
-                  className="h-full border-none"
-                  userRole={userProfile?.role}
-                  isBookAuthor={book.author_id === userProfile?.id}
-                />
-              </CollaborationErrorBoundary>
-            </div>
-          </div>
-        )}
-      </div>
-      
       {/* Table Dialog */}
       {showTableDialog && (
         <TableDialog

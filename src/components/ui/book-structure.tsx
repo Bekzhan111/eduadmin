@@ -229,17 +229,7 @@ export function BookStructure({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <BookOpen className="h-5 w-5 mr-2" />
-          Структура Книги
-        </CardTitle>
-        <CardDescription>
-          Управление главами, разделами и подразделами книги
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div>
         {/* Add new chapter button */}
         <div className="mb-4">
           <Button 
@@ -273,8 +263,7 @@ export function BookStructure({
             )}
           </DragOverlay>
         </DndContext>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -398,57 +387,54 @@ function SortableItem({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center space-x-1">
+      <div 
+        className="flex items-center space-x-1"
+        onMouseEnter={(e) => e.stopPropagation()}
+        onMouseLeave={(e) => e.stopPropagation()}
+      >
         {/* Visibility toggle */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onToggleVisibility(id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVisibility(id);
+          }}
           className="p-1 h-6 w-6"
           title={section.isVisible ? 'Скрыть' : 'Показать'}
+          onMouseEnter={(e) => e.stopPropagation()}
         >
           {section.isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
         </Button>
 
         {/* Add child (only for chapters) */}
         {section.type === 'chapter' && (
-          <div className="relative group">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-1 h-6 w-6"
-              title="Добавить подраздел"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-            <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg p-2 space-y-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onAddChild('section')}
-                className="w-full justify-start text-xs"
-              >
-                Раздел
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onAddChild('subsection')}
-                className="w-full justify-start text-xs"
-              >
-                Подраздел
-              </Button>
-            </div>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddChild('section');
+            }}
+            className="p-1 h-6 w-6"
+            title="Добавить подраздел"
+            onMouseEnter={(e) => e.stopPropagation()}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
         )}
 
         {/* Edit */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onEdit(section)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(section);
+          }}
           className="p-1 h-6 w-6"
           title="Редактировать"
+          onMouseEnter={(e) => e.stopPropagation()}
         >
           <Edit className="h-3 w-3" />
         </Button>
@@ -457,9 +443,13 @@ function SortableItem({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onDuplicate(id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate(id);
+          }}
           className="p-1 h-6 w-6"
           title="Дублировать"
+          onMouseEnter={(e) => e.stopPropagation()}
         >
           <Copy className="h-3 w-3" />
         </Button>
@@ -468,9 +458,13 @@ function SortableItem({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onDelete(id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(id);
+          }}
           className="p-1 h-6 w-6 text-red-600 hover:text-red-700"
           title="Удалить"
+          onMouseEnter={(e) => e.stopPropagation()}
         >
           <Trash2 className="h-3 w-3" />
         </Button>

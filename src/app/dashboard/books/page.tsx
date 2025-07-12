@@ -711,7 +711,7 @@ export default function BooksPage() {
 
   // Action functions
   const handleEditBook = (book: Book) => {
-    router.push(`/dashboard/books/${book.base_url}/edit`);
+    router.push(`/dashboard/books/${book.base_url}/content`);
   };
 
   const handleDeleteBook = async (book: Book) => {

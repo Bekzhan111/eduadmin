@@ -16,10 +16,8 @@ interface Book {
   grade_level: string;
   course: string;
   category: string;
-  price: number;
   cover_image: string;
   language: string;
-  pages_count: number;
   schools_purchased: number;
   downloads_count: number;
   created_at: string;
@@ -141,21 +139,9 @@ export default function FeaturedBooks() {
               )}
               
               <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                {book.pages_count && (
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="h-3 w-3" />
-                    {book.pages_count} стр.
-                  </div>
-                )}
                 <div className="flex items-center gap-1">
                   <Users className="h-3 w-3" />
                   {book.schools_purchased} школ
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="text-lg font-bold text-gray-900 dark:text-white">
-                  ${book.price || 'Бесплатно'}
                 </div>
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
@@ -170,11 +156,6 @@ export default function FeaturedBooks() {
               <Link href={`/marketplace/books/${book.id}`}>
                 <Button variant="outline" size="sm" className="w-full">
                   Подробнее
-                </Button>
-              </Link>
-              <Link href={`/marketplace/books/${book.id}/purchase`}>
-                <Button size="sm" className="w-full">
-                  Купить Книгу
                 </Button>
               </Link>
             </div>

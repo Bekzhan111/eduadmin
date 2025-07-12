@@ -423,6 +423,15 @@ export const getDefaultWidth = (toolId: string): number => {
       return 200;
     case 'paragraph':
       return 400;
+    case 'font-opensans':
+    case 'font-helvetica':
+    case 'font-roboto':
+    case 'font-arial':
+    case 'font-times':
+    case 'text-bold':
+    case 'text-italic':
+    case 'text-underline':
+      return 250;
     case 'rectangle':
     case 'circle':
     case 'triangle':
@@ -451,6 +460,17 @@ export const getDefaultWidth = (toolId: string): number => {
     case 'matching':
     case 'quiz':
       return 500;
+    // New OPIQ assignment types
+    case 'fill-in-blank':
+    case 'multiple-select':
+      return 500;
+    case 'single-select':
+      return 450;
+    case 'dropdown-select':
+      return 400;
+    case 'image-hotspots':
+    case 'connect-pairs':
+      return 600;
     // Icon tools - smaller default size
     case 'icon-home':
     case 'icon-user':
@@ -513,6 +533,15 @@ export const getDefaultHeight = (toolId: string): number => {
       return 50;
     case 'paragraph':
       return 200;
+    case 'font-opensans':
+    case 'font-helvetica':
+    case 'font-roboto':
+    case 'font-arial':
+    case 'font-times':
+    case 'text-bold':
+    case 'text-italic':
+    case 'text-underline':
+      return 60;
     case 'rectangle':
     case 'circle':
     case 'triangle':
@@ -545,6 +574,19 @@ export const getDefaultHeight = (toolId: string): number => {
       return 400;
     case 'quiz':
       return 500;
+    // New OPIQ assignment types
+    case 'fill-in-blank':
+      return 200;
+    case 'multiple-select':
+      return 300;
+    case 'single-select':
+      return 250;
+    case 'dropdown-select':
+      return 150;
+    case 'image-hotspots':
+      return 400;
+    case 'connect-pairs':
+      return 350;
     // Icon tools - smaller default size (same as width for square icons)
     case 'icon-home':
     case 'icon-user':
@@ -607,6 +649,22 @@ export const getDefaultContent = (toolId: string): string => {
       return 'Текст';
     case 'paragraph':
       return 'Абзац текста. Здесь вы можете написать более длинный текст с несколькими предложениями.';
+    case 'font-opensans':
+      return 'Open Sans Text';
+    case 'font-helvetica':
+      return 'Helvetica Text';
+    case 'font-roboto':
+      return 'Roboto Text';
+    case 'font-arial':
+      return 'Arial Text';
+    case 'font-times':
+      return 'Times New Roman Text';
+    case 'text-bold':
+      return 'Жирный текст';
+    case 'text-italic':
+      return 'Курсивный текст';
+    case 'text-underline':
+      return 'Подчеркнутый текст';
     case 'math':
       return '\\frac{a}{b} = \\frac{c}{d}';
     case 'bar-chart':
@@ -619,6 +677,19 @@ export const getDefaultContent = (toolId: string): string => {
     case 'matching':
     case 'quiz':
       return 'Задание';
+    // New OPIQ assignment types
+    case 'fill-in-blank':
+      return 'Пропуск (запись)';
+    case 'multiple-select':
+      return 'Несколько из списка';
+    case 'single-select':
+      return 'Один из списка';
+    case 'dropdown-select':
+      return 'Раскрывающийся список';
+    case 'image-hotspots':
+      return 'Элементы на изображении';
+    case 'connect-pairs':
+      return 'Соедините пары';
     default:
       return '';
   }
@@ -652,6 +723,9 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
         backgroundColor: 'transparent',
         textAlign: 'left',
         verticalAlign: 'top',
+        borderRadius: 0,
+        paddingLeft: 8,
+        paddingRight: 8,
         defaultWidth: 300,
         defaultHeight: 100,
       };
@@ -985,6 +1059,167 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           timeLimit: null,
           showCorrectAnswer: true
         }
+      };
+    // New OPIQ-style assignment types
+    case 'fill-in-blank':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'fill-in-blank',
+        assignmentData: {
+          question: 'Заполните пропуски в тексте:',
+          instructions: 'Введите подходящие слова в пустые поля',
+          textWithBlanks: 'В году есть ____ месяцев и ____ времени года.',
+          correctAnswers: ['двенадцать', 'четыре'],
+          blanks: [
+            { id: 'blank1', position: 13, answer: 'двенадцать', caseSensitive: false },
+            { id: 'blank2', position: 31, answer: 'четыре', caseSensitive: false }
+          ],
+          points: 10,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 500,
+        defaultHeight: 200
+      };
+    case 'multiple-select':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'multiple-select',
+        assignmentData: {
+          question: 'Выберите все правильные ответы:',
+          instructions: 'Отметьте один или несколько вариантов ответа',
+          options: [
+            { id: 'opt1', text: 'Вариант 1', isCorrect: true },
+            { id: 'opt2', text: 'Вариант 2', isCorrect: false },
+            { id: 'opt3', text: 'Вариант 3', isCorrect: true },
+            { id: 'opt4', text: 'Вариант 4', isCorrect: false }
+          ],
+          points: 15,
+          timeLimit: null,
+          showCorrectAnswer: true,
+          partialCredit: true
+        },
+        defaultWidth: 500,
+        defaultHeight: 300
+      };
+    case 'single-select':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'single-select',
+        assignmentData: {
+          question: 'Выберите один правильный ответ:',
+          instructions: 'Отметьте только один вариант ответа',
+          options: [
+            { id: 'opt1', text: 'Вариант 1', isCorrect: false },
+            { id: 'opt2', text: 'Вариант 2', isCorrect: true },
+            { id: 'opt3', text: 'Вариант 3', isCorrect: false }
+          ],
+          points: 10,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 450,
+        defaultHeight: 250
+      };
+    case 'dropdown-select':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'dropdown-select',
+        assignmentData: {
+          question: 'Выберите правильный ответ из выпадающего списка:',
+          instructions: 'Откройте список и выберите подходящий вариант',
+          options: [
+            { id: 'opt1', text: 'Выберите ответ...', isCorrect: false, isPlaceholder: true },
+            { id: 'opt2', text: 'Вариант 1', isCorrect: false },
+            { id: 'opt3', text: 'Правильный ответ', isCorrect: true },
+            { id: 'opt4', text: 'Вариант 3', isCorrect: false }
+          ],
+          points: 8,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 400,
+        defaultHeight: 150
+      };
+    case 'image-hotspots':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'image-hotspots',
+        assignmentData: {
+          question: 'Найдите и отметьте элементы на изображении:',
+          instructions: 'Нажмите на указанные области изображения',
+          imageUrl: '',
+          hotspots: [
+            { 
+              id: 'spot1', 
+              x: 100, 
+              y: 100, 
+              radius: 20, 
+              label: 'Элемент 1',
+              feedback: 'Правильно! Это элемент 1.',
+              isCorrect: true 
+            },
+            { 
+              id: 'spot2', 
+              x: 200, 
+              y: 150, 
+              radius: 25, 
+              label: 'Элемент 2',
+              feedback: 'Верно! Вы нашли элемент 2.',
+              isCorrect: true 
+            }
+          ],
+          points: 20,
+          timeLimit: null,
+          showCorrectAnswer: true,
+          allowMultipleAttempts: true
+        },
+        defaultWidth: 600,
+        defaultHeight: 400
+      };
+    case 'connect-pairs':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'connect-pairs',
+        assignmentData: {
+          question: 'Соедините пары элементов:',
+          instructions: 'Перетащите элементы из левого столбца к соответствующим элементам в правом столбце',
+          leftItems: [
+            { id: 'left1', content: 'Понятие 1', type: 'text' },
+            { id: 'left2', content: 'Понятие 2', type: 'text' },
+            { id: 'left3', content: 'Понятие 3', type: 'text' }
+          ],
+          rightItems: [
+            { id: 'right1', content: 'Определение 1', type: 'text', matchWith: 'left1' },
+            { id: 'right2', content: 'Определение 2', type: 'text', matchWith: 'left2' },
+            { id: 'right3', content: 'Определение 3', type: 'text', matchWith: 'left3' }
+          ],
+          connections: [],
+          points: 18,
+          timeLimit: null,
+          showCorrectAnswer: true,
+          allowPartialCredit: true
+        },
+        defaultWidth: 600,
+        defaultHeight: 350
       };
     // Icon cases - all icons have same basic properties
     case 'icon-home':

@@ -13,6 +13,8 @@ type Tool = {
   needsFileUpload: boolean;
   accepts?: string;
   hotkey?: string;
+  fontFamily?: string;
+  textStyle?: string;
 };
 
 type DraggableToolProps = {
@@ -64,7 +66,9 @@ export function DraggableTool({
       const event = new CustomEvent('addToolToCanvas', {
         detail: {
           toolId: tool.id,
-          position: { x, y }
+          position: { x, y },
+          fontFamily: tool.fontFamily,
+          textStyle: tool.textStyle
         }
       });
       
@@ -161,9 +165,10 @@ export function DraggableTool({
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
       className={`
-        relative p-3 rounded-md border bg-white dark:bg-gray-800 
+        relative p-2 rounded-md border bg-white dark:bg-gray-800 
         flex flex-col items-center justify-center gap-1 
         cursor-grab hover:bg-gray-100 dark:hover:bg-gray-700
+        min-w-[60px] h-[60px]
         ${isDragging ? 'opacity-50' : ''}
         ${isUploading ? 'animate-pulse cursor-wait' : ''}
         ${uploadError ? 'border-red-300 bg-red-50' : ''}
@@ -182,8 +187,8 @@ export function DraggableTool({
         </div>
       )}
 
-      {tool.icon && <tool.icon className="h-5 w-5" />}
-      <span className="text-xs">{tool.label}</span>
+      {tool.icon && <tool.icon className="h-4 w-4" />}
+      <span className="text-xs text-center leading-tight">{tool.label}</span>
       
       {tool.needsFileUpload && (
         <input

@@ -20,15 +20,16 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
   }, [pathname]);
   
   const shouldHideSidebar = useMemo(() => {
-    return searchParams?.get('hideSidebar') === 'true';
-  }, [searchParams]);
+    // Always hide sidebar on book editor pages
+    return isBookEditorPage || searchParams?.get('hideSidebar') === 'true';
+  }, [searchParams, isBookEditorPage]);
 
   useEffect(() => {
-    // Set main sidebar hidden state based on URL parameter
+    // Set main sidebar hidden state based on page type or URL parameter
     setMainSidebarHidden(shouldHideSidebar);
     
-    // Auto-hide sidebar in book editor if requested
-    if (isBookEditorPage && shouldHideSidebar) {
+    // Auto-hide sidebar in book editor
+    if (isBookEditorPage) {
       setSidebarOpen(false);
     }
   }, [isBookEditorPage, shouldHideSidebar]);
@@ -151,7 +152,7 @@ function DashboardLayoutComponent({ children }: { children: React.ReactNode }) {
       <AppBar 
         onToggleSidebar={toggleSidebar} 
         isSidebarOpen={sidebarOpen}
-        onToggleMainSidebar={isBookEditorPage ? toggleMainSidebar : undefined}
+        onToggleMainSidebar={undefined} // Disable toggle on book editor pages
         isMainSidebarHidden={mainSidebarHidden}
       />
       

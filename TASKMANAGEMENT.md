@@ -3585,3 +3585,15 @@ return (
   - Added automatic history tracking when book is saved
 
 ## Planned Features
+
+- Finalize bug fixes for BookEditor component to properly handle section ID parameter
+- Add UI polish to Content Structure page
+- Add section count and paragraph/elements count to Content Structure page
+- Create tests for the Content Structure feature
+
+- Implement Book Content Structure page between book list and editor [in progress]
+  - Basic implementation complete
+  - Need to update BookEditor to properly handle section editing
+  - Add section statistics
+- Fix migration error handling in Supabase migrations
+- Update user documentation for new content structure feature

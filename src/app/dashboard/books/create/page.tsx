@@ -29,17 +29,60 @@ function CreateBookPage() {
     course: '',
     category: '',
     language: 'Русский',
-    pages_count: '',
-    price: '',
     cover_image: '',
     base_url: ''
   });
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [importedBookData, setImportedBookData] = useState<BookExportData | null>(null);
 
   // Available options
   const gradeOptions = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   const categoryOptions = ['Учебник', 'Рабочая тетрадь', 'Справочник', 'Руководство', 'Методичка'];
   const languageOptions = ['Русский', 'Казахский', 'Английский'];
+  const courseOptions = [
+    'английский язык',
+    'биология',
+    'география',
+    'детская литература',
+    'дошкольное образование',
+    'изобразительное искусство/художественный труд',
+    'иностранный язык',
+    'информатика',
+    'история',
+    'казахский язык',
+    'литература',
+    'литературное чтение',
+    'математика',
+    'музыкальное образование',
+    'немецкий язык',
+    'обществоведение',
+    'Познание мира',
+    'природа и человек',
+    'природоведение/естествознание',
+    'профессиональное образование',
+    'разное',
+    'религиозное образование',
+    'робототехника',
+    'родной язык',
+    'русский язык',
+    'русский язык и литература',
+    'тематическое обучение',
+    'технология',
+    'трудовое обучение',
+    'физика',
+    'физкультура',
+    'философия',
+    'французский язык',
+    'химия',
+    'художественная литература',
+    'цифровая грамотность',
+    'человек и общество',
+    'человековедение',
+    'шведский язык',
+    'юношеская литература',
+  ];
 
   const transliterateCyrillic = (text: string): string => {
     const cyrillicToLatin: { [key: string]: string } = {
@@ -83,20 +126,63 @@ function CreateBookPage() {
     setSuccess(null);
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Пожалуйста, выберите файл изображения');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Размер файла не должен превышать 5МБ');
+      return;
+    }
+
+    setCoverImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCoverImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    setError(null);
+    setSuccess(null);
+  };
+
+  const uploadImageToSupabase = async (file: File): Promise<string> => {
+    const supabase = createClient();
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `book-covers/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('media')
+      .upload(filePath, file);
+
+    if (error) {
+      throw new Error(`Ошибка загрузки: ${error.message}`);
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('media')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const validateForm = () => {
     if (!formData.title.trim()) return 'Название книги обязательно'
     if (!formData.description.trim()) return 'Описание книги обязательно'
     if (!formData.grade_level) return 'Уровень класса обязателен'
     if (!formData.course.trim()) return 'Курс обязателен'
     if (!formData.category.trim()) return 'Категория обязательна'
-    if (!formData.pages_count || parseInt(formData.pages_count) <= 0) return 'Количество страниц должно быть больше 0'
-    if (!formData.price || parseFloat(formData.price) < 0) return 'Цена не может быть отрицательной'
-    
-    // Validate that price can be converted to integer (no decimals for now)
-    const priceValue = parseFloat(formData.price);
-    if (!Number.isInteger(priceValue)) {
-      return 'Цена должна быть целым числом (без копеек). Например: 5000, 2800';
-    }
+    if (!coverImageFile && !formData.cover_image.trim()) return 'Обложка книги обязательна'
     
     return null
   };
@@ -112,8 +198,6 @@ function CreateBookPage() {
       course: '', // Not stored in export data
       category: data.book.category || '',
       language: data.book.language || 'Русский',
-      pages_count: data.settings.totalPages.toString() || '',
-      price: '0', // Default price
       cover_image: data.book.cover_image || '',
       base_url: generateBaseUrl(data.book.title)
     });
@@ -140,6 +224,21 @@ function CreateBookPage() {
     try {
       const supabase = createClient();
       
+      // Upload cover image if file is selected
+      let coverImageUrl = formData.cover_image.trim();
+      if (coverImageFile) {
+        setUploadingImage(true);
+        try {
+          coverImageUrl = await uploadImageToSupabase(coverImageFile);
+        } catch (uploadError) {
+          setUploadingImage(false);
+          setError(uploadError instanceof Error ? uploadError.message : 'Ошибка загрузки изображения');
+          setIsLoading(false);
+          return;
+        }
+        setUploadingImage(false);
+      }
+      
       // Check if base_url is unique
       const { data: existingBook } = await supabase
         .from('books')
@@ -163,9 +262,7 @@ function CreateBookPage() {
           course: formData.course.trim(),
           category: formData.category.trim(),
           language: formData.language,
-          pages_count: parseInt(formData.pages_count),
-          price: Math.round(parseFloat(formData.price)), // Convert to integer for database
-          cover_image: formData.cover_image.trim() || null,
+          cover_image: coverImageUrl,
           base_url: formData.base_url,
           author_id: userProfile.id,
           status: 'Draft', // Set status to Draft so author can edit before sending to moderation
@@ -202,12 +299,12 @@ function CreateBookPage() {
         course: '',
         category: '',
         language: 'Русский',
-        pages_count: '',
-        price: '',
         cover_image: '',
         base_url: ''
       });
       
+      setCoverImageFile(null);
+      setCoverImagePreview(null);
       setImportedBookData(null);
 
       // Redirect to book editor after a short delay
@@ -356,13 +453,18 @@ function CreateBookPage() {
 
                 <div>
                   <Label htmlFor="course">Курс/Предмет *</Label>
-                  <Input
-                    id="course"
-                    value={formData.course}
-                    onChange={(e) => handleInputChange('course', e.target.value)}
-                    placeholder="Математика, Физика, История..."
-                    required
-                  />
+                  <Select value={formData.course} onValueChange={(value) => handleInputChange('course', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите предмет" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courseOptions.map(course => (
+                        <SelectItem key={course} value={course}>
+                          {course}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -397,41 +499,31 @@ function CreateBookPage() {
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="pages_count">Количество страниц *</Label>
-                  <Input
-                    id="pages_count"
-                    type="number"
-                    min="1"
-                    value={formData.pages_count}
-                    onChange={(e) => handleInputChange('pages_count', e.target.value)}
-                    placeholder="100"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="price">Цена (тенге) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => handleInputChange('price', e.target.value)}
-                    placeholder="2500.00"
-                    required
-                  />
-                </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="cover_image">Ссылка на обложку (необязательно)</Label>
-                  <Input
-                    id="cover_image"
-                    value={formData.cover_image}
-                    onChange={(e) => handleInputChange('cover_image', e.target.value)}
-                    placeholder="https://example.com/book-cover.jpg"
-                  />
+                  <Label htmlFor="cover_image">Обложка книги *</Label>
+                  <div className="space-y-4">
+                    <Input
+                      id="cover_image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {coverImagePreview && (
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-600 mb-2">Предпросмотр:</p>
+                        <img 
+                          src={coverImagePreview} 
+                          alt="Предпросмотр обложки" 
+                          className="w-32 h-48 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-500">
+                      Поддерживаемые форматы: JPEG, PNG, GIF. Максимальный размер: 5МБ
+                    </p>
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -461,10 +553,15 @@ function CreateBookPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || uploadingImage}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isLoading ? (
+                  {uploadingImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Загрузка изображения...
+                    </>
+                  ) : isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Создание...

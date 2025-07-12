@@ -15,10 +15,8 @@ interface Book {
   grade_level: string;
   course: string;
   category: string;
-  price: number;
   cover_image: string;
   language: string;
-  pages_count: number;
   file_size: number;
   isbn: string;
   publisher: string;
@@ -108,24 +106,17 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
 
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                      ${book.price || 'Бесплатно'}
+                    <div className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Образовательный контент
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Разовая покупка
+                      Доступно для скачивания
                     </div>
                   </div>
 
-                  <Link href={`/marketplace/books/${book.id}/purchase`}>
-                    <Button size="lg" className="w-full">
-                      <ShoppingCart className="h-5 w-5 mr-2" />
-                      Купить книгу
-                    </Button>
-                  </Link>
-
                   <div className="text-center">
-                    <Link href="/bulk-purchase" className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
-                      Нужны оптовые цены? Свяжитесь с нами
+                    <Link href="/contact" className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                      Свяжитесь с нами для получения доступа
                     </Link>
                   </div>
                 </div>
@@ -181,7 +172,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {book.schools_purchased}
@@ -198,16 +189,6 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                       Загрузок
                     </div>
                   </div>
-                  {book.pages_count && (
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {book.pages_count}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Страниц
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
