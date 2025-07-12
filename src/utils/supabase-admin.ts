@@ -3,14 +3,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Получаем переменные окружения
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
   throw new Error('NEXT_PUBLIC_SUPABASE_URL не установлен');
 }
 
 if (!serviceRoleKey) {
-  throw new Error('NEXT_PUBLIC_SERVICE_ROLE_KEY не установлен');
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY не установлен');
 }
 
 // Cache for book data to improve performance
@@ -19,8 +19,8 @@ const booksCache = new Map<string, {
   data: any[];
 }>();
 
-// Cache expiration time (2 minutes for faster debugging)
-const CACHE_EXPIRATION = 2 * 60 * 1000;
+// Cache expiration time (10 seconds for debugging)
+const CACHE_EXPIRATION = 10 * 1000;
 
 /**
  * Clear the books cache - useful for testing
@@ -46,7 +46,8 @@ export function createAdminClient() {
  */
 export function shouldUseAdminClient(role?: string): boolean {
   // Используем админ клиент для ролей, которым может понадобиться обход RLS
-  return role === 'moderator' || role === 'super_admin';
+  // Authors need admin access to query book_collaborators table
+  return role === 'author' || role === 'moderator' || role === 'super_admin';
 }
 
 /**
@@ -88,6 +89,7 @@ export async function fetchBooksWithCorrectClient(
   while (attempts < maxAttempts) {
     try {
       console.log(`Fetching books for role: ${role}, userId: ${userId}, attempt: ${attempts + 1}`);
+      console.log(`Using admin client: ${useAdmin}`);
       
       let query = client
         .from('books')
@@ -129,6 +131,7 @@ export async function fetchBooksWithCorrectClient(
           
           const collaboratorBookIds = collaboratorBooks?.map(c => c.book_id) || [];
           const allBookIds = [...collaboratorBookIds];
+          console.log(`Found collaborator books for ${userId}:`, collaboratorBookIds);
           
           if (allBookIds.length > 0) {
             // Show books where user is author OR collaborator

@@ -18,7 +18,7 @@ export function UserInfo({
   showRole = true, 
   className = '' 
 }: UserInfoProps) {
-  const { user, userProfile, isLoading } = useAuth();
+  const { user, userProfile, isLoading, logout } = useAuth();
 
   if (isLoading) {
     return (
@@ -132,21 +132,16 @@ export function UserInfo({
               Мои книги
             </Button>
           </Link>
-          <form 
-            action="/auth/signout" 
-            method="post"
-            onSubmit={() => {
-              // Force page reload after signout to clear state
-              setTimeout(() => {
-                window.location.href = '/';
-              }, 100);
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={async () => {
+              await logout();
             }}
           >
-            <Button variant="ghost" size="sm" type="submit">
-              <LogOut className="h-4 w-4 mr-2" />
-              Выйти
-            </Button>
-          </form>
+            <LogOut className="h-4 w-4 mr-2" />
+            Выйти
+          </Button>
         </div>
       </div>
     );
@@ -173,21 +168,14 @@ export function UserInfo({
           Панель управления
         </Link>
         <span className="text-sm text-gray-400">•</span>
-        <form 
-          action="/auth/signout" 
-          method="post" 
-          className="inline"
-          onSubmit={() => {
-            // Force page reload after signout to clear state
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 100);
+        <button 
+          onClick={async () => {
+            await logout();
           }}
+          className="text-sm text-gray-600 hover:text-gray-700"
         >
-          <button type="submit" className="text-sm text-gray-600 hover:text-gray-700">
-            Выйти
-          </button>
-        </form>
+          Выйти
+        </button>
       </div>
     </div>
   );

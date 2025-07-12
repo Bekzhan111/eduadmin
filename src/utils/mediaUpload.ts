@@ -185,14 +185,8 @@ export const uploadMedia = async (
 
     const supabase = createClient();
     
-    // Generate unique filename with Supabase-compatible extension
-    let fileExt = processedFile.name.split('.').pop()?.toLowerCase() || 'bin';
-    
-    // Convert MP3 extension to WAV for Supabase compatibility
-    if (fileExt === 'mp3' || processedFile.type.includes('mpeg')) {
-      fileExt = 'wav';
-    }
-    
+    // Generate unique filename 
+    const fileExt = processedFile.name.split('.').pop()?.toLowerCase() || 'bin';
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${type}s/${fileName}`;
 
@@ -200,62 +194,17 @@ export const uploadMedia = async (
 
     onProgress?.(40);
 
-    // Normalize MIME type for Supabase compatibility
-    const normalizeContentType = (fileType: string, fileName: string): string => {
-      const lowerFileName = fileName.toLowerCase();
-      
-      // For MP3 files, use audio/wav to bypass Supabase restrictions
-      if (fileType === 'audio/mpeg' || fileType === 'audio/mp3' || lowerFileName.endsWith('.mp3')) {
-        return 'audio/wav';
-      }
-      // For WAV files
-      if (fileType === 'audio/wav' || fileType === 'audio/wave' || lowerFileName.endsWith('.wav')) {
-        return 'audio/wav';
-      }
-      // For M4A files, use audio/mp4 (standard container format)
-      if (fileType === 'audio/x-m4a' || fileType === 'audio/m4a' || lowerFileName.endsWith('.m4a')) {
-        return 'audio/mp4';
-      }
-      // For AAC files
-      if (fileType === 'audio/aac' || lowerFileName.endsWith('.aac')) {
-        return 'audio/aac';
-      }
-      // For OGG files
-      if (fileType === 'audio/ogg' || lowerFileName.endsWith('.ogg')) {
-        return 'audio/ogg';
-      }
-      // For FLAC files
-      if (fileType === 'audio/flac' || lowerFileName.endsWith('.flac')) {
-        return 'audio/flac';
-      }
-      
-      return fileType;
-    };
-
-    const contentType = normalizeContentType(processedFile.type, processedFile.name);
-    console.log('Normalized content type:', { original: processedFile.type, normalized: contentType });
-
-    // Create a new file with normalized MIME type if needed
-    let uploadFile = processedFile;
-    if (contentType !== processedFile.type) {
-      console.log('Creating new file with normalized MIME type');
-      uploadFile = new File([processedFile], processedFile.name, {
-        type: contentType,
-        lastModified: processedFile.lastModified
-      });
-    }
-
-    // For audio files, force WAV content type to bypass Supabase restrictions
-    const finalContentType = type === 'audio' ? 'audio/wav' : contentType;
-    console.log('Final content type for upload:', finalContentType);
+    // Use the original file type since all types are now supported in the bucket
+    const contentType = processedFile.type;
+    console.log('Content type for upload:', contentType);
 
     // Upload file to Supabase storage (bucket должен уже существовать)
     const uploadResult = await supabase.storage
       .from('media')
-      .upload(filePath, uploadFile, {
+      .upload(filePath, processedFile, {
         cacheControl: '3600',
         upsert: false,
-        contentType: finalContentType
+        contentType: contentType
       });
 
     const { data: uploadData, error: uploadError } = uploadResult;
@@ -264,9 +213,10 @@ export const uploadMedia = async (
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
+      console.error('Upload error details:', JSON.stringify(uploadError, null, 2));
       
       // Handle specific errors
-      if (uploadError.message.includes('already exists')) {
+      if (uploadError.message && uploadError.message.includes('already exists')) {
         // Try with different filename
         const retryFileName = `retry-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const retryFilePath = `${type}s/${retryFileName}`;
@@ -278,7 +228,7 @@ export const uploadMedia = async (
           .upload(retryFilePath, processedFile, {
             cacheControl: '3600',
             upsert: false,
-            contentType: processedFile.type
+            contentType: contentType
           });
 
         if (retryError) {

@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-// These environment variables should be available on the server side
+// These environment variables should be available on the server side only
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceRoleKey = process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY!;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
@@ -21,32 +21,42 @@ export async function registerUserWithKey(
     console.log('🔄 Starting registration process...');
     console.log('📋 Parameters:', { registrationKey, userId, displayName });
 
-    // First, validate the registration key using our strict validation function
-    const { data: keyValidation, error: validationError } = await supabase
-      .rpc('validate_registration_key_strict', {
-        key_to_check: registrationKey
-      });
+    // Check if registration key exists and is valid
+    const { data: keyCheck, error: keyError } = await supabase
+      .from('registration_keys')
+      .select('*')
+      .eq('key', registrationKey)
+      .eq('is_active', true)
+      .single();
 
-    console.log('🔑 Key validation result:', { keyValidation, validationError });
-
-    if (validationError) {
-      console.error('Validation error:', validationError);
+    if (keyError) {
+      console.error('Key validation error:', keyError);
       return {
         success: false,
-        message: 'Error validating registration key'
+        message: 'Invalid registration key'
       };
     }
 
-    if (!keyValidation.success) {
+    if (!keyCheck) {
       return {
         success: false,
-        message: keyValidation.error || 'Invalid registration key'
+        message: 'Registration key not found or expired'
       };
     }
 
-    // Use the new validated registration function
+    // Check if key is not exhausted
+    if (keyCheck.uses >= keyCheck.max_uses) {
+      return {
+        success: false,
+        message: 'Registration key has been exhausted'
+      };
+    }
+
+    console.log('🔑 Valid key found:', keyCheck);
+
+    // Use the existing register_with_key function
     const { data: registrationResult, error: registrationError } = await supabase
-      .rpc('register_with_key_validated', {
+      .rpc('register_with_key', {
         registration_key: registrationKey,
         user_id: userId,
         display_name: displayName
@@ -65,11 +75,17 @@ export async function registerUserWithKey(
     if (!registrationResult.success) {
       return {
         success: false,
-        message: registrationResult.error || 'Registration failed'
+        message: registrationResult.message || 'Registration failed'
       };
     }
 
     console.log(`✅ Registration completed successfully with role: ${registrationResult.role}`);
+
+    // Clear any cached profile data to ensure fresh role is loaded on next login
+    if (typeof window !== 'undefined') {
+      // Signal to clear cache on client side
+      window.dispatchEvent(new CustomEvent('profile-updated'));
+    }
 
     return {
       success: true,

@@ -307,9 +307,9 @@ function CreateBookPage() {
       setCoverImagePreview(null);
       setImportedBookData(null);
 
-      // Redirect to book editor after a short delay
+      // Redirect to book content page after a short delay
       setTimeout(() => {
-        router.push(`/dashboard/books/${createdBook.base_url}/edit`);
+        router.push(`/dashboard/books/${createdBook.base_url}/content`);
       }, 2000);
 
     } catch (err) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { fetchBooksWithCorrectClient, clearBooksCache } from '@/utils/supabase-admin';
+// Removed import of supabase-admin to avoid client-side environment variable issues
 import { useRouter } from 'next/navigation';
 import BookViewStatsComponent from '@/components/ui/book-view-stats';
 
@@ -110,6 +110,9 @@ export default function BooksPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
+  // Ref to prevent multiple simultaneous fetches
+  const fetchingRef = useRef(false);
+
   // States for adding existing books
   const [showAddExistingModal, setShowAddExistingModal] = useState(false);
   const [existingBooks, setExistingBooks] = useState<Book[]>([]);
@@ -152,29 +155,33 @@ export default function BooksPage() {
   };
 
   const fetchBooks = useCallback(async () => {
-    // Don't set loading state if we already have books (to prevent UI flicker on refresh)
-    if (books.length === 0) {
-      setIsLoading(true);
+    // Prevent multiple simultaneous fetches
+    if (fetchingRef.current) {
+      console.log('Fetch already in progress, skipping...');
+      return;
     }
+    
+    fetchingRef.current = true;
+    setIsLoading(true);
     setError(null);
     
     // Добавляем таймаут для загрузки
     const fetchTimeout = setTimeout(() => {
-      if (isLoading) {
-        setError('Превышено время ожидания загрузки книг. Пожалуйста, обновите страницу.');
-        setIsLoading(false);
-      }
+      setError('Превышено время ожидания загрузки книг. Пожалуйста, обновите страницу.');
+      setIsLoading(false);
     }, 10000); // 10 секунд таймаут
     
     try {
-      const supabase = createClient();
+      // Fetch books via API route to avoid client-side admin access
+      const params = new URLSearchParams();
+      if (userProfile?.role) params.append('role', userProfile.role);
+      if (userProfile?.id) params.append('userId', userProfile.id);
       
-      // Используем новую функцию для получения книг с правильным клиентом
-      const { data: booksData, error: booksError } = await fetchBooksWithCorrectClient(
-        userProfile?.role,
-        userProfile?.id,
-        supabase
-      );
+      const response = await fetch(`/api/books?${params.toString()}`);
+      const booksResult = await response.json();
+      
+      const booksData = booksResult.data;
+      const booksError = booksResult.error ? { message: booksResult.error } : null;
       
       // Очищаем таймаут, так как запрос завершен
       clearTimeout(fetchTimeout);
@@ -235,6 +242,7 @@ export default function BooksPage() {
       let authorsData: Array<{ id: string; display_name?: string; email: string }> = [];
       
       if (authorIds.length > 0) {
+        const supabase = createClient();
         const { data: authors } = await supabase
             .from('users')
             .select('id, display_name, email')
@@ -250,6 +258,7 @@ export default function BooksPage() {
       let collaborationsData: Array<{ book_id: string; role: string }> = [];
       
       if (bookIds.length > 0 && userProfile?.id) {
+        const supabase = createClient();
         const { data: collaborations } = await supabase
           .from('book_collaborators')
           .select('book_id, role')
@@ -322,10 +331,11 @@ export default function BooksPage() {
       console.error('Unexpected error:', error);
       setError(`Произошла неожиданная ошибка: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
+      fetchingRef.current = false;
       setIsLoading(false);
       clearTimeout(fetchTimeout);
     }
-  }, [userProfile?.role, userProfile?.id, books.length, isLoading]);
+  }, [userProfile?.role, userProfile?.id]);
 
   // Filter books based on search term and filters - optimize with useMemo
   useEffect(() => {
@@ -395,7 +405,7 @@ export default function BooksPage() {
       
       fetchBooks();
     }
-  }, [authLoading, userProfile, fetchBooks]);
+  }, [authLoading, userProfile?.role, userProfile?.id]);
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -746,7 +756,7 @@ export default function BooksPage() {
   // Добавляем функцию для повторной загрузки данных
   const handleRetryFetch = () => {
     setError(null);
-    clearBooksCache(); // Clear cache to ensure fresh data
+    // Cache will be managed server-side
     fetchBooks();
   };
 

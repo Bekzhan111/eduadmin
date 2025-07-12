@@ -23,6 +23,8 @@ type AuthContextType = AuthState & {
   refreshAuth: () => Promise<void>;
   clearAuth: () => void;
   clearError: () => void;
+  logout: () => Promise<void>;
+  clearProfileCache: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,6 +82,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       error: null,
     }));
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      clearAuth();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails, clear the auth state
+      clearAuth();
+    }
+  }, [clearAuth]);
+
+  const clearProfileCache = useCallback(() => {
+    profileCacheRef.current = null;
   }, []);
 
   const refreshAuth = useCallback(async () => {
@@ -303,11 +321,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshAuth();
     });
 
+    // Listen for profile updates to clear cache
+    const handleProfileUpdate = () => {
+      clearProfileCache();
+      refreshAuth();
+    };
+
+    window.addEventListener('profile-updated', handleProfileUpdate);
+
     return () => {
       clearTimeout(timeoutId);
       subscription.unsubscribe();
+      window.removeEventListener('profile-updated', handleProfileUpdate);
     };
-  }, [refreshAuth]);
+  }, [refreshAuth, clearProfileCache]);
 
   return (
     <AuthContext.Provider
@@ -316,6 +343,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshAuth,
         clearAuth,
         clearError,
+        logout,
+        clearProfileCache,
       }}
     >
       {children}
