@@ -1,16 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// Получаем переменные окружения
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL не установлен');
-}
-
-if (!serviceRoleKey) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY не установлен');
+// Функция для получения переменных окружения (вызывается лениво)
+function getEnvVars() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL не установлен');
+  }
+  
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY не установлен');
+  }
+  
+  return { supabaseUrl, serviceRoleKey };
 }
 
 // Cache for book data to improve performance
@@ -35,9 +39,7 @@ export function clearBooksCache() {
  * ВНИМАНИЕ: Используйте только для серверных операций или когда RLS блокирует доступ
  */
 export function createAdminClient() {
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Отсутствуют переменные окружения для админ клиента');
-  }
+  const { supabaseUrl, serviceRoleKey } = getEnvVars();
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
