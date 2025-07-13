@@ -204,7 +204,7 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
         />
         {showCorrectAnswers && assignmentData.expectedAnswer && (
           <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-green-700" style={{ color: '#047857' }}>
               <strong>Ожидаемый ответ:</strong> {assignmentData.expectedAnswer}
             </p>
           </div>
@@ -830,16 +830,24 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
 
   return (
     <div 
-      className={`border rounded-lg bg-white shadow-sm`}
+      className={`border rounded-lg shadow-sm w-full h-full`}
       style={{
-        width: element.width,
-        height: element.height,
-        minHeight: '200px'
+        backgroundColor: element.properties?.backgroundColor || '#ffffff',
+        color: element.properties?.color || '#000000'
       }}
     >
       {/* Header */}
       <div 
-        className="flex items-center justify-between p-4 border-b cursor-pointer hover:bg-gray-50"
+        className="flex items-center justify-between p-4 border-b cursor-pointer"
+        style={{
+          backgroundColor: 'transparent',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-2">

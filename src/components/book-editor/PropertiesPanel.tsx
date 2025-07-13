@@ -548,6 +548,60 @@ export function PropertiesPanel({
                 </div>
               </div>
             )}
+            
+            {/* Color Settings for Assignment */}
+            <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
+              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">Фон:</span>
+              <input
+                type="color"
+                value={selectedElement.properties.backgroundColor || '#ffffff'}
+                onChange={(e) => {
+                  onUpdate({
+                    properties: {
+                      ...selectedElement.properties,
+                      backgroundColor: e.target.value
+                    }
+                  });
+                }}
+                className="w-8 h-8 border border-gray-300 rounded cursor-pointer"
+                title="Цвет фона"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
+              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">Текст:</span>
+              <input
+                type="color"
+                value={selectedElement.properties.color || '#000000'}
+                onChange={(e) => {
+                  onUpdate({
+                    properties: {
+                      ...selectedElement.properties,
+                      color: e.target.value
+                    }
+                  });
+                }}
+                className="w-8 h-8 border border-gray-300 rounded cursor-pointer"
+                title="Цвет текста"
+              />
+            </div>
+            
+            {/* Reset Colors Button */}
+            <button
+              onClick={() => {
+                onUpdate({
+                  properties: {
+                    ...selectedElement.properties,
+                    backgroundColor: '#ffffff',
+                    color: '#000000'
+                  }
+                });
+              }}
+              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+              title="Сбросить цвета"
+            >
+              Сброс
+            </button>
           </>
         )}
       </div>

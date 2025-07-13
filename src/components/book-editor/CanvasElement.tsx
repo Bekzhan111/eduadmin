@@ -145,7 +145,9 @@ export function CanvasElementComponent({
     left: isResizing ? currentResize.x : element.x,
     top: isResizing ? currentResize.y : element.y,
     width: isResizing ? currentResize.width : element.width,
-    height: isResizing ? currentResize.height : element.height,
+    height: element.type === 'assignment' ? 'auto' : (isResizing ? currentResize.height : element.height),
+    minHeight: element.type === 'assignment' ? (element.height || '200px') : undefined,
+    maxHeight: element.type === 'assignment' ? '600px' : undefined,
     transform: `
       ${transform && !isResizing ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''}
       rotate(${element.rotation}deg)
@@ -153,6 +155,7 @@ export function CanvasElementComponent({
     opacity: isDragging ? 0.7 : element.opacity,
     zIndex: element.zIndex + (isDragging || isResizing ? 1000 : 0),
     transition: isDragging || isResizing ? 'none' : 'all 0.2s ease',
+    overflow: element.type === 'assignment' ? 'visible' : undefined,
   };
 
   // When shift key is pressed, maintain aspect ratio
