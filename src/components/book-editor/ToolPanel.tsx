@@ -1,7 +1,7 @@
 import React from 'react';
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, DragOverEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { 
-  Type, Square, Circle, Image as ImageIcon, Minus, AlignLeft, Triangle, Star, Heart, Video, Volume2, ArrowRight, LucideIcon, Sigma, BarChart, LineChart, PieChart, Table, HelpCircle, ListChecks, Edit3, Target, CheckSquare,
+  Type, Square, Circle, Image as ImageIcon, Minus, AlignLeft, Triangle, Star, Heart, Video, Volume2, ArrowRight, LucideIcon, Sigma, BarChart, LineChart, PieChart, Table, HelpCircle, ListChecks, Edit3, Target, CheckSquare, Network, Move, Hash, Users, ArrowUpDown, Grid3x3, Crosshair, Highlighter, FileText, Lightbulb as HintIcon,
   // Icons category imports
   Home, User, Settings, Search, Mail, Phone, Calendar, Clock, Map, Camera, Music, File, Folder, Download, Upload, Save, Copy, Trash, Plus, X, Check, Menu, Bell, AlertCircle, Info, Shield, Lock, Eye, ThumbsUp, MessageCircle, Share, Link, Zap, Award, Gift, Briefcase, Flag, Sun, Moon, Lightbulb, Battery, Wifi, Globe, Database, Code, Monitor, Smartphone, PlayCircle, Volume, Palette, Bookmark, Filter, RefreshCw
 } from 'lucide-react';
@@ -67,6 +67,19 @@ const TOOLS: Tool[] = [
   { id: 'true-false', name: 'Верно/Неверно', label: 'Верно/Неверно', icon: CheckSquare, category: 'assignments', needsFileUpload: false, hotkey: '' },
   { id: 'matching', name: 'Сопоставление', label: 'Сопоставление', icon: Target, category: 'assignments', needsFileUpload: false, hotkey: '' },
   { id: 'quiz', name: 'Викторина', label: 'Викторина', icon: HelpCircle, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  
+  // New assignment types
+  { id: 'concept-map', name: 'Карта понятий', label: 'Карта понятий', icon: Network, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'drag-to-point', name: 'Перетаскивание', label: 'Перетаскивание', icon: Move, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'numbers-on-image', name: 'Числа на изображении', label: 'Числа на изображ.', icon: Hash, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'grouping', name: 'Сгруппировать', label: 'Сгруппировать', icon: Users, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'ordering', name: 'Упорядочить', label: 'Упорядочить', icon: ArrowUpDown, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'word-grid', name: 'Сетка слов', label: 'Сетка слов', icon: Grid3x3, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'crossword', name: 'Кроссворд', label: 'Кроссворд', icon: Crosshair, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'highlight-words', name: 'Выделить слова', label: 'Выделить слова', icon: Highlighter, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'text-editing', name: 'Редактирование текста', label: 'Редакт. текста', icon: FileText, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'text-highlighting', name: 'Выделение текста', label: 'Выделение текста', icon: Highlighter, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'hint', name: 'Подсказка', label: 'Подсказка', icon: HintIcon, category: 'assignments', needsFileUpload: false, hotkey: '' },
 
   // Icon tools - Popular icons
   { id: 'icon-home', name: 'Иконка Дом', label: 'Дом', icon: Home, category: 'icons', needsFileUpload: false, hotkey: '' },

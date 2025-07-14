@@ -519,4 +519,30 @@ export type UploadResult = {
   success: boolean;
   url?: string;
   error?: string;
-}; 
+};
+
+// Assignment types for CanvasElement.properties.assignmentType
+export type AssignmentType =
+  | 'multiple-choice'
+  | 'open-question'
+  | 'true-false'
+  | 'matching'
+  | 'quiz'
+  | 'fill-in-blank'
+  | 'multiple-select'
+  | 'single-select'
+  | 'dropdown-select'
+  | 'image-hotspots'
+  | 'connect-pairs'
+  // Новые типы:
+  | 'concept-map'         // Карта понятий
+  | 'drag-to-point'       // Перетаскивание
+  | 'numbers-on-image'    // Числа на изображении
+  | 'grouping'            // Сгруппировать
+  | 'ordering'            // Упорядочить
+  | 'word-grid'           // Сетка слов
+  | 'crossword'           // Кроссворд
+  | 'highlight-words'     // Выделить слова
+  | 'text-editing'        // Редактирование текста
+  | 'text-highlighting'   // Выделение текста
+  | 'hint';               // Подсказка 

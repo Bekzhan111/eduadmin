@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { LucideIcon, X, Upload } from 'lucide-react';
 import { CanvasSettings } from './types';
 import { uploadMedia, MediaType, UploadProgressCallback } from '@/utils/mediaUpload';
+import { EducationalIcon } from './EducationalIcon';
 
 type Tool = {
   id: string;
@@ -15,6 +16,7 @@ type Tool = {
   hotkey?: string;
   fontFamily?: string;
   textStyle?: string;
+  svgFileName?: string;
 };
 
 type DraggableToolProps = {
@@ -168,7 +170,7 @@ export function DraggableTool({
         relative p-2 rounded-md border bg-white dark:bg-gray-800 
         flex flex-col items-center justify-center gap-1 
         cursor-grab hover:bg-gray-100 dark:hover:bg-gray-700
-        min-w-[60px] h-[60px]
+        w-[100px] h-[80px]
         ${isDragging ? 'opacity-50' : ''}
         ${isUploading ? 'animate-pulse cursor-wait' : ''}
         ${uploadError ? 'border-red-300 bg-red-50' : ''}
@@ -187,7 +189,11 @@ export function DraggableTool({
         </div>
       )}
 
-      {tool.icon && <tool.icon className="h-4 w-4" />}
+      {tool.svgFileName ? (
+        <EducationalIcon svgFileName={tool.svgFileName} className="h-6 w-6" />
+      ) : (
+        tool.icon && <tool.icon className="h-6 w-6" />
+      )}
       <span className="text-xs text-center leading-tight">{tool.label}</span>
       
       {tool.needsFileUpload && (

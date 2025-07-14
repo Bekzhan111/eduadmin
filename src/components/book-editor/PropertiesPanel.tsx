@@ -515,7 +515,7 @@ export function PropertiesPanel({
                 className="flex items-center gap-1 h-6 px-2 text-xs"
               >
                 <Edit className="w-3 h-3" />
-                Редактировать ответы
+                Редактировать задание
               </Button>
             </div>
 

@@ -450,6 +450,818 @@ export function AssignmentOptionsEditor({ element, onUpdate, onClose }: Assignme
     );
   };
 
+  const renderConceptMapEditor = () => {
+    const conceptMap = assignmentData.conceptMap || { cells: [], connections: [], rows: 3, cols: 3 };
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка карты понятий</h3>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-sm font-semibold">Строки</Label>
+            <Input
+              type="number"
+              value={conceptMap.rows}
+              onChange={(e) => updateAssignmentData({
+                conceptMap: { ...conceptMap, rows: Number(e.target.value) }
+              })}
+              min={2}
+              max={10}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm font-semibold">Столбцы</Label>
+            <Input
+              type="number"
+              value={conceptMap.cols}
+              onChange={(e) => updateAssignmentData({
+                conceptMap: { ...conceptMap, cols: Number(e.target.value) }
+              })}
+              min={2}
+              max={10}
+              className="mt-1"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Содержимое ячеек</Label>
+          <p className="text-xs text-gray-500 mb-2">Добавьте текст для ячеек карты понятий</p>
+          <div className="space-y-2">
+            {Array.from({ length: conceptMap.rows * conceptMap.cols }, (_, index) => {
+              const row = Math.floor(index / conceptMap.cols);
+              const col = index % conceptMap.cols;
+              const existingCell = conceptMap.cells.find(c => c.row === row && c.col === col);
+              
+              return (
+                <div key={index} className="flex items-center gap-2">
+                  <span className="text-sm w-16">({row + 1},{col + 1})</span>
+                  <Input
+                    placeholder="Содержимое ячейки"
+                    value={existingCell?.content || ''}
+                    onChange={(e) => {
+                      const newCells = conceptMap.cells.filter(c => !(c.row === row && c.col === col));
+                      if (e.target.value.trim()) {
+                        newCells.push({ id: `cell-${row}-${col}`, row, col, content: e.target.value });
+                      }
+                      updateAssignmentData({
+                        conceptMap: { ...conceptMap, cells: newCells }
+                      });
+                    }}
+                    className="flex-1"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDragToPointEditor = () => {
+    const dragItems = assignmentData.dragItems || [];
+    const dropZones = assignmentData.dropZones || [];
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка перетаскивания</h3>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Элементы для перетаскивания</h4>
+            <div className="space-y-2">
+              {dragItems.map((item, index) => (
+                <div key={item.id} className="flex items-center gap-2">
+                  <Input
+                    value={item.content}
+                    onChange={(e) => {
+                      const newItems = [...dragItems];
+                      newItems[index] = { ...item, content: e.target.value };
+                      updateAssignmentData({ dragItems: newItems });
+                    }}
+                    placeholder="Содержимое элемента"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newItems = dragItems.filter((_, i) => i !== index);
+                      updateAssignmentData({ dragItems: newItems });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  const newItem = { id: `item${Date.now()}`, content: `Элемент ${dragItems.length + 1}` };
+                  updateAssignmentData({ dragItems: [...dragItems, newItem] });
+                }}
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Добавить элемент
+              </Button>
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Зоны для размещения</h4>
+            <div className="space-y-2">
+              {dropZones.map((zone, index) => (
+                <div key={zone.id} className="border rounded p-3 space-y-2">
+                  <Input
+                    value={zone.label}
+                    onChange={(e) => {
+                      const newZones = [...dropZones];
+                      newZones[index] = { ...zone, label: e.target.value };
+                      updateAssignmentData({ dropZones: newZones });
+                    }}
+                    placeholder="Название зоны"
+                  />
+                  <select
+                    value={zone.correctAnswer || ''}
+                    onChange={(e) => {
+                      const newZones = [...dropZones];
+                      newZones[index] = { ...zone, correctAnswer: e.target.value };
+                      updateAssignmentData({ dropZones: newZones });
+                    }}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Выберите правильный ответ</option>
+                    {dragItems.map(item => (
+                      <option key={item.id} value={item.id}>{item.content}</option>
+                    ))}
+                  </select>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newZones = dropZones.filter((_, i) => i !== index);
+                      updateAssignmentData({ dropZones: newZones });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  const newZone = { id: `zone${Date.now()}`, label: `Зона ${dropZones.length + 1}`, correctAnswer: '' };
+                  updateAssignmentData({ dropZones: [...dropZones, newZone] });
+                }}
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Добавить зону
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderWordGridEditor = () => {
+    const hiddenWords = assignmentData.hiddenWords || [];
+    const gridSize = assignmentData.gridSize || 10;
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка сетки слов</h3>
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Размер сетки</Label>
+          <Input
+            type="number"
+            value={gridSize}
+            onChange={(e) => updateAssignmentData({ gridSize: Number(e.target.value) })}
+            min={5}
+            max={20}
+            className="mt-1 w-24"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Слова для поиска</Label>
+          <div className="space-y-2 mt-2">
+            {hiddenWords.map((word, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={word}
+                  onChange={(e) => {
+                    const newWords = [...hiddenWords];
+                    newWords[index] = e.target.value;
+                    updateAssignmentData({ hiddenWords: newWords });
+                  }}
+                  placeholder="Введите слово"
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newWords = hiddenWords.filter((_, i) => i !== index);
+                    updateAssignmentData({ hiddenWords: newWords });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              onClick={() => {
+                updateAssignmentData({ hiddenWords: [...hiddenWords, ''] });
+              }}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Добавить слово
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderNumbersOnImageEditor = () => {
+    const options = assignmentData.options || [];
+    const numberPoints = assignmentData.numberPoints || [];
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка чисел на изображении</h3>
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">URL изображения</Label>
+          <Input
+            value={assignmentData.imageUrl || ''}
+            onChange={(e) => updateAssignmentData({ imageUrl: e.target.value })}
+            placeholder="https://example.com/image.jpg"
+            className="mt-1"
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Варианты ответов</h4>
+            <div className="space-y-2">
+              {options.map((option, index) => (
+                <div key={option.id} className="flex items-center gap-2">
+                  <span className="text-sm w-8">{index + 1}.</span>
+                  <Input
+                    value={option.text}
+                    onChange={(e) => {
+                      const newOptions = [...options];
+                      newOptions[index] = { ...option, text: e.target.value };
+                      updateAssignmentData({ options: newOptions });
+                    }}
+                    placeholder="Текст варианта"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newOptions = options.filter((_, i) => i !== index);
+                      updateAssignmentData({ options: newOptions });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  const newOption = { id: `opt${Date.now()}`, text: `Вариант ${options.length + 1}` };
+                  updateAssignmentData({ options: [...options, newOption] });
+                }}
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Добавить вариант
+              </Button>
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Точки на изображении</h4>
+            <div className="space-y-2">
+              {numberPoints.map((point, index) => (
+                <div key={point.id} className="border rounded p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">X позиция</Label>
+                      <Input
+                        type="number"
+                        value={point.x}
+                        onChange={(e) => {
+                          const newPoints = [...numberPoints];
+                          newPoints[index] = { ...point, x: Number(e.target.value) };
+                          updateAssignmentData({ numberPoints: newPoints });
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Y позиция</Label>
+                      <Input
+                        type="number"
+                        value={point.y}
+                        onChange={(e) => {
+                          const newPoints = [...numberPoints];
+                          newPoints[index] = { ...point, y: Number(e.target.value) };
+                          updateAssignmentData({ numberPoints: newPoints });
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Правильный ответ</Label>
+                    <select
+                      value={point.correctAnswer || ''}
+                      onChange={(e) => {
+                        const newPoints = [...numberPoints];
+                        newPoints[index] = { ...point, correctAnswer: e.target.value };
+                        updateAssignmentData({ numberPoints: newPoints });
+                      }}
+                      className="w-full p-2 border rounded text-sm"
+                    >
+                      <option value="">Выберите правильный ответ</option>
+                      {options.map(option => (
+                        <option key={option.id} value={option.id}>{option.text}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newPoints = numberPoints.filter((_, i) => i !== index);
+                      updateAssignmentData({ numberPoints: newPoints });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  const newPoint = { id: `point${Date.now()}`, x: 100, y: 100, label: `Точка ${numberPoints.length + 1}`, correctAnswer: '' };
+                  updateAssignmentData({ numberPoints: [...numberPoints, newPoint] });
+                }}
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Добавить точку
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGroupingEditor = () => {
+    const items = assignmentData.items || [];
+    const groups = assignmentData.groups || [];
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка группировки</h3>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Элементы для группировки</h4>
+            <div className="space-y-2">
+              {items.map((item, index) => (
+                <div key={item.id} className="flex items-center gap-2">
+                  <Input
+                    value={item.content}
+                    onChange={(e) => {
+                      const newItems = [...items];
+                      newItems[index] = { ...item, content: e.target.value };
+                      updateAssignmentData({ items: newItems });
+                    }}
+                    placeholder="Содержимое элемента"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newItems = items.filter((_, i) => i !== index);
+                      updateAssignmentData({ items: newItems });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  const newItem = { id: `item${Date.now()}`, content: `Элемент ${items.length + 1}`, type: 'text' };
+                  updateAssignmentData({ items: [...items, newItem] });
+                }}
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Добавить элемент
+              </Button>
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Группы</h4>
+            <div className="space-y-2">
+              {groups.map((group, index) => (
+                <div key={group.id} className="border rounded p-3 space-y-2">
+                  <Input
+                    value={group.name}
+                    onChange={(e) => {
+                      const newGroups = [...groups];
+                      newGroups[index] = { ...group, name: e.target.value };
+                      updateAssignmentData({ groups: newGroups });
+                    }}
+                    placeholder="Название группы"
+                  />
+                  <div>
+                    <Label className="text-xs">Правильные элементы (выберите несколько)</Label>
+                    <div className="space-y-1 mt-1">
+                      {items.map(item => (
+                        <label key={item.id} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={group.correctItems?.includes(item.id) || false}
+                            onChange={(e) => {
+                              const newGroups = [...groups];
+                              const currentItems = newGroups[index].correctItems || [];
+                              if (e.target.checked) {
+                                newGroups[index].correctItems = [...currentItems, item.id];
+                              } else {
+                                newGroups[index].correctItems = currentItems.filter(id => id !== item.id);
+                              }
+                              updateAssignmentData({ groups: newGroups });
+                            }}
+                            className="w-4 h-4"
+                          />
+                          {item.content}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newGroups = groups.filter((_, i) => i !== index);
+                      updateAssignmentData({ groups: newGroups });
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  const newGroup = { id: `group${Date.now()}`, name: `Группа ${groups.length + 1}`, correctItems: [] };
+                  updateAssignmentData({ groups: [...groups, newGroup] });
+                }}
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Добавить группу
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderOrderingEditor = () => {
+    const items = assignmentData.items || [];
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка упорядочивания</h3>
+        </div>
+        
+        <div>
+          <h4 className="font-semibold text-sm mb-2">Элементы для упорядочивания</h4>
+          <p className="text-xs text-gray-500 mb-2">Расположите элементы в правильном порядке</p>
+          <div className="space-y-2">
+            {items.map((item, index) => (
+              <div key={item.id} className="flex items-center gap-2">
+                <span className="text-sm w-8">{index + 1}.</span>
+                <Input
+                  value={item.content}
+                  onChange={(e) => {
+                    const newItems = [...items];
+                    newItems[index] = { ...item, content: e.target.value };
+                    updateAssignmentData({ items: newItems });
+                  }}
+                  placeholder="Содержимое элемента"
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => moveItem(index, 'up')}
+                  disabled={index === 0}
+                >
+                  <ArrowUp className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => moveItem(index, 'down')}
+                  disabled={index === items.length - 1}
+                >
+                  <ArrowDown className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newItems = items.filter((_, i) => i !== index);
+                    updateAssignmentData({ items: newItems });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              onClick={() => {
+                const newItem = { id: `item${Date.now()}`, content: `Элемент ${items.length + 1}`, type: 'text' };
+                updateAssignmentData({ items: [...items, newItem] });
+              }}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Добавить элемент
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCrosswordEditor = () => {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка кроссворда</h3>
+        </div>
+        
+        <div className="text-center text-gray-500 py-8">
+          <p>Редактор кроссворда находится в разработке.</p>
+          <p className="text-sm mt-1">Используйте стандартные настройки в панели свойств.</p>
+        </div>
+      </div>
+    );
+  };
+
+  const renderHighlightWordsEditor = () => {
+    const wordsToHighlight = assignmentData.wordsToHighlight || [];
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка выделения слов</h3>
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Текст для анализа</Label>
+          <textarea
+            value={assignmentData.textContent || ''}
+            onChange={(e) => updateAssignmentData({ textContent: e.target.value })}
+            className="w-full h-32 p-2 border rounded-md text-sm mt-1"
+            placeholder="Введите текст, в котором нужно выделить слова"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Слова для выделения</Label>
+          <div className="space-y-2 mt-2">
+            {wordsToHighlight.map((word, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={word}
+                  onChange={(e) => {
+                    const newWords = [...wordsToHighlight];
+                    newWords[index] = e.target.value;
+                    updateAssignmentData({ wordsToHighlight: newWords });
+                  }}
+                  placeholder="Слово для выделения"
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newWords = wordsToHighlight.filter((_, i) => i !== index);
+                    updateAssignmentData({ wordsToHighlight: newWords });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              onClick={() => {
+                updateAssignmentData({ wordsToHighlight: [...wordsToHighlight, ''] });
+              }}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Добавить слово
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTextEditingEditor = () => {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка редактирования текста</h3>
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Исходный текст</Label>
+          <textarea
+            value={assignmentData.originalText || ''}
+            onChange={(e) => updateAssignmentData({ originalText: e.target.value })}
+            className="w-full h-32 p-2 border rounded-md text-sm mt-1"
+            placeholder="Введите текст, который нужно отредактировать"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Инструкции по редактированию</Label>
+          <textarea
+            value={assignmentData.editingInstructions || ''}
+            onChange={(e) => updateAssignmentData({ editingInstructions: e.target.value })}
+            className="w-full h-24 p-2 border rounded-md text-sm mt-1"
+            placeholder="Укажите, что нужно исправить в тексте"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Ожидаемый результат</Label>
+          <textarea
+            value={assignmentData.expectedResult || ''}
+            onChange={(e) => updateAssignmentData({ expectedResult: e.target.value })}
+            className="w-full h-32 p-2 border rounded-md text-sm mt-1"
+            placeholder="Введите правильно отредактированный текст"
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const renderTextHighlightingEditor = () => {
+    const correctHighlights = assignmentData.correctHighlights || [];
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка выделения текста</h3>
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Текст для выделения</Label>
+          <textarea
+            value={assignmentData.textContent || ''}
+            onChange={(e) => updateAssignmentData({ textContent: e.target.value })}
+            className="w-full h-32 p-2 border rounded-md text-sm mt-1"
+            placeholder="Введите текст для выделения"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Инструкции</Label>
+          <textarea
+            value={assignmentData.highlightInstructions || ''}
+            onChange={(e) => updateAssignmentData({ highlightInstructions: e.target.value })}
+            className="w-full h-20 p-2 border rounded-md text-sm mt-1"
+            placeholder="Укажите, что нужно выделить в тексте"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Правильные выделения</Label>
+          <div className="space-y-2 mt-2">
+            {correctHighlights.map((highlight, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={highlight}
+                  onChange={(e) => {
+                    const newHighlights = [...correctHighlights];
+                    newHighlights[index] = e.target.value;
+                    updateAssignmentData({ correctHighlights: newHighlights });
+                  }}
+                  placeholder="Фраза для выделения"
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newHighlights = correctHighlights.filter((_, i) => i !== index);
+                    updateAssignmentData({ correctHighlights: newHighlights });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              onClick={() => {
+                updateAssignmentData({ correctHighlights: [...correctHighlights, ''] });
+              }}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Добавить выделение
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderHintEditor = () => {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Настройка подсказки</h3>
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Текст подсказки</Label>
+          <textarea
+            value={assignmentData.hintText || ''}
+            onChange={(e) => updateAssignmentData({ hintText: e.target.value })}
+            className="w-full h-24 p-2 border rounded-md text-sm mt-1"
+            placeholder="Введите текст подсказки"
+          />
+        </div>
+        
+        <div>
+          <Label className="text-sm font-semibold">Вопрос после подсказки (необязательно)</Label>
+          <textarea
+            value={assignmentData.followUpQuestion || ''}
+            onChange={(e) => updateAssignmentData({ followUpQuestion: e.target.value })}
+            className="w-full h-20 p-2 border rounded-md text-sm mt-1"
+            placeholder="Введите вопрос, который появится после показа подсказки"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={assignmentData.showHint || false}
+            onChange={(e) => updateAssignmentData({ showHint: e.target.checked })}
+            className="w-4 h-4"
+          />
+          <Label className="text-sm">Показывать подсказку сразу (без кнопки)</Label>
+        </div>
+      </div>
+    );
+  };
+
+  const moveItem = (index: number, direction: 'up' | 'down') => {
+    const items = assignmentData.items || [];
+    if ((direction === 'up' && index > 0) || (direction === 'down' && index < items.length - 1)) {
+      const newItems = [...items];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
+      updateAssignmentData({ items: newItems });
+    }
+  };
+
   const renderEditor = () => {
     switch (assignmentType) {
       case 'multiple-choice':
@@ -463,6 +1275,28 @@ export function AssignmentOptionsEditor({ element, onUpdate, onClose }: Assignme
         return renderHotspotsEditor();
       case 'connect-pairs':
         return renderConnectPairsEditor();
+      case 'concept-map':
+        return renderConceptMapEditor();
+      case 'drag-to-point':
+        return renderDragToPointEditor();
+      case 'numbers-on-image':
+        return renderNumbersOnImageEditor();
+      case 'grouping':
+        return renderGroupingEditor();
+      case 'ordering':
+        return renderOrderingEditor();
+      case 'word-grid':
+        return renderWordGridEditor();
+      case 'crossword':
+        return renderCrosswordEditor();
+      case 'highlight-words':
+        return renderHighlightWordsEditor();
+      case 'text-editing':
+        return renderTextEditingEditor();
+      case 'text-highlighting':
+        return renderTextHighlightingEditor();
+      case 'hint':
+        return renderHintEditor();
       default:
         return (
           <div className="text-center text-gray-500 py-8">

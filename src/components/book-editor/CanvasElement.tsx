@@ -1039,7 +1039,7 @@ export function CanvasElementComponent({
             }}
           >
             {element.properties.iconType && renderIcon(element.properties.iconType, {
-              size: Math.min(element.width, element.height) * 0.7,
+              size: Math.min(element.width, element.height) * 0.9,
               color: element.properties.color || '#000000',
             })}
           </div>

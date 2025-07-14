@@ -42,7 +42,7 @@ import {
   Bold,
   Underline,
   // Icon imports for new assignment types
-  MousePointer, Link2, List, ChevronRight, MousePointer2,
+  MousePointer, Link2, List, ChevronRight, MousePointer2, Network, Move, Hash, ArrowUpDown, Grid3x3, Crosshair, Highlighter, FileText, Lightbulb as HintIcon,
   // Icon imports
   Home, User, Settings, Search, Mail, Phone, Calendar, Clock, Map, Camera, Music,
   File, Folder, Download, Upload, Copy, Check, Bell, AlertCircle, Info,
@@ -117,56 +117,65 @@ const TOOLS = [
   { id: 'dropdown-select', name: 'Раскрывающийся список', label: 'Выпадающий список', icon: ChevronDown, category: 'assignments', needsFileUpload: false, hotkey: '' },
   { id: 'image-hotspots', name: 'Элементы на изображении', label: 'Интерактивное изображение', icon: MousePointer, category: 'assignments', needsFileUpload: false, hotkey: '' },
   { id: 'connect-pairs', name: 'Соедините пары', label: 'Соединение пар', icon: Link2, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  
+  // New assignment types
+  { id: 'concept-map', name: 'Карта понятий', label: 'Карта понятий', icon: Network, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'drag-to-point', name: 'Перетаскивание', label: 'Перетаскивание', icon: Move, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'numbers-on-image', name: 'Числа на изображении', label: 'Числа на изображ.', icon: Hash, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'grouping', name: 'Сгруппировать', label: 'Сгруппировать', icon: Users, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'ordering', name: 'Упорядочить', label: 'Упорядочить', icon: ArrowUpDown, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'word-grid', name: 'Сетка слов', label: 'Сетка слов', icon: Grid3x3, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'crossword', name: 'Кроссворд', label: 'Кроссворд', icon: Crosshair, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'highlight-words', name: 'Выделить слова', label: 'Выделить слова', icon: Highlighter, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'text-editing', name: 'Редактирование текста', label: 'Редакт. текста', icon: FileText, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'text-highlighting', name: 'Выделение текста', label: 'Выделение текста', icon: Highlighter, category: 'assignments', needsFileUpload: false, hotkey: '' },
+  { id: 'hint', name: 'Подсказка', label: 'Подсказка', icon: HintIcon, category: 'assignments', needsFileUpload: false, hotkey: '' },
 
-  // Icon tools
-  { id: 'icon-home', name: 'Иконка Дом', label: 'Дом', icon: Home, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-user', name: 'Иконка Пользователь', label: 'Пользователь', icon: User, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-settings', name: 'Иконка Настройки', label: 'Настройки', icon: Settings, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-search', name: 'Иконка Поиск', label: 'Поиск', icon: Search, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-mail', name: 'Иконка Почта', label: 'Почта', icon: Mail, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-phone', name: 'Иконка Телефон', label: 'Телефон', icon: Phone, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-calendar', name: 'Иконка Календарь', label: 'Календарь', icon: Calendar, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-clock', name: 'Иконка Часы', label: 'Часы', icon: Clock, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-map', name: 'Иконка Карта', label: 'Карта', icon: Map, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-camera', name: 'Иконка Камера', label: 'Камера', icon: Camera, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-music', name: 'Иконка Музыка', label: 'Музыка', icon: Music, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-file', name: 'Иконка Файл', label: 'Файл', icon: File, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-folder', name: 'Иконка Папка', label: 'Папка', icon: Folder, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-download', name: 'Иконка Скачать', label: 'Скачать', icon: Download, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-upload', name: 'Иконка Загрузить', label: 'Загрузить', icon: Upload, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-copy', name: 'Иконка Копировать', label: 'Копировать', icon: Copy, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-check', name: 'Иконка Галочка', label: 'Галочка', icon: Check, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-bell', name: 'Иконка Уведомления', label: 'Звонок', icon: Bell, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-alert', name: 'Иконка Предупреждение', label: 'Внимание', icon: AlertCircle, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-info', name: 'Иконка Информация', label: 'Инфо', icon: Info, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-shield', name: 'Иконка Защита', label: 'Щит', icon: Shield, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-lock', name: 'Иконка Замок', label: 'Замок', icon: Lock, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-eye', name: 'Иконка Глаз', label: 'Глаз', icon: Eye, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-thumbs-up', name: 'Иконка Лайк', label: 'Лайк', icon: ThumbsUp, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-message', name: 'Иконка Сообщение', label: 'Сообщение', icon: MessageCircle, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-share', name: 'Иконка Поделиться', label: 'Поделиться', icon: Share, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-link', name: 'Иконка Ссылка', label: 'Ссылка', icon: Link, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-zap', name: 'Иконка Молния', label: 'Молния', icon: Zap, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-award', name: 'Иконка Награда', label: 'Награда', icon: Award, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-gift', name: 'Иконка Подарок', label: 'Подарок', icon: Gift, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-briefcase', name: 'Иконка Портфель', label: 'Портфель', icon: Briefcase, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-flag', name: 'Иконка Флаг', label: 'Флаг', icon: Flag, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-sun', name: 'Иконка Солнце', label: 'Солнце', icon: Sun, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-moon', name: 'Иконка Луна', label: 'Луна', icon: Moon, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-lightbulb', name: 'Иконка Лампочка', label: 'Лампочка', icon: Lightbulb, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-battery', name: 'Иконка Батарея', label: 'Батарея', icon: Battery, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-wifi', name: 'Иконка WiFi', label: 'WiFi', icon: Wifi, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-globe', name: 'Иконка Глобус', label: 'Глобус', icon: Globe, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-database', name: 'Иконка База данных', label: 'БД', icon: Database, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-code', name: 'Иконка Код', label: 'Код', icon: Code, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-monitor', name: 'Иконка Монитор', label: 'Монитор', icon: Monitor, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-smartphone', name: 'Иконка Смартфон', label: 'Телефон', icon: Smartphone, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-play', name: 'Иконка Воспроизведение', label: 'Играть', icon: PlayCircle, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-volume', name: 'Иконка Громкость', label: 'Громкость', icon: Volume, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-palette', name: 'Иконка Палитра', label: 'Палитра', icon: Palette, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-bookmark', name: 'Иконка Закладка', label: 'Закладка', icon: Bookmark, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-filter', name: 'Иконка Фильтр', label: 'Фильтр', icon: Filter, category: 'icons', needsFileUpload: false, hotkey: '' },
-  { id: 'icon-refresh', name: 'Иконка Обновить', label: 'Обновить', icon: RefreshCw, category: 'icons', needsFileUpload: false, hotkey: '' },
+  // Educational Icon tools with custom SVG icons
+  { id: 'icon-analysis', name: 'Анализ', label: 'Анализ', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Анализ' },
+  { id: 'icon-attention', name: 'Внимание', label: 'Внимание', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Внимание' },
+  { id: 'icon-speaking', name: 'Говорение', label: 'Говорение', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Говорение' },
+  { id: 'icon-homework', name: 'Домашняя работа', label: 'Домашняя работа', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Домашняя работа' },
+  { id: 'icon-ask-question', name: 'Задай вопрос', label: 'Задай вопрос', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Задай вопрос' },
+  { id: 'icon-game', name: 'Игра', label: 'Игра', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Игра' },
+  { id: 'icon-game-1', name: 'Игра 1', label: 'Игра 1', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Игра_1' },
+  { id: 'icon-game-2', name: 'Игра 2', label: 'Игра 2', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Игра_2' },
+  { id: 'icon-internet', name: 'Интернет', label: 'Интернет', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Интернет' },
+  { id: 'icon-draw', name: 'Нарисуй', label: 'Нарисуй', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Нарисуй' },
+  { id: 'icon-circle', name: 'Обведи', label: 'Обведи', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Обведи' },
+  { id: 'icon-check-mark', name: 'Отметь галочкой', label: 'Отметь галочкой', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Отметь галочкой' },
+  { id: 'icon-puzzle', name: 'Пазл', label: 'Пазл', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Пазл' },
+  { id: 'icon-singing', name: 'Пение', label: 'Пение', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Пение' },
+  { id: 'icon-writing', name: 'Письмо', label: 'Письмо', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Письмо' },
+  { id: 'icon-show', name: 'Покажи', label: 'Покажи', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Покажи' },
+  { id: 'icon-self-check', name: 'Проверь себя', label: 'Проверь себя', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Проверь себя' },
+  { id: 'icon-individual-work', name: 'Работа индивидуально', label: 'Индивидуально', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Работа Индивидуальная' },
+  { id: 'icon-group-work', name: 'Работа в группе', label: 'В группе', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Работа в Группе' },
+  { id: 'icon-pair-work', name: 'Работа в паре', label: 'В паре', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Работа в Паре' },
+  { id: 'icon-color', name: 'Раскрась', label: 'Раскрась', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Раскрась' },
+  { id: 'icon-conclusion', name: 'Сделай вывод', label: 'Сделай вывод', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Сделай вывод' },
+  { id: 'icon-listening', name: 'Слушание', label: 'Слушание', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Слушание' },
+  { id: 'icon-connect', name: 'Соедини', label: 'Соедини', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Соедини' },
+  { id: 'icon-save', name: 'Сохрани', label: 'Сохрани', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Сохрани' },
+  { id: 'icon-functional-literacy', name: 'Функциональная грамотность', label: 'Функц. грамотность', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Функциональная грамотность' },
+  { id: 'icon-reading', name: 'Чтение', label: 'Чтение', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Чтение' },
+  { id: 'icon-video', name: 'Видео', label: 'Видео', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG видео' },
+  { id: 'icon-video-library', name: 'Видеотека', label: 'Видеотека', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG видеотека' },
+  { id: 'icon-globe-kg', name: 'Глобус', label: 'Глобус', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG глобус' },
+  { id: 'icon-monitor-kg', name: 'Монитор', label: 'Монитор', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG монитор' },
+  { id: 'icon-reflection', name: 'Рефлексия', label: 'Рефлексия', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG рефлексия' },
+  { id: 'icon-construct', name: 'Сконструируй', label: 'Сконструируй', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG сконструируй' },
+  { id: 'icon-goal', name: 'Цель', label: 'Цель', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG цель' },
+  
+  // Additional educational icons  
+  { id: 'icon-ae', name: 'АӘ', label: 'АӘ', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG АӘ' },
+  { id: 'icon-disk', name: 'Диск', label: 'Диск', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Диск' },
+  { id: 'icon-other-level', name: 'Другой уровень', label: 'Другой уровень', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG Другой уровень' },
+  { id: 'icon-kite', name: 'Воздушный змей', label: 'Воздушный змей', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG воз._змей' },
+  { id: 'icon-initial-program-white', name: 'Начальная программа (белый)', label: 'Нач. прогр. (белый)', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG на. программу_белый' },
+  { id: 'icon-initial-program', name: 'Начальная программа', label: 'Нач. программа', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG нап. программу' },
+  { id: 'icon-pen-test', name: 'Проба пера', label: 'Проба пера', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG проба пера' },
+  { id: 'icon-artistic-taste', name: 'Художественный вкус', label: 'Худож. вкус', icon: ImageIcon, category: 'icons', needsFileUpload: false, hotkey: '', svgFileName: 'KG художественный вкус' },
 ] as const;
 
 const TOOL_CATEGORIES = [
@@ -704,7 +713,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
           return 'chart';
         }
         // Check if it's an assignment tool
-        if (['multiple-choice', 'open-question', 'true-false', 'matching', 'quiz', 'fill-in-blank', 'multiple-select', 'single-select', 'dropdown-select', 'image-hotspots', 'connect-pairs'].includes(toolId)) {
+        if (['multiple-choice', 'open-question', 'true-false', 'matching', 'quiz', 'fill-in-blank', 'multiple-select', 'single-select', 'dropdown-select', 'image-hotspots', 'connect-pairs', 'concept-map', 'drag-to-point', 'numbers-on-image', 'grouping', 'ordering', 'word-grid', 'crossword', 'highlight-words', 'text-editing', 'text-highlighting', 'hint'].includes(toolId)) {
           return 'assignment';
         }
         // Check if it's an icon tool
@@ -1210,7 +1219,8 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
         console.log('Creating pie chart with properties:', properties);
       }
     } else if (tool.id === 'multiple-choice' || tool.id === 'open-question' || tool.id === 'true-false' || tool.id === 'matching' || tool.id === 'quiz' ||
-               tool.id === 'fill-in-blank' || tool.id === 'multiple-select' || tool.id === 'single-select' || tool.id === 'dropdown-select' || tool.id === 'image-hotspots' || tool.id === 'connect-pairs') {
+               tool.id === 'fill-in-blank' || tool.id === 'multiple-select' || tool.id === 'single-select' || tool.id === 'dropdown-select' || tool.id === 'image-hotspots' || tool.id === 'connect-pairs' ||
+               tool.id === 'concept-map' || tool.id === 'drag-to-point' || tool.id === 'numbers-on-image' || tool.id === 'grouping' || tool.id === 'ordering' || tool.id === 'word-grid' || tool.id === 'crossword' || tool.id === 'highlight-words' || tool.id === 'text-editing' || tool.id === 'text-highlighting' || tool.id === 'hint') {
       type = 'assignment';
       
       // Set assignment type and default data
@@ -1384,7 +1394,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
           assignmentData: {
             question: 'Найдите и отметьте элементы на изображении:',
             instructions: 'Нажмите на указанные области изображения',
-            imageUrl: '',
+            imageUrl: 'https://via.placeholder.com/400x300?text=Загрузите+изображение',
             hotspots: [
               { 
                 id: 'spot1', 
@@ -1433,6 +1443,236 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             timeLimit: null,
             showCorrectAnswer: true,
             allowPartialCredit: true
+          }
+        };
+      } else if (tool.id === 'concept-map') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'concept-map',
+          assignmentData: {
+            question: 'Заполните карту понятий:',
+            instructions: 'Добавьте информацию в ячейки и создайте связи между понятиями',
+            conceptMap: {
+              rows: 3,
+              cols: 3,
+              cells: [
+                { id: 'cell-0-0', row: 0, col: 0, content: 'Основное понятие' },
+                { id: 'cell-0-1', row: 0, col: 1, content: 'Связанное понятие 1' },
+                { id: 'cell-1-0', row: 1, col: 0, content: 'Связанное понятие 2' }
+              ],
+              connections: [
+                { from: 'cell-0-0', to: 'cell-0-1' },
+                { from: 'cell-0-0', to: 'cell-1-0' }
+              ]
+            },
+            points: 25,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'drag-to-point') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'drag-to-point',
+          assignmentData: {
+            question: 'Перетащите элементы в правильные области:',
+            instructions: 'Переместите каждый элемент в соответствующую зону',
+            dragItems: [
+              { id: 'item1', content: 'Элемент 1' },
+              { id: 'item2', content: 'Элемент 2' },
+              { id: 'item3', content: 'Элемент 3' }
+            ],
+            dropZones: [
+              { id: 'zone1', label: 'Зона 1', correctAnswer: 'item1' },
+              { id: 'zone2', label: 'Зона 2', correctAnswer: 'item2' },
+              { id: 'zone3', label: 'Зона 3', correctAnswer: 'item3' }
+            ],
+            points: 20,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'numbers-on-image') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'numbers-on-image',
+          assignmentData: {
+            question: 'Разместите числа на изображении:',
+            instructions: 'Перетащите пронумерованные элементы в правильные места на изображении',
+            imageUrl: 'https://via.placeholder.com/400x300?text=Загрузите+изображение',
+            options: [
+              { id: 'opt1', text: 'Вариант 1' },
+              { id: 'opt2', text: 'Вариант 2' },
+              { id: 'opt3', text: 'Вариант 3' }
+            ],
+            numberPoints: [
+              { id: 'point1', x: 100, y: 100, label: 'Точка 1', correctAnswer: 'opt1' },
+              { id: 'point2', x: 200, y: 150, label: 'Точка 2', correctAnswer: 'opt2' },
+              { id: 'point3', x: 150, y: 200, label: 'Точка 3', correctAnswer: 'opt3' }
+            ],
+            points: 22,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'grouping') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'grouping',
+          assignmentData: {
+            question: 'Распределите элементы по группам:',
+            instructions: 'Перетащите каждый элемент в правильную группу',
+            items: [
+              { id: 'item1', content: 'Элемент 1', type: 'text' },
+              { id: 'item2', content: 'Элемент 2', type: 'text' },
+              { id: 'item3', content: 'Элемент 3', type: 'text' },
+              { id: 'item4', content: 'Элемент 4', type: 'text' }
+            ],
+            groups: [
+              { id: 'group1', name: 'Группа 1', correctItems: ['item1', 'item2'] },
+              { id: 'group2', name: 'Группа 2', correctItems: ['item3', 'item4'] }
+            ],
+            points: 18,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'ordering') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'ordering',
+          assignmentData: {
+            question: 'Расположите элементы в правильном порядке:',
+            instructions: 'Перетащите элементы, чтобы расположить их в правильной последовательности',
+            items: [
+              { id: 'item1', content: 'Первый элемент', type: 'text' },
+              { id: 'item2', content: 'Второй элемент', type: 'text' },
+              { id: 'item3', content: 'Третий элемент', type: 'text' },
+              { id: 'item4', content: 'Четвертый элемент', type: 'text' }
+            ],
+            shuffledItems: [
+              { id: 'item3', content: 'Третий элемент', type: 'text' },
+              { id: 'item1', content: 'Первый элемент', type: 'text' },
+              { id: 'item4', content: 'Четвертый элемент', type: 'text' },
+              { id: 'item2', content: 'Второй элемент', type: 'text' }
+            ],
+            points: 16,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'word-grid') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'word-grid',
+          assignmentData: {
+            question: 'Найдите слова в сетке:',
+            instructions: 'Нажмите на буквы, чтобы выделить скрытые слова',
+            gridSize: 10,
+            hiddenWords: ['СЛОВО', 'ТЕКСТ', 'ПОИСК'],
+            grid: [
+              ['С', 'Л', 'О', 'В', 'О', 'Х', 'Я', 'Ю', 'Ф', 'Д'],
+              ['Ч', 'Ь', 'Г', 'Ы', 'Ъ', 'Т', 'Е', 'К', 'С', 'Т'],
+              ['П', 'О', 'И', 'С', 'К', 'Н', 'Ш', 'Э', 'Ж', 'Б'],
+              ['А', 'Р', 'Ы', 'В', 'Ф', 'Ц', 'И', 'Л', 'Щ', 'М'],
+              ['Ж', 'Д', 'Е', 'Н', 'Г', 'Й', 'К', 'У', 'Х', 'З']
+            ],
+            gridWords: [
+              { word: 'СЛОВО', startRow: 0, startCol: 0, direction: 'horizontal' },
+              { word: 'ТЕКСТ', startRow: 1, startCol: 5, direction: 'horizontal' },
+              { word: 'ПОИСК', startRow: 2, startCol: 0, direction: 'horizontal' }
+            ],
+            points: 15,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'crossword') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'crossword',
+          assignmentData: {
+            question: 'Решите кроссворд:',
+            instructions: 'Введите ответы в соответствующие клетки',
+            crosswordGrid: [
+              [{ isBlack: true }, { isBlack: true }, { number: 1, isBlack: false }, { isBlack: false }, { isBlack: false }],
+              [{ number: 2, isBlack: false }, { isBlack: false }, { isBlack: false }, { isBlack: false }, { isBlack: true }],
+              [{ isBlack: false }, { isBlack: true }, { isBlack: false }, { isBlack: true }, { isBlack: true }],
+              [{ isBlack: false }, { isBlack: true }, { isBlack: false }, { isBlack: true }, { isBlack: true }],
+              [{ isBlack: false }, { isBlack: true }, { isBlack: false }, { isBlack: true }, { isBlack: true }]
+            ],
+            crosswordClues: {
+              across: [
+                { number: 1, clue: 'Вопрос по горизонтали 1', answer: 'СЛОВО' },
+                { number: 2, clue: 'Вопрос по горизонтали 2', answer: 'ТЕКСТ' }
+              ],
+              down: [
+                { number: 1, clue: 'Вопрос по вертикали 1', answer: 'СТИХ' },
+                { number: 3, clue: 'Вопрос по вертикали 3', answer: 'ОКО' }
+              ]
+            },
+            points: 24,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'highlight-words') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'highlight-words',
+          assignmentData: {
+            question: 'Выделите указанные слова в тексте:',
+            instructions: 'Нажмите на слова, которые соответствуют заданию',
+            textContent: 'Это пример текста для выделения определенных слов. Найдите и выделите ключевые слова в данном тексте.',
+            wordsToHighlight: ['пример', 'текста', 'слова', 'ключевые'],
+            points: 12,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'text-editing') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'text-editing',
+          assignmentData: {
+            question: 'Отредактируйте текст согласно инструкциям:',
+            instructions: 'Исправьте грамматические ошибки и улучшите стиль текста',
+            originalText: 'Этот текст содержит ошибки которые нужно исправить. Также можно улучшить стиль написания.',
+            editingInstructions: 'Исправьте пунктуацию, добавьте запятые где необходимо, улучшите читаемость текста.',
+            expectedResult: 'Этот текст содержит ошибки, которые нужно исправить. Также можно улучшить стиль написания.',
+            points: 20,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'text-highlighting') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'text-highlighting',
+          assignmentData: {
+            question: 'Выделите важные части текста:',
+            instructions: 'Нажмите на слова или фразы, которые являются ключевыми для понимания текста',
+            textContent: 'Важная информация часто скрыта в тексте среди второстепенных деталей. Умение выделять главное - это ключевой навык для эффективного чтения.',
+            highlightInstructions: 'Выделите фразы, которые содержат основную мысль текста',
+            correctHighlights: ['Важная информация', 'ключевой навык', 'выделять главное'],
+            points: 15,
+            timeLimit: null,
+            showCorrectAnswer: true
+          }
+        };
+      } else if (tool.id === 'hint') {
+        properties = { 
+          ...properties, 
+          assignmentType: 'hint',
+          assignmentData: {
+            question: 'Подсказка',
+            instructions: 'Нажмите кнопку, чтобы получить подсказку',
+            hintText: 'Это подсказка, которая поможет вам в решении задачи. Используйте её мудро!',
+            showHint: false,
+            followUpQuestion: 'Как вы используете полученную подсказку для решения задачи?',
+            points: 5,
+            timeLimit: null,
+            showCorrectAnswer: false
           }
         };
       }

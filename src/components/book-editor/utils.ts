@@ -471,6 +471,23 @@ export const getDefaultWidth = (toolId: string): number => {
     case 'image-hotspots':
     case 'connect-pairs':
       return 600;
+    // New assignment types
+    case 'concept-map':
+    case 'drag-to-point':
+    case 'grouping':
+      return 600;
+    case 'numbers-on-image':
+    case 'crossword':
+      return 500;
+    case 'ordering':
+    case 'highlight-words':
+    case 'text-editing':
+    case 'text-highlighting':
+      return 500;
+    case 'word-grid':
+      return 400;
+    case 'hint':
+      return 400;
     // Icon tools - smaller default size
     case 'icon-home':
     case 'icon-user':
@@ -520,7 +537,49 @@ export const getDefaultWidth = (toolId: string): number => {
     case 'icon-bookmark':
     case 'icon-filter':
     case 'icon-refresh':
-      return 60; // Smaller default width for icons
+    // Educational SVG icons
+    case 'icon-analysis':
+    case 'icon-attention':
+    case 'icon-speaking':
+    case 'icon-homework':
+    case 'icon-ask-question':
+    case 'icon-game':
+    case 'icon-game-1':
+    case 'icon-game-2':
+    case 'icon-internet':
+    case 'icon-draw':
+    case 'icon-circle':
+    case 'icon-check-mark':
+    case 'icon-puzzle':
+    case 'icon-singing':
+    case 'icon-writing':
+    case 'icon-show':
+    case 'icon-self-check':
+    case 'icon-individual-work':
+    case 'icon-group-work':
+    case 'icon-pair-work':
+    case 'icon-color':
+    case 'icon-conclusion':
+    case 'icon-listening':
+    case 'icon-connect':
+    case 'icon-functional-literacy':
+    case 'icon-reading':
+    case 'icon-video':
+    case 'icon-video-library':
+    case 'icon-globe-kg':
+    case 'icon-monitor-kg':
+    case 'icon-reflection':
+    case 'icon-construct':
+    case 'icon-goal':
+    case 'icon-ae':
+    case 'icon-disk':
+    case 'icon-other-level':
+    case 'icon-kite':
+    case 'icon-initial-program-white':
+    case 'icon-initial-program':
+    case 'icon-pen-test':
+    case 'icon-artistic-taste':
+      return 80; // Default width for icons
     default:
       return 200;
   }
@@ -587,6 +646,26 @@ export const getDefaultHeight = (toolId: string): number => {
       return 400;
     case 'connect-pairs':
       return 350;
+    // New assignment types
+    case 'concept-map':
+    case 'drag-to-point':
+    case 'grouping':
+    case 'word-grid':
+      return 400;
+    case 'numbers-on-image':
+      return 400;
+    case 'ordering':
+      return 300;
+    case 'text-editing':
+      return 300;
+    case 'crossword':
+      return 500;
+    case 'highlight-words':
+      return 200;
+    case 'text-highlighting':
+      return 250;
+    case 'hint':
+      return 200;
     // Icon tools - smaller default size (same as width for square icons)
     case 'icon-home':
     case 'icon-user':
@@ -636,7 +715,49 @@ export const getDefaultHeight = (toolId: string): number => {
     case 'icon-bookmark':
     case 'icon-filter':
     case 'icon-refresh':
-      return 60; // Smaller default height for icons (square)
+    // Educational SVG icons
+    case 'icon-analysis':
+    case 'icon-attention':
+    case 'icon-speaking':
+    case 'icon-homework':
+    case 'icon-ask-question':
+    case 'icon-game':
+    case 'icon-game-1':
+    case 'icon-game-2':
+    case 'icon-internet':
+    case 'icon-draw':
+    case 'icon-circle':
+    case 'icon-check-mark':
+    case 'icon-puzzle':
+    case 'icon-singing':
+    case 'icon-writing':
+    case 'icon-show':
+    case 'icon-self-check':
+    case 'icon-individual-work':
+    case 'icon-group-work':
+    case 'icon-pair-work':
+    case 'icon-color':
+    case 'icon-conclusion':
+    case 'icon-listening':
+    case 'icon-connect':
+    case 'icon-functional-literacy':
+    case 'icon-reading':
+    case 'icon-video':
+    case 'icon-video-library':
+    case 'icon-globe-kg':
+    case 'icon-monitor-kg':
+    case 'icon-reflection':
+    case 'icon-construct':
+    case 'icon-goal':
+    case 'icon-ae':
+    case 'icon-disk':
+    case 'icon-other-level':
+    case 'icon-kite':
+    case 'icon-initial-program-white':
+    case 'icon-initial-program':
+    case 'icon-pen-test':
+    case 'icon-artistic-taste':
+      return 80; // Default height for icons (square)
     default:
       return 100;
   }
@@ -690,6 +811,29 @@ export const getDefaultContent = (toolId: string): string => {
       return 'Элементы на изображении';
     case 'connect-pairs':
       return 'Соедините пары';
+    // New assignment types
+    case 'concept-map':
+      return 'Карта понятий';
+    case 'drag-to-point':
+      return 'Перетаскивание';
+    case 'numbers-on-image':
+      return 'Числа на изображении';
+    case 'grouping':
+      return 'Сгруппировать';
+    case 'ordering':
+      return 'Упорядочить';
+    case 'word-grid':
+      return 'Сетка слов';
+    case 'crossword':
+      return 'Кроссворд';
+    case 'highlight-words':
+      return 'Выделить слова';
+    case 'text-editing':
+      return 'Редактирование текста';
+    case 'text-highlighting':
+      return 'Выделение текста';
+    case 'hint':
+      return 'Подсказка';
     default:
       return '';
   }
@@ -1221,6 +1365,286 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
         defaultWidth: 600,
         defaultHeight: 350
       };
+    // New assignment types
+    case 'concept-map':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'concept-map',
+        assignmentData: {
+          question: 'Заполните карту понятий:',
+          instructions: 'Добавьте информацию в ячейки и создайте связи между понятиями',
+          conceptMap: {
+            rows: 3,
+            cols: 3,
+            cells: [
+              { id: 'cell-0-0', row: 0, col: 0, content: 'Понятие 1' },
+              { id: 'cell-1-1', row: 1, col: 1, content: 'Понятие 2' },
+              { id: 'cell-2-2', row: 2, col: 2, content: 'Понятие 3' }
+            ],
+            connections: [
+              { id: 'conn1', from: 'cell-0-0', to: 'cell-1-1', label: 'связь 1' },
+              { id: 'conn2', from: 'cell-1-1', to: 'cell-2-2', label: 'связь 2' }
+            ]
+          },
+          points: 20,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 600,
+        defaultHeight: 400
+      };
+    case 'drag-to-point':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'drag-to-point',
+        assignmentData: {
+          question: 'Перетащите элементы в правильные области:',
+          instructions: 'Переместите каждый элемент в соответствующую зону',
+          dragItems: [
+            { id: 'item1', content: 'Элемент 1' },
+            { id: 'item2', content: 'Элемент 2' },
+            { id: 'item3', content: 'Элемент 3' }
+          ],
+          dropZones: [
+            { id: 'zone1', label: 'Зона 1', correctAnswer: 'item1' },
+            { id: 'zone2', label: 'Зона 2', correctAnswer: 'item2' },
+            { id: 'zone3', label: 'Зона 3', correctAnswer: 'item3' }
+          ],
+          points: 15,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 600,
+        defaultHeight: 400
+      };
+    case 'numbers-on-image':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'numbers-on-image',
+        assignmentData: {
+          question: 'Разместите числа на изображении:',
+          instructions: 'Перетащите пронумерованные элементы в правильные места на изображении',
+          imageUrl: 'https://via.placeholder.com/400x300?text=Загрузите+изображение',
+          options: [
+            { id: 'opt1', text: 'Вариант 1' },
+            { id: 'opt2', text: 'Вариант 2' },
+            { id: 'opt3', text: 'Вариант 3' }
+          ],
+          numberPoints: [
+            { id: 'point1', x: 100, y: 100, label: 'Точка 1', correctAnswer: 'opt1' },
+            { id: 'point2', x: 200, y: 150, label: 'Точка 2', correctAnswer: 'opt2' },
+            { id: 'point3', x: 150, y: 200, label: 'Точка 3', correctAnswer: 'opt3' }
+          ],
+          points: 22,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 500,
+        defaultHeight: 400
+      };
+    case 'grouping':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'grouping',
+        assignmentData: {
+          question: 'Распределите элементы по группам:',
+          instructions: 'Перетащите каждый элемент в правильную группу',
+          items: [
+            { id: 'item1', content: 'Элемент 1', type: 'text' },
+            { id: 'item2', content: 'Элемент 2', type: 'text' },
+            { id: 'item3', content: 'Элемент 3', type: 'text' },
+            { id: 'item4', content: 'Элемент 4', type: 'text' }
+          ],
+          groups: [
+            { id: 'group1', name: 'Группа 1', correctItems: ['item1', 'item2'] },
+            { id: 'group2', name: 'Группа 2', correctItems: ['item3', 'item4'] }
+          ],
+          points: 16,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 600,
+        defaultHeight: 400
+      };
+    case 'ordering':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'ordering',
+        assignmentData: {
+          question: 'Расположите элементы в правильном порядке:',
+          instructions: 'Перетащите элементы, чтобы расположить их в правильной последовательности',
+          items: [
+            { id: 'item1', content: 'Первый элемент', type: 'text' },
+            { id: 'item2', content: 'Второй элемент', type: 'text' },
+            { id: 'item3', content: 'Третий элемент', type: 'text' },
+            { id: 'item4', content: 'Четвертый элемент', type: 'text' }
+          ],
+          points: 12,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 500,
+        defaultHeight: 300
+      };
+    case 'word-grid':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'word-grid',
+        assignmentData: {
+          question: 'Найдите слова в сетке:',
+          instructions: 'Нажмите на буквы, чтобы выделить скрытые слова',
+          gridSize: 10,
+          hiddenWords: ['СЛОВО', 'ТЕКСТ', 'ПОИСК'],
+          grid: [
+            ['С', 'Л', 'О', 'В', 'О', 'Х', 'Я', 'Ю', 'Ф', 'Д'],
+            ['Ч', 'Ь', 'Г', 'Ы', 'Ъ', 'Т', 'Е', 'К', 'С', 'Т'],
+            ['П', 'О', 'И', 'С', 'К', 'Н', 'Ш', 'Э', 'Ж', 'Б'],
+            ['А', 'Р', 'Ы', 'В', 'Ф', 'Ц', 'И', 'Л', 'Щ', 'М'],
+            ['Ж', 'Д', 'Е', 'Н', 'Г', 'Й', 'К', 'У', 'Х', 'З']
+          ],
+          gridWords: [
+            { word: 'СЛОВО', startRow: 0, startCol: 0, direction: 'horizontal' },
+            { word: 'ТЕКСТ', startRow: 1, startCol: 5, direction: 'horizontal' },
+            { word: 'ПОИСК', startRow: 2, startCol: 0, direction: 'horizontal' }
+          ],
+          points: 15,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 400,
+        defaultHeight: 400
+      };
+    case 'crossword':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'crossword',
+        assignmentData: {
+          question: 'Решите кроссворд:',
+          instructions: 'Введите ответы в соответствующие клетки',
+          crosswordGrid: [
+            [{ isBlack: true }, { isBlack: true }, { number: 1, isBlack: false }, { isBlack: false }, { isBlack: false }],
+            [{ number: 2, isBlack: false }, { isBlack: false }, { isBlack: false }, { isBlack: false }, { isBlack: true }],
+            [{ isBlack: false }, { isBlack: true }, { isBlack: false }, { isBlack: true }, { isBlack: true }],
+            [{ isBlack: false }, { isBlack: true }, { isBlack: false }, { isBlack: true }, { isBlack: true }],
+            [{ isBlack: false }, { isBlack: true }, { isBlack: false }, { isBlack: true }, { isBlack: true }]
+          ],
+          crosswordClues: {
+            across: [
+              { number: 1, clue: 'Вопрос по горизонтали 1', answer: 'СЛОВО' },
+              { number: 2, clue: 'Вопрос по горизонтали 2', answer: 'ТЕКСТ' }
+            ],
+            down: [
+              { number: 1, clue: 'Вопрос по вертикали 1', answer: 'СТИХ' },
+              { number: 3, clue: 'Вопрос по вертикали 3', answer: 'ОКО' }
+            ]
+          },
+          points: 24,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 500,
+        defaultHeight: 500
+      };
+    case 'highlight-words':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'highlight-words',
+        assignmentData: {
+          question: 'Выделите указанные слова в тексте:',
+          instructions: 'Нажмите на слова, которые соответствуют заданию',
+          textContent: 'Это пример текста для выделения определенных слов. Найдите и выделите ключевые слова в данном тексте.',
+          wordsToHighlight: ['пример', 'текста', 'слова', 'ключевые'],
+          points: 12,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 500,
+        defaultHeight: 200
+      };
+    case 'text-editing':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'text-editing',
+        assignmentData: {
+          question: 'Отредактируйте текст согласно инструкциям:',
+          instructions: 'Исправьте грамматические ошибки и улучшите стиль текста',
+          originalText: 'Этот текст содержит ошибки которые нужно исправить. Также можно улучшить стиль написания.',
+          editingInstructions: 'Исправьте пунктуацию, добавьте запятые где необходимо, улучшите читаемость текста.',
+          expectedResult: 'Этот текст содержит ошибки, которые нужно исправить. Также можно улучшить стиль написания.',
+          points: 20,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 600,
+        defaultHeight: 300
+      };
+    case 'text-highlighting':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'text-highlighting',
+        assignmentData: {
+          question: 'Выделите важные части текста:',
+          instructions: 'Нажмите на слова или фразы, которые являются ключевыми для понимания текста',
+          textContent: 'Важная информация часто скрыта в тексте среди второстепенных деталей. Умение выделять главное - это ключевой навык для эффективного чтения.',
+          highlightInstructions: 'Выделите фразы, которые содержат основную мысль текста',
+          correctHighlights: ['Важная информация', 'Умение выделять главное', 'ключевой навык'],
+          points: 15,
+          timeLimit: null,
+          showCorrectAnswer: true
+        },
+        defaultWidth: 600,
+        defaultHeight: 250
+      };
+    case 'hint':
+      return {
+        backgroundColor: '#f8f9fa',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        borderRadius: 8,
+        assignmentType: 'hint',
+        assignmentData: {
+          question: 'Подсказка',
+          instructions: 'Нажмите кнопку, чтобы получить подсказку',
+          hintText: 'Это подсказка, которая поможет вам в решении задачи. Используйте её мудро!',
+          showHint: false,
+          followUpQuestion: 'Теперь, когда вы получили подсказку, попробуйте решить задачу самостоятельно.',
+          points: 5,
+          timeLimit: null,
+          showCorrectAnswer: false
+        },
+        defaultWidth: 400,
+        defaultHeight: 200
+      };
     // Icon cases - all icons have same basic properties
     case 'icon-home':
     case 'icon-user':
@@ -1275,6 +1699,48 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
     case 'icon-bookmark':
     case 'icon-filter':
     case 'icon-refresh':
+    // Educational SVG icons
+    case 'icon-analysis':
+    case 'icon-attention':
+    case 'icon-speaking':
+    case 'icon-homework':
+    case 'icon-ask-question':
+    case 'icon-game':
+    case 'icon-game-1':
+    case 'icon-game-2':
+    case 'icon-internet':
+    case 'icon-draw':
+    case 'icon-circle':
+    case 'icon-check-mark':
+    case 'icon-puzzle':
+    case 'icon-singing':
+    case 'icon-writing':
+    case 'icon-show':
+    case 'icon-self-check':
+    case 'icon-individual-work':
+    case 'icon-group-work':
+    case 'icon-pair-work':
+    case 'icon-color':
+    case 'icon-conclusion':
+    case 'icon-listening':
+    case 'icon-connect':
+    case 'icon-functional-literacy':
+    case 'icon-reading':
+    case 'icon-video':
+    case 'icon-video-library':
+    case 'icon-globe-kg':
+    case 'icon-monitor-kg':
+    case 'icon-reflection':
+    case 'icon-construct':
+    case 'icon-goal':
+    case 'icon-ae':
+    case 'icon-disk':
+    case 'icon-other-level':
+    case 'icon-kite':
+    case 'icon-initial-program-white':
+    case 'icon-initial-program':
+    case 'icon-pen-test':
+    case 'icon-artistic-taste':
       return {
         iconType: toolId,
         color: '#000000',
@@ -1282,8 +1748,8 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
         borderColor: 'transparent',
         borderWidth: 0,
         borderRadius: 0,
-        defaultWidth: 60,
-        defaultHeight: 60,
+        defaultWidth: 80,
+        defaultHeight: 80,
       };
     default:
       return {
