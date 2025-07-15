@@ -546,6 +546,18 @@ export function PropertiesPanel({
                     ? selectedElement.properties.assignmentData.textWithBlanks.substring(0, 60) + '...'
                     : selectedElement.properties.assignmentData.textWithBlanks}
                 </div>
+                {selectedElement.properties.assignmentData.correctAnswerType && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Тип ответа: {
+                      selectedElement.properties.assignmentData.correctAnswerType === 'SINGLE' ? 'Один правильный ответ' :
+                      selectedElement.properties.assignmentData.correctAnswerType === 'MULTIPLE' ? 'Несколько правильных ответов' :
+                      selectedElement.properties.assignmentData.correctAnswerType === 'RANGE' ? 'Ответ в диапазоне' :
+                      selectedElement.properties.assignmentData.correctAnswerType === 'NONE' ? 'Нет единого правильного ответа' :
+                      selectedElement.properties.assignmentData.correctAnswerType === 'EMPTY_IS_CORRECT' ? 'Незаполненный пропуск правильный' :
+                      selectedElement.properties.assignmentData.correctAnswerType === 'GROUP' ? 'Ответ из группы' : 'Один правильный ответ'
+                    }
+                  </div>
+                )}
               </div>
             )}
             

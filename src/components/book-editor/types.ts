@@ -545,4 +545,23 @@ export type AssignmentType =
   | 'highlight-words'     // Выделить слова
   | 'text-editing'        // Редактирование текста
   | 'text-highlighting'   // Выделение текста
-  | 'hint';               // Подсказка 
+  | 'hint';               // Подсказка
+
+// Типы правильных ответов для заданий с пропусками
+export type FillInBlankCorrectAnswerType = 
+  | 'SINGLE'              // Один правильный ответ
+  | 'MULTIPLE'            // Несколько правильных ответов
+  | 'RANGE'               // Правильный ответ в диапазоне
+  | 'NONE'                // Нет единого правильного ответа
+  | 'EMPTY_IS_CORRECT'    // Незаполненный пропуск — правильный ответ
+  | 'GROUP';              // Правильный ответ входит в группу
+
+// Варианты для отображения в UI
+export const FILL_IN_BLANK_ANSWER_TYPES = [
+  { value: 'SINGLE', label: 'Один правильный ответ' },
+  { value: 'MULTIPLE', label: 'Несколько правильных ответов' },
+  { value: 'RANGE', label: 'Правильный ответ в диапазоне' },
+  { value: 'NONE', label: 'Нет единого правильного ответа' },
+  { value: 'EMPTY_IS_CORRECT', label: 'Незаполненный пропуск — правильный ответ' },
+  { value: 'GROUP', label: 'Правильный ответ входит в группу' }
+] as const; 

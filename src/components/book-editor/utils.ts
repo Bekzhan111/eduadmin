@@ -1221,6 +1221,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'blank1', position: 13, answer: 'двенадцать', caseSensitive: false },
             { id: 'blank2', position: 31, answer: 'четыре', caseSensitive: false }
           ],
+          correctAnswerType: 'SINGLE', // Default to single correct answer
           points: 10,
           timeLimit: null,
           showCorrectAnswer: true

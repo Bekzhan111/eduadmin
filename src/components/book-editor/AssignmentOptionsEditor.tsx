@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Check, X, Move, ArrowUp, ArrowDown } from 'lucide-react';
-import { CanvasElement } from './types';
+import { CanvasElement, FillInBlankCorrectAnswerType, FILL_IN_BLANK_ANSWER_TYPES } from './types';
 
 type AssignmentOptionsEditorProps = {
   element: CanvasElement;
@@ -154,6 +155,7 @@ export function AssignmentOptionsEditor({ element, onUpdate, onClose }: Assignme
   const renderFillInBlankEditor = () => {
     const textWithBlanks = assignmentData.textWithBlanks || '';
     const blanks = assignmentData.blanks || [];
+    const correctAnswerType = assignmentData.correctAnswerType || 'SINGLE';
 
     const updateText = (newText: string) => {
       // Count blanks in the new text
@@ -187,6 +189,12 @@ export function AssignmentOptionsEditor({ element, onUpdate, onClose }: Assignme
       });
     };
 
+    const updateCorrectAnswerType = (newType: FillInBlankCorrectAnswerType) => {
+      updateAssignmentData({
+        correctAnswerType: newType
+      });
+    };
+
     return (
       <div className="space-y-4">
         <div>
@@ -200,6 +208,28 @@ export function AssignmentOptionsEditor({ element, onUpdate, onClose }: Assignme
             className="w-full h-24 p-2 border rounded-md text-sm"
             placeholder="Введите текст с пропусками. Например: В году есть ____ месяцев и ____ времени года."
           />
+        </div>
+
+        {/* Выпадающий список для типа правильного ответа */}
+        <div>
+          <Label className="text-sm font-semibold">Тип правильного ответа</Label>
+          <Select value={correctAnswerType} onValueChange={updateCorrectAnswerType}>
+            <SelectTrigger className="w-full mt-2">
+              <SelectValue placeholder="Выберите тип правильного ответа" />
+            </SelectTrigger>
+            <SelectContent>
+              {FILL_IN_BLANK_ANSWER_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  <div className="flex items-center gap-2">
+                    {correctAnswerType === type.value && (
+                      <Check className="h-4 w-4 text-green-600" />
+                    )}
+                    <span>{type.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {blanks.length > 0 && (
