@@ -454,15 +454,32 @@ export function CanvasElementComponent({
     }
     
     // Final boundary checks - ensure element stays within canvas
-    newX = Math.max(0, Math.min(newX, canvasWidth - newWidth));
-    newY = Math.max(0, Math.min(newY, canvasHeight - newHeight));
+    // First, ensure minimum size is respected
+    newWidth = Math.max(minSize, newWidth);
+    newHeight = Math.max(minSize, newHeight);
     
-    // Ensure element doesn't extend beyond canvas boundaries
+    // Then ensure position doesn't go negative
+    newX = Math.max(0, newX);
+    newY = Math.max(0, newY);
+    
+    // Finally, ensure element doesn't extend beyond canvas boundaries
     if (newX + newWidth > canvasWidth) {
-      newWidth = canvasWidth - newX;
+      if (canvasWidth - newX < minSize) {
+        // If there's not enough space for minimum size, move element left
+        newX = Math.max(0, canvasWidth - newWidth);
+      } else {
+        // Otherwise, just clip the width
+        newWidth = canvasWidth - newX;
+      }
     }
     if (newY + newHeight > canvasHeight) {
-      newHeight = canvasHeight - newY;
+      if (canvasHeight - newY < minSize) {
+        // If there's not enough space for minimum size, move element up
+        newY = Math.max(0, canvasHeight - newHeight);
+      } else {
+        // Otherwise, just clip the height
+        newHeight = canvasHeight - newY;
+      }
     }
     
     // Apply grid snapping if enabled
@@ -665,7 +682,7 @@ export function CanvasElementComponent({
       case 'text':
         return (
           <div
-            className="w-full h-full flex items-center justify-center cursor-text group-hover:bg-blue-50 group-hover:bg-opacity-30 transition-colors"
+            className="w-full h-full flex items-center justify-center cursor-text overflow-hidden group-hover:bg-blue-50 group-hover:bg-opacity-30 transition-colors"
             style={{
               fontSize: (element.properties.fontSize || 16) * contentScale,
               fontFamily: element.properties.fontFamily || 'Arial',

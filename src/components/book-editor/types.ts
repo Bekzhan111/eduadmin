@@ -545,4 +545,48 @@ export type AssignmentType =
   | 'highlight-words'     // Выделить слова
   | 'text-editing'        // Редактирование текста
   | 'text-highlighting'   // Выделение текста
-  | 'hint';               // Подсказка 
+  | 'hint';               // Подсказка
+
+// Типы правильных ответов для заданий с пропусками
+export type FillInBlankCorrectAnswerType = 
+  | 'SINGLE'              // Один правильный ответ
+  | 'MULTIPLE'            // Несколько правильных ответов
+  | 'RANGE'               // Правильный ответ в диапазоне
+  | 'NONE'                // Нет единого правильного ответа
+  | 'EMPTY_IS_CORRECT'    // Незаполненный пропуск — правильный ответ
+  | 'GROUP';              // Правильный ответ входит в группу
+
+// Варианты для отображения в UI
+export const FILL_IN_BLANK_ANSWER_TYPES = [
+  { value: 'SINGLE', label: 'Один правильный ответ' },
+  { value: 'MULTIPLE', label: 'Несколько правильных ответов' },
+  { value: 'RANGE', label: 'Правильный ответ в диапазоне' },
+  { value: 'NONE', label: 'Нет единого правильного ответа' },
+  { value: 'EMPTY_IS_CORRECT', label: 'Незаполненный пропуск — правильный ответ' },
+  { value: 'GROUP', label: 'Правильный ответ входит в группу' }
+] as const;
+
+// Утилитарная функция для получения читаемого названия типа ответа
+export const getFillInBlankAnswerTypeLabel = (type: FillInBlankCorrectAnswerType): string => {
+  const found = FILL_IN_BLANK_ANSWER_TYPES.find(t => t.value === type);
+  return found ? found.label : 'Один правильный ответ';
+};
+
+// Утилитарная функция для проверки включена ли система баллов
+export const isPointsSystemEnabled = (assignmentData: any): boolean => {
+  if (!assignmentData) return false;
+  // Если pointsEnabled не определен или true, то система включена
+  // Если pointsEnabled явно false, то система отключена
+  return assignmentData.pointsEnabled !== false;
+};
+
+// Базовый интерфейс для данных задания
+export interface BaseAssignmentData {
+  question: string;
+  instructions: string;
+  points?: number | null; // Может быть null когда система баллов отключена
+  pointsEnabled?: boolean; // Включена ли система баллов
+  timeLimit?: number | null;
+  showCorrectAnswer?: boolean;
+  difficultyLevel?: number;
+} 

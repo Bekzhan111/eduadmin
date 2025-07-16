@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, Check, X, ChevronDown, Eye, EyeOff } from 'lucide-react';
-import { CanvasElement } from './types';
+import { CanvasElement, isPointsSystemEnabled } from './types';
 import { saveAssignmentToDatabase, validateAssignmentData } from '../../utils/assignments';
 import { useRouter } from 'next/navigation';
 
@@ -268,7 +268,7 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
               <h4 className="font-semibold">
                 {index + 1}. {question.question}
               </h4>
-              {question.points && (
+              {isPointsSystemEnabled(assignmentData) && question.points && (
                 <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
                   {question.points} баллов
                 </span>
@@ -405,9 +405,30 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
 
     const text = assignmentData.textWithBlanks;
     const blanks = assignmentData.blanks;
+    const correctAnswerType = assignmentData.correctAnswerType || 'SINGLE';
     
     // Split text by underscores and create inputs for blanks
     const parts = text.split('____');
+    
+    // Get feedback message based on correct answer type
+    const getFeedbackMessage = () => {
+      switch (correctAnswerType) {
+        case 'SINGLE':
+          return `Правильные ответы: ${assignmentData.correctAnswers?.join(', ')}`;
+        case 'MULTIPLE':
+          return `Возможные правильные ответы: ${assignmentData.correctAnswers?.join(', ')}`;
+        case 'RANGE':
+          return `Ответ должен быть в диапазоне: ${assignmentData.correctAnswers?.join(' - ')}`;
+        case 'NONE':
+          return 'Нет единого правильного ответа - любой разумный ответ будет засчитан';
+        case 'EMPTY_IS_CORRECT':
+          return 'Незаполненные пропуски считаются правильными ответами';
+        case 'GROUP':
+          return `Правильные ответы из группы: ${assignmentData.correctAnswers?.join(', ')}`;
+        default:
+          return `Правильные ответы: ${assignmentData.correctAnswers?.join(', ')}`;
+      }
+    };
     
     return (
       <div className="space-y-3">
@@ -435,7 +456,17 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
         {showCorrectAnswers && (
           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
             <p className="text-sm text-green-700">
-              <strong>Правильные ответы:</strong> {assignmentData.correctAnswers?.join(', ')}
+              <strong>Тип ответа:</strong> {
+                correctAnswerType === 'SINGLE' ? 'Один правильный ответ' :
+                correctAnswerType === 'MULTIPLE' ? 'Несколько правильных ответов' :
+                correctAnswerType === 'RANGE' ? 'Ответ в диапазоне' :
+                correctAnswerType === 'NONE' ? 'Нет единого правильного ответа' :
+                correctAnswerType === 'EMPTY_IS_CORRECT' ? 'Незаполненный пропуск правильный' :
+                correctAnswerType === 'GROUP' ? 'Ответ из группы' : 'Один правильный ответ'
+              }
+            </p>
+            <p className="text-sm text-green-700 mt-1">
+              <strong>{getFeedbackMessage()}</strong>
             </p>
           </div>
         )}
@@ -1797,7 +1828,7 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
               />
             </div>
           )}
-          {assignmentData.points && (
+          {isPointsSystemEnabled(assignmentData) && assignmentData.points && (
             <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
               {assignmentData.points} баллов
             </span>

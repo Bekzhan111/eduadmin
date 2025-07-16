@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CanvasElement } from './types';
+import { CanvasElement, getFillInBlankAnswerTypeLabel, isPointsSystemEnabled } from './types';
 import { uploadMedia } from '@/utils/mediaUpload';
 import { AssignmentOptionsEditor } from './AssignmentOptionsEditor';
 
@@ -398,19 +398,28 @@ export function PropertiesPanel({
               />
             </div>
 
-            {/* Points Section */}
+            {/* Points System Section */}
             <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
-              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">Баллы:</span>
-              <div className="w-16">
-                <Input
-                  type="number"
-                  value={selectedElement.properties.assignmentData.points || 1}
+              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">Система баллов:</span>
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={isPointsSystemEnabled(selectedElement.properties.assignmentData)}
                   onChange={(e) => {
-                    e.preventDefault();
+                    e.stopPropagation();
+                    const isEnabled = e.target.checked;
+                    console.log('Points system toggle:', {
+                      isEnabled,
+                      currentState: selectedElement.properties.assignmentData.pointsEnabled,
+                      currentPoints: selectedElement.properties.assignmentData.points
+                    });
                     const newData = {
                       ...selectedElement.properties.assignmentData,
-                      points: Number(e.target.value)
+                      pointsEnabled: isEnabled,
+                      // Если отключаем систему баллов, устанавливаем points в null
+                      points: isEnabled ? (selectedElement.properties.assignmentData.points || 1) : null
                     };
+                    console.log('New assignment data:', newData);
                     onUpdate({
                       properties: {
                         ...selectedElement.properties,
@@ -418,11 +427,55 @@ export function PropertiesPanel({
                       }
                     });
                   }}
-                  className="h-6 text-xs"
-                  min="1"
-                  max="100"
+                  className="w-3 h-3"
                 />
-              </div>
+                <span className="text-xs">Включить</span>
+              </label>
+              
+              {isPointsSystemEnabled(selectedElement.properties.assignmentData) && (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500">Баллы:</span>
+                  <div className="w-16">
+                    <Input
+                      type="number"
+                      value={selectedElement.properties.assignmentData.points || ''}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        const value = e.target.value;
+                        const newData = {
+                          ...selectedElement.properties.assignmentData,
+                          points: value === '' ? null : Number(value)
+                        };
+                        onUpdate({
+                          properties: {
+                            ...selectedElement.properties,
+                            assignmentData: newData
+                          }
+                        });
+                      }}
+                      onBlur={(e) => {
+                        // При потере фокуса, если поле пустое, устанавливаем 1 как минимальное значение
+                        if (e.target.value === '' || Number(e.target.value) < 0) {
+                          const newData = {
+                            ...selectedElement.properties.assignmentData,
+                            points: 1
+                          };
+                          onUpdate({
+                            properties: {
+                              ...selectedElement.properties,
+                              assignmentData: newData
+                            }
+                          });
+                        }
+                      }}
+                      className="h-6 text-xs"
+                      min="0"
+                      max="100"
+                      placeholder="1"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Difficulty Level Section */}
@@ -546,6 +599,11 @@ export function PropertiesPanel({
                     ? selectedElement.properties.assignmentData.textWithBlanks.substring(0, 60) + '...'
                     : selectedElement.properties.assignmentData.textWithBlanks}
                 </div>
+                {selectedElement.properties.assignmentData.correctAnswerType && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Тип ответа: {getFillInBlankAnswerTypeLabel(selectedElement.properties.assignmentData.correctAnswerType)}
+                  </div>
+                )}
               </div>
             )}
             

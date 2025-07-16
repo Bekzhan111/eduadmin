@@ -24,7 +24,8 @@ import {
   Search,
   X,
   ExternalLink,
-  Globe
+  Globe,
+  Copy
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -54,12 +55,15 @@ type Book = {
   isbn?: string;
   publisher?: string;
   publication_date?: string;
-  schools_purchased: number;
-  schools_added: number;
-  teachers_added: number;
-  students_added: number;
+  // Statistics fields - note: some fields may not exist in database
+  views_count?: number; // Number of views (просмотров) - may not exist
+  viewers_count?: number; // Number of viewers (зрителей) - may not exist
+  schools_purchased: number; // May not exist in database
+  schools_added: number; // May not exist in database
+  teachers_added: number; // May not exist in database
+  students_added: number; // May not exist in database
   downloads_count?: number;
-  // Collaboration fields
+  // Collaboration fields (ownership is managed via book_collaborators table)
   user_role?: 'owner' | 'editor' | 'reviewer' | 'viewer';
   is_collaborator?: boolean;
 };
@@ -479,6 +483,9 @@ export default function BooksPage() {
         throw new Error(`Не удалось отправить книгу на модерацию: ${error.message}`);
       }
 
+      // Force reset the fetching ref to ensure refresh works
+      fetchingRef.current = false;
+      
       // Refresh books list
       await fetchBooks();
       setSuccess('Книга отправлена на модерацию');
@@ -511,6 +518,9 @@ export default function BooksPage() {
         throw new Error(`Не удалось одобрить книгу: ${error.message}`);
       }
 
+      // Force reset the fetching ref to ensure refresh works
+      fetchingRef.current = false;
+      
       // Refresh books list
       await fetchBooks();
       setSuccess('Книга одобрена и отправлена к супер-админу');
@@ -540,6 +550,9 @@ export default function BooksPage() {
         throw new Error(`Не удалось активировать книгу: ${error.message}`);
       }
 
+      // Force reset the fetching ref to ensure refresh works
+      fetchingRef.current = false;
+      
       // Refresh books list
       await fetchBooks();
       setSuccess('Книга активирована');
@@ -575,6 +588,10 @@ export default function BooksPage() {
       }
       
       setSuccess('Книга добавлена в библиотеку школы успешно');
+      
+      // Force reset the fetching ref to ensure refresh works
+      fetchingRef.current = false;
+      
       await fetchBooks();
     } catch (error) {
       console.error('Error adding book to school library:', error);
@@ -635,6 +652,10 @@ export default function BooksPage() {
 
       setSuccess(`Книга "${newTitle}" успешно добавлена как черновик! Вы можете отредактировать ее и отправить на модерацию.`);
       setShowAddExistingModal(false);
+      
+      // Force reset the fetching ref to ensure refresh works
+      fetchingRef.current = false;
+      
       await fetchBooks();
 
     } catch (err) {
@@ -731,6 +752,7 @@ export default function BooksPage() {
 
     try {
       setIsLoading(true);
+      setError(null);
       const supabase = createClient();
       
       const { error } = await supabase
@@ -742,12 +764,134 @@ export default function BooksPage() {
         throw new Error(`Не удалось удалить книгу: ${error.message}`);
       }
 
+      // Force reset the fetching ref to ensure refresh works
+      fetchingRef.current = false;
+      
       // Refresh books list
       await fetchBooks();
       setSuccess('Книга успешно удалена');
     } catch (error) {
       console.error('Error deleting book:', error);
       setError(error instanceof Error ? error.message : 'Не удалось удалить книгу');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Enhanced book duplication with ownership and statistics preservation
+   * 
+   * Features:
+   * - Current user becomes owner of the duplicated book
+   * - Preserves views_count and viewers_count from original
+   * - Copies all book content (canvas_elements, structure, settings)
+   * - Maintains school/download statistics
+   * - Shows context-aware success message
+   */
+  const handleDuplicateBook = async (book: Book) => {
+    if (!confirm(`Дублировать книгу "${book.title}"? Будет создана копия в черновиках.`)) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const supabase = createClient();
+      
+      // First, fetch the complete book data including content
+      const { data: fullBookData, error: fetchError } = await supabase
+        .from('books')
+        .select('*')
+        .eq('id', book.id)
+        .single();
+
+      if (fetchError) {
+        throw new Error(`Не удалось получить данные книги: ${fetchError.message}`);
+      }
+      
+      // Determine ownership logic
+      const isCurrentUserOwner = book.author_id === userProfile.id || book.user_role === 'owner';
+      
+      // Generate a unique base_url for the duplicate
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const newBaseUrl = `${book.base_url}-copy-${timestamp}-${randomSuffix}`;
+      
+      // Create the duplicate book with enhanced ownership and stats logic
+      const { data: duplicatedBook, error } = await supabase
+        .from('books')
+        .insert({
+          base_url: newBaseUrl,
+          title: `${book.title} (Копия)`,
+          description: book.description,
+          grade_level: book.grade_level,
+          course: book.course,
+          category: book.category,
+          status: 'Draft',
+          // Set current user as author (ownership is managed via book_collaborators table)
+          author_id: userProfile.id, // Current user becomes the author
+          cover_image: book.cover_image,
+          file_size: book.file_size,
+          pages_count: book.pages_count,
+          language: book.language,
+          isbn: book.isbn,
+          publisher: book.publisher,
+          publication_date: book.publication_date,
+          price: book.price,
+          // Copy book content
+          canvas_elements: fullBookData.canvas_elements, // Copy all canvas elements
+          structure: fullBookData.structure, // Copy book structure
+          canvas_settings: fullBookData.canvas_settings, // Copy canvas settings
+          // Enhanced statistics logic - use zeros for statistics fields
+          views_count: 0, // Use zero for views count as field doesn't exist
+          viewers_count: 0, // Use zero for viewers count as field doesn't exist  
+          // Keep school/download statistics - use zeros for non-existent fields
+          schools_purchased: 0,
+          schools_added: 0,
+          teachers_added: 0,
+          students_added: 0,
+          downloads_count: fullBookData.downloads_count || 0,
+          // Timestamps
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Не удалось дублировать книгу: ${error.message}`);
+      }
+
+      // Create ownership collaboration record for the duplicated book
+      try {
+        await supabase
+          .from('book_collaborators')
+          .insert({
+            book_id: duplicatedBook.id,
+            user_id: userProfile.id,
+            role: 'owner',
+            invited_by: userProfile.id,
+            created_at: new Date().toISOString()
+          });
+      } catch (collaborationError) {
+        console.warn('Could not create collaboration record:', collaborationError);
+        // Don't fail the entire operation if collaboration record creation fails
+      }
+
+      // Force reset the fetching ref to ensure refresh works
+      fetchingRef.current = false;
+      
+      // Refresh books list
+      await fetchBooks();
+      
+      // Enhanced success message based on ownership
+      const ownershipMessage = isCurrentUserOwner 
+        ? 'Книга успешно продублирована. Вы стали владельцем копии.' 
+        : 'Книга успешно продублирована в ваши черновики.';
+      
+      setSuccess(ownershipMessage);
+    } catch (error) {
+      console.error('Error duplicating book:', error);
+      setError(error instanceof Error ? error.message : 'Не удалось дублировать книгу');
     } finally {
       setIsLoading(false);
     }
@@ -1163,6 +1307,15 @@ export default function BooksPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  onClick={() => handleDuplicateBook(book)}
+                                  title="Дублировать книгу"
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   onClick={() => handleSendToModeration(book)}
                                   title="Отправить на модерацию"
                                   className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
@@ -1181,11 +1334,22 @@ export default function BooksPage() {
                               </div>
                             )}
                             {book.status !== 'Draft' && (
-                              <div className="text-xs text-gray-500 italic">
-                                {book.author_id === userProfile.id 
-                                  ? getWorkflowStatus(book, 'author')
-                                  : `Совместная работа: ${getWorkflowStatus(book, 'author')}`
-                                }
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-gray-500 italic">
+                                  {book.author_id === userProfile.id 
+                                    ? getWorkflowStatus(book, 'author')
+                                    : `Совместная работа: ${getWorkflowStatus(book, 'author')}`
+                                  }
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDuplicateBook(book)}
+                                  title="Дублировать книгу"
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
                               </div>
                             )}
                           </>
@@ -1273,8 +1437,19 @@ export default function BooksPage() {
                               </div>
                             )}
                             {book.status === 'Active' && (
-                              <div className="text-xs text-green-600 font-medium">
-                                📚 Опубликовано вами
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-green-600 font-medium">
+                                  📚 Опубликовано вами
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDuplicateBook(book)}
+                                  title="Дублировать книгу"
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
                               </div>
                             )}
                             {book.status === 'Draft' && (
@@ -1287,6 +1462,15 @@ export default function BooksPage() {
                                   className="h-8 w-8 p-0"
                                 >
                                   <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDuplicateBook(book)}
+                                  title="Дублировать книгу"
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                >
+                                  <Copy className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"

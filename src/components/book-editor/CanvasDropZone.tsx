@@ -43,7 +43,7 @@ export const CanvasDropZone = React.memo(({
         <div
           ref={setNodeRef}
           data-canvas="true"
-          className={`relative bg-white shadow-lg border-2 min-h-screen ${
+          className={`relative bg-white shadow-lg border-2 min-h-screen overflow-hidden ${
             isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
           } transition-all duration-200`}
           style={canvasStyle}

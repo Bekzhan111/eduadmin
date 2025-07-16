@@ -1108,6 +1108,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'opt4', text: 'Вариант 4', isCorrect: false }
           ],
           points: 10,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         }
@@ -1125,6 +1126,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           expectedAnswer: 'Пример ожидаемого ответа',
           answerLength: 'medium',
           points: 15,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: false
         }
@@ -1141,6 +1143,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           instructions: 'Выберите "Верно" или "Неверно"',
           correctAnswer: true,
           points: 5,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         }
@@ -1166,6 +1169,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'right3', content: 'Соответствие 3', matchWith: 'left3' }
           ],
           points: 20,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         }
@@ -1200,6 +1204,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             }
           ],
           totalPoints: 10,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         }
@@ -1221,7 +1226,9 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'blank1', position: 13, answer: 'двенадцать', caseSensitive: false },
             { id: 'blank2', position: 31, answer: 'четыре', caseSensitive: false }
           ],
-          points: 10,
+          correctAnswerType: 'SINGLE', // Default to single correct answer
+          points: 1,
+          pointsEnabled: true, // По умолчанию система баллов включена
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1245,6 +1252,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'opt4', text: 'Вариант 4', isCorrect: false }
           ],
           points: 15,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true,
           partialCredit: true
@@ -1291,6 +1299,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'opt4', text: 'Вариант 3', isCorrect: false }
           ],
           points: 8,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1329,6 +1338,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             }
           ],
           points: 20,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true,
           allowMultipleAttempts: true
@@ -1358,6 +1368,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           ],
           connections: [],
           points: 18,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true,
           allowPartialCredit: true
@@ -1390,6 +1401,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             ]
           },
           points: 20,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1417,6 +1429,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'zone3', label: 'Зона 3', correctAnswer: 'item3' }
           ],
           points: 15,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1445,6 +1458,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'point3', x: 150, y: 200, label: 'Точка 3', correctAnswer: 'opt3' }
           ],
           points: 22,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1472,6 +1486,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'group2', name: 'Группа 2', correctItems: ['item3', 'item4'] }
           ],
           points: 16,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1495,6 +1510,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { id: 'item4', content: 'Четвертый элемент', type: 'text' }
           ],
           points: 12,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1526,6 +1542,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             { word: 'ПОИСК', startRow: 2, startCol: 0, direction: 'horizontal' }
           ],
           points: 15,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1560,6 +1577,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
             ]
           },
           points: 24,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1579,6 +1597,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           textContent: 'Это пример текста для выделения определенных слов. Найдите и выделите ключевые слова в данном тексте.',
           wordsToHighlight: ['пример', 'текста', 'слова', 'ключевые'],
           points: 12,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1599,6 +1618,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           editingInstructions: 'Исправьте пунктуацию, добавьте запятые где необходимо, улучшите читаемость текста.',
           expectedResult: 'Этот текст содержит ошибки, которые нужно исправить. Также можно улучшить стиль написания.',
           points: 20,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1619,6 +1639,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           highlightInstructions: 'Выделите фразы, которые содержат основную мысль текста',
           correctHighlights: ['Важная информация', 'Умение выделять главное', 'ключевой навык'],
           points: 15,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: true
         },
@@ -1639,6 +1660,7 @@ export const getEnhancedPropertiesForTool = (toolId: string): Record<string, any
           showHint: false,
           followUpQuestion: 'Теперь, когда вы получили подсказку, попробуйте решить задачу самостоятельно.',
           points: 5,
+          pointsEnabled: true,
           timeLimit: null,
           showCorrectAnswer: false
         },
