@@ -139,6 +139,34 @@ export function CanvasElementComponent({
     }
   }, [element.width, element.height, element.x, element.y, isResizing]);
 
+  // Check if element is at canvas boundaries for visual feedback
+  const isAtBoundary = useCallback(() => {
+    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+    if (!canvasElement || !canvasSettings) return { left: false, right: false, top: false, bottom: false };
+    
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const zoomFactor = canvasSettings.zoom / 100;
+    const canvasWidth = canvasRect.width / zoomFactor;
+    const canvasHeight = canvasRect.height / zoomFactor;
+    
+    const currentX = isResizing ? currentResize.x : element.x;
+    const currentY = isResizing ? currentResize.y : element.y;
+    const currentWidth = isResizing ? currentResize.width : element.width;
+    const currentHeight = isResizing ? currentResize.height : element.height;
+    
+    const threshold = 5; // Pixels from edge to show boundary indicator
+    
+    return {
+      left: currentX <= threshold,
+      right: currentX + currentWidth >= canvasWidth - threshold,
+      top: currentY <= threshold,
+      bottom: currentY + currentHeight >= canvasHeight - threshold
+    };
+  }, [element, isResizing, currentResize, canvasSettings]);
+  
+  const boundaryState = isAtBoundary();
+  const isAtAnyBoundary = boundaryState.left || boundaryState.right || boundaryState.top || boundaryState.bottom;
+
   // Apply transform using CSS transforms (performance optimized)
   const style = {
     position: 'absolute' as const,
@@ -156,6 +184,10 @@ export function CanvasElementComponent({
     zIndex: element.zIndex + (isDragging || isResizing ? 1000 : 0),
     transition: isDragging || isResizing ? 'none' : 'all 0.2s ease',
     overflow: element.type === 'assignment' ? 'visible' : undefined,
+    // Add subtle visual feedback for boundary violations
+    boxShadow: isAtAnyBoundary && (isDragging || isResizing) ? 
+      '0 0 0 2px rgba(255, 165, 0, 0.5), 0 0 8px rgba(255, 165, 0, 0.3)' : 
+      undefined,
   };
 
   // When shift key is pressed, maintain aspect ratio
@@ -1133,6 +1165,24 @@ export function CanvasElementComponent({
           />
         )}
         
+        {/* Boundary violation indicator */}
+        {isAtAnyBoundary && (isDragging || isResizing) && (
+          <div className="absolute -inset-1 pointer-events-none z-40">
+            {boundaryState.left && (
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-400 opacity-60" />
+            )}
+            {boundaryState.right && (
+              <div className="absolute right-0 top-0 bottom-0 w-1 bg-orange-400 opacity-60" />
+            )}
+            {boundaryState.top && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-orange-400 opacity-60" />
+            )}
+            {boundaryState.bottom && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-400 opacity-60" />
+            )}
+          </div>
+        )}
+        
         {/* Show aspect ratio indicator when shift is pressed or for icons */}
         {isResizing && (resizeStateRef.current.keepAspectRatio || element.type === 'icon') && (
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none z-30">
@@ -1158,7 +1208,7 @@ export function CanvasElementComponent({
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={`absolute cursor-grab group ${isSelected ? 'ring-2 ring-blue-500 ring-opacity-50' : ''} ${isDragging ? 'z-50' : ''}`}
+        className={`absolute cursor-grab group ${isSelected ? 'ring-2 ring-blue-500 ring-opacity-50' : ''} ${isDragging ? 'z-50' : ''} ${isAtAnyBoundary && (isDragging || isResizing) ? 'boundary-warning' : ''}`}
         style={style}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}

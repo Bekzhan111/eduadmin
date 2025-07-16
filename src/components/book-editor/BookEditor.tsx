@@ -384,9 +384,21 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
 
   // Get smart position for new elements
   const _getSmartPosition = useCallback(() => {
-    // Default position
-    let x = 100;
-    let y = 100;
+    // Get canvas dimensions for boundary checking
+    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+    let canvasWidth = canvasSettings.canvasWidth * 3.7795; // Default fallback
+    let canvasHeight = canvasSettings.canvasHeight * 3.7795; // Default fallback
+    
+    if (canvasElement) {
+      const canvasRect = canvasElement.getBoundingClientRect();
+      const zoomFactor = canvasSettings.zoom / 100;
+      canvasWidth = canvasRect.width / zoomFactor;
+      canvasHeight = canvasRect.height / zoomFactor;
+    }
+    
+    // Default position with boundary constraints
+    let x = Math.min(100, canvasWidth - 150); // Leave space for element width
+    let y = Math.min(100, canvasHeight - 100); // Leave space for element height
     
     // Try to place new elements in a smart way to avoid overlap (infinite scroll)
     if (elements.length > 0) {
@@ -401,6 +413,11 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
         for (let col = 0; col < 10 && !foundPosition; col++) {
           const testX = 50 + col * gridSize;
           const testY = 50 + row * gridSize;
+          
+          // Check canvas boundaries - ensure element stays within canvas
+          if (testX + 100 > canvasWidth || testY + 50 > canvasHeight) {
+            continue; // Skip this position if it would exceed canvas boundaries
+          }
           
           // Check if this position overlaps with any existing element
           const overlaps = positions.some(pos => 
@@ -419,8 +436,12 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
       }
     }
     
+    // Final boundary check to ensure position is within canvas
+    x = Math.max(0, Math.min(x, canvasWidth - 100));
+    y = Math.max(0, Math.min(y, canvasHeight - 50));
+    
     return { x, y };
-  }, [elements]); // Removed currentPage dependency
+  }, [elements, canvasSettings]); // Added canvasSettings dependency
 
   // Add to history with functional state updates to avoid stale closures
   const addToHistory = useCallback((newElements: CanvasElementType[]) => {
@@ -1162,9 +1183,32 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             canvasHeight = canvasRect.height / zoomFactor;
           }
           
-          // Apply boundary constraints
+          // Apply strict boundary constraints to prevent elements from exceeding canvas boundaries
+          const originalX = newX;
+          const originalY = newY;
+          
+          // Constrain X position
           newX = Math.max(0, Math.min(newX, canvasWidth - el.width));
+          
+          // Constrain Y position  
           newY = Math.max(0, Math.min(newY, canvasHeight - el.height));
+          
+          // Additional safety check - if element dimensions would cause overflow, adjust position
+          if (newX + el.width > canvasWidth) {
+            newX = Math.max(0, canvasWidth - el.width);
+          }
+          if (newY + el.height > canvasHeight) {
+            newY = Math.max(0, canvasHeight - el.height);
+          }
+          
+          // Auto-correction feedback: if position was corrected, briefly show visual indicator
+          if (originalX !== newX || originalY !== newY) {
+            console.log('🔄 Auto-corrected element position:', {
+              original: { x: originalX, y: originalY },
+              corrected: { x: newX, y: newY },
+              elementId: el.id
+            });
+          }
           
           // Snap to grid if enabled
           if (canvasSettings.snapToGrid) {

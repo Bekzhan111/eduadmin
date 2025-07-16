@@ -6,8 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BookOpen, Clock, User, Calendar } from 'lucide-react';
 import Image from 'next/image';
-import BookViewTracker from '@/components/ui/book-view-tracker';
-import BookViewStatsComponent from '@/components/ui/book-view-stats';
 import BookReader from '@/components/ui/book-reader';
 
 export default async function BookReadPage({ params }: { params: Promise<{ base_url: string }> }) {
@@ -153,8 +151,6 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Add view tracking */}
-      <BookViewTracker bookId={book.id} />
       
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b">
@@ -246,10 +242,6 @@ export default async function BookReadPage({ params }: { params: Promise<{ base_
                     </div>
                   </div>
                   
-                  {/* Add simple view stats */}
-                  <div className="mt-4">
-                    <BookViewStatsComponent bookId={book.id} showDetailedStats={false} />
-                  </div>
                   
                   <div className="flex flex-wrap gap-2 mt-4">
                     {book.grade_level && (

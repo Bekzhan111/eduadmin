@@ -17,8 +17,6 @@ import {
   FileText
 } from 'lucide-react';
 import Image from 'next/image';
-import BookViewTracker from '@/components/ui/book-view-tracker';
-import BookViewStatsComponent from '@/components/ui/book-view-stats';
 
 export default async function BookPage({ params }: { params: Promise<{ base_url: string }> }) {
   const { base_url } = await params;
@@ -33,7 +31,6 @@ export default async function BookPage({ params }: { params: Promise<{ base_url:
       users:author_id (display_name, email)
     `)
     .eq('base_url', base_url)
-    .eq('status', 'Active') // Only show active books
     .single();
 
   if (error || !book) {
@@ -42,8 +39,6 @@ export default async function BookPage({ params }: { params: Promise<{ base_url:
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Add view tracking */}
-      <BookViewTracker bookId={book.id} />
       
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b">
@@ -62,9 +57,12 @@ export default async function BookPage({ params }: { params: Promise<{ base_url:
               </h1>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge variant="outline">
+              <Badge variant={book.status === 'Active' ? 'default' : 'outline'}>
                 <BookOpen className="h-3 w-3 mr-1" />
-                Активная книга
+                {book.status === 'Draft' ? 'Черновик' : 
+                 book.status === 'Moderation' ? 'Модерация' : 
+                 book.status === 'Approved' ? 'Одобрено' : 
+                 'Активная книга'}
               </Badge>
             </div>
           </div>
@@ -219,8 +217,6 @@ export default async function BookPage({ params }: { params: Promise<{ base_url:
           </div>
         </div>
 
-        {/* View Statistics */}
-        <BookViewStatsComponent bookId={book.id} showDetailedStats={true} />
 
         {/* Book Content Preview */}
         <Card className="mt-8">

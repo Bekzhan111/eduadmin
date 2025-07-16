@@ -31,7 +31,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 // Removed import of supabase-admin to avoid client-side environment variable issues
 import { useRouter } from 'next/navigation';
-import BookViewStatsComponent from '@/components/ui/book-view-stats';
 
 type Book = {
   id: string;
@@ -55,13 +54,7 @@ type Book = {
   isbn?: string;
   publisher?: string;
   publication_date?: string;
-  // Statistics fields - note: some fields may not exist in database
-  views_count?: number; // Number of views (просмотров) - may not exist
-  viewers_count?: number; // Number of viewers (зрителей) - may not exist
-  schools_purchased: number; // May not exist in database
-  schools_added: number; // May not exist in database
-  teachers_added: number; // May not exist in database
-  students_added: number; // May not exist in database
+  // Statistics fields
   downloads_count?: number;
   // Collaboration fields (ownership is managed via book_collaborators table)
   user_role?: 'owner' | 'editor' | 'reviewer' | 'viewer';
@@ -301,10 +294,6 @@ export default function BooksPage() {
           updated_at: book.updated_at,
           price: book.price,
           cover_image: book.cover_image,
-          schools_purchased: 0,
-          schools_added: 0,
-          teachers_added: 0,
-          students_added: 0,
           // Collaboration fields
           user_role: isOwner ? 'owner' : (collaborationData?.role as 'owner' | 'editor' | 'reviewer' | 'viewer'),
           is_collaborator: isCollaborator,
@@ -717,10 +706,6 @@ export default function BooksPage() {
         cover_image: book.cover_image,
         pages_count: book.pages_count,
         language: book.language,
-        schools_purchased: 0,
-        schools_added: 0,
-        teachers_added: 0,
-        students_added: 0,
         downloads_count: 0,
       }));
 
@@ -779,13 +764,12 @@ export default function BooksPage() {
   };
 
   /**
-   * Enhanced book duplication with ownership and statistics preservation
+   * Enhanced book duplication with ownership preservation
    * 
    * Features:
    * - Current user becomes owner of the duplicated book
-   * - Preserves views_count and viewers_count from original
    * - Copies all book content (canvas_elements, structure, settings)
-   * - Maintains school/download statistics
+   * - Resets statistics for new book
    * - Shows context-aware success message
    */
   const handleDuplicateBook = async (book: Book) => {
@@ -800,7 +784,32 @@ export default function BooksPage() {
       // First, fetch the complete book data including content
       const { data: fullBookData, error: fetchError } = await supabase
         .from('books')
-        .select('*')
+        .select(`
+          id,
+          base_url,
+          title,
+          description,
+          grade_level,
+          course,
+          category,
+          status,
+          author_id,
+          moderator_id,
+          created_at,
+          updated_at,
+          price,
+          cover_image,
+          file_size,
+          pages_count,
+          language,
+          isbn,
+          publisher,
+          publication_date,
+          downloads_count,
+          canvas_elements,
+          structure,
+          canvas_settings
+        `)
         .eq('id', book.id)
         .single();
 
@@ -841,14 +850,6 @@ export default function BooksPage() {
           canvas_elements: fullBookData.canvas_elements, // Copy all canvas elements
           structure: fullBookData.structure, // Copy book structure
           canvas_settings: fullBookData.canvas_settings, // Copy canvas settings
-          // Enhanced statistics logic - use zeros for statistics fields
-          views_count: 0, // Use zero for views count as field doesn't exist
-          viewers_count: 0, // Use zero for viewers count as field doesn't exist  
-          // Keep school/download statistics - use zeros for non-existent fields
-          schools_purchased: 0,
-          schools_added: 0,
-          teachers_added: 0,
-          students_added: 0,
           downloads_count: fullBookData.downloads_count || 0,
           // Timestamps
           created_at: new Date().toISOString(),
@@ -1271,19 +1272,16 @@ export default function BooksPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <BookViewStatsComponent bookId={book.id} showDetailedStats={false} className="justify-center" />
-                    </TableCell>
-                    <TableCell>
                       <div className="text-center">
-                        <div className="text-sm font-medium">{book.schools_purchased} куплено</div>
-                        <div className="text-xs text-gray-500">{book.schools_added} добавлено</div>
+                        <div className="text-sm font-medium">0 куплено</div>
+                        <div className="text-xs text-gray-500">0 добавлено</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-center text-sm">{book.teachers_added}</div>
+                      <div className="text-center text-sm">0</div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-center text-sm">{book.students_added}</div>
+                      <div className="text-center text-sm">0</div>
                     </TableCell>
                     <TableCell>
                       {book.price ? `₸${book.price.toLocaleString()}` : 'Бесплатно'}
