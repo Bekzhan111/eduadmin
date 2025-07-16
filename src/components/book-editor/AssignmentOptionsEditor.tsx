@@ -220,12 +220,7 @@ export function AssignmentOptionsEditor({ element, onUpdate, onClose }: Assignme
             <SelectContent>
               {FILL_IN_BLANK_ANSWER_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
-                  <div className="flex items-center gap-2">
-                    {correctAnswerType === type.value && (
-                      <Check className="h-4 w-4 text-green-600" />
-                    )}
-                    <span>{type.label}</span>
-                  </div>
+                  {type.label}
                 </SelectItem>
               ))}
             </SelectContent>

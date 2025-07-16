@@ -1238,6 +1238,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: '4', text: 'Вариант 4', isCorrect: false }
             ],
             points: 1,
+            pointsEnabled: true,
             shuffleOptions: false,
             showCorrectAnswer: true,
             difficultyLevel: 3
@@ -1253,6 +1254,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             expectedAnswer: 'Пример ожидаемого ответа',
             answerLength: 'medium',
             points: 2,
+            pointsEnabled: true,
             showCorrectAnswer: true,
             difficultyLevel: 3
           }
@@ -1266,6 +1268,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             instructions: 'Определите, верно ли данное утверждение',
             correctAnswer: true,
             points: 1,
+            pointsEnabled: true,
             showCorrectAnswer: true,
             difficultyLevel: 3
           }
@@ -1286,6 +1289,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'right2', content: 'Соответствие 2', matchWith: 'left2' }
             ],
             points: 2,
+            pointsEnabled: true,
             showCorrectAnswer: true,
             difficultyLevel: 3
           }
@@ -1310,6 +1314,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               }
             ],
             points: 1,
+            pointsEnabled: true,
             timeLimit: 10,
             showCorrectAnswer: true,
             difficultyLevel: 3
@@ -1328,7 +1333,9 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'blank1', position: 13, answer: 'двенадцать', caseSensitive: false },
               { id: 'blank2', position: 31, answer: 'четыре', caseSensitive: false }
             ],
-            points: 10,
+            correctAnswerType: 'SINGLE', // Default to single correct answer
+            points: 1,
+            pointsEnabled: true, // По умолчанию система баллов включена
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1347,6 +1354,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'opt4', text: 'Вариант 4', isCorrect: false }
             ],
             points: 15,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true,
             partialCredit: true
@@ -1365,6 +1373,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'opt3', text: 'Вариант 3', isCorrect: false }
             ],
             points: 10,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1383,6 +1392,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'opt4', text: 'Вариант 3', isCorrect: false }
             ],
             points: 8,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1416,6 +1426,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               }
             ],
             points: 20,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true,
             allowMultipleAttempts: true
@@ -1440,6 +1451,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             ],
             connections: [],
             points: 18,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true,
             allowPartialCredit: true
@@ -1466,6 +1478,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               ]
             },
             points: 25,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1488,6 +1501,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'zone3', label: 'Зона 3', correctAnswer: 'item3' }
             ],
             points: 20,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1511,6 +1525,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'point3', x: 150, y: 200, label: 'Точка 3', correctAnswer: 'opt3' }
             ],
             points: 22,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1533,6 +1548,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'group2', name: 'Группа 2', correctItems: ['item3', 'item4'] }
             ],
             points: 18,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1557,6 +1573,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { id: 'item2', content: 'Второй элемент', type: 'text' }
             ],
             points: 16,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1583,6 +1600,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               { word: 'ПОИСК', startRow: 2, startCol: 0, direction: 'horizontal' }
             ],
             points: 15,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1612,6 +1630,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
               ]
             },
             points: 24,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1626,6 +1645,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             textContent: 'Это пример текста для выделения определенных слов. Найдите и выделите ключевые слова в данном тексте.',
             wordsToHighlight: ['пример', 'текста', 'слова', 'ключевые'],
             points: 12,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1641,6 +1661,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             editingInstructions: 'Исправьте пунктуацию, добавьте запятые где необходимо, улучшите читаемость текста.',
             expectedResult: 'Этот текст содержит ошибки, которые нужно исправить. Также можно улучшить стиль написания.',
             points: 20,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1656,6 +1677,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             highlightInstructions: 'Выделите фразы, которые содержат основную мысль текста',
             correctHighlights: ['Важная информация', 'ключевой навык', 'выделять главное'],
             points: 15,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: true
           }
@@ -1671,6 +1693,7 @@ export function BookEditor({ sectionId: propSectionId }: { sectionId?: string | 
             showHint: false,
             followUpQuestion: 'Как вы используете полученную подсказку для решения задачи?',
             points: 5,
+            pointsEnabled: true,
             timeLimit: null,
             showCorrectAnswer: false
           }

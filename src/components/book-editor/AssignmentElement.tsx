@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, Check, X, ChevronDown, Eye, EyeOff } from 'lucide-react';
-import { CanvasElement } from './types';
+import { CanvasElement, isPointsSystemEnabled } from './types';
 import { saveAssignmentToDatabase, validateAssignmentData } from '../../utils/assignments';
 import { useRouter } from 'next/navigation';
 
@@ -268,7 +268,7 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
               <h4 className="font-semibold">
                 {index + 1}. {question.question}
               </h4>
-              {question.points && (
+              {isPointsSystemEnabled(assignmentData) && question.points && (
                 <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
                   {question.points} баллов
                 </span>
@@ -1828,7 +1828,7 @@ export function AssignmentElement({ element, isEditing, onUpdate, bookBaseUrl }:
               />
             </div>
           )}
-          {assignmentData.points && (
+          {isPointsSystemEnabled(assignmentData) && assignmentData.points && (
             <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
               {assignmentData.points} баллов
             </span>
